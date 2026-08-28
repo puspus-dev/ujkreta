@@ -1,9 +1,14 @@
+```go
 package main
 
 import (
+	"context"
 	"encoding/json"
-	"os"
-	"sync"
+	"fmt"
+	"log"
+	"strconv"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type UidRef struct {
@@ -105,7 +110,7 @@ type Grade struct {
 	ErtekeloTanarNeve         string       `json:"ErtekeloTanarNeve"`
 	Jelleg                    string       `json:"Jelleg,omitempty"`
 	SzamErtek                 int          `json:"SzamErtek,omitempty"`
-	SzovegesErtek             string       `json:"SzovegesErtek"`
+	SzovegesErtek              string       `json:"SzovegesErtek"`
 	SulySzazalekErteke        int          `json:"SulySzazalekErteke,omitempty"`
 	SzovegesErtekelesRovidNev string       `json:"SzovegesErtekelesRovidNev,omitempty"`
 	OsztalyCsoport            UidRef       `json:"OsztalyCsoport"`
@@ -221,8 +226,8 @@ type DktSubject struct {
 	AlkalmazottNev    string `json:"alkalmazottNev"`
 	CsoportId         int    `json:"csoportId,omitempty"`
 	OsztalyCsoportNev string `json:"osztalyCsoportNev"`
-	TipusId           int    `json:"tipusId"`
-	NyelvId           string `json:"nyelvId,omitempty"`
+	TipusId            int    `json:"tipusId"`
+	NyelvId            string `json:"nyelvId,omitempty"`
 }
 
 type ClassGroupSubjectAverage struct {
@@ -255,190 +260,637 @@ type storeData struct {
 }
 
 type Store struct {
-	mu   sync.RWMutex
-	path string
-	data storeData
+	db *pgxpool.Pool
 }
 
-func NewStore(path string) *Store {
-	s := &Store{path: path}
-	if raw, err := os.ReadFile(path); err == nil {
-		if json.Unmarshal(raw, &s.data) == nil {
-			return s
-		}
+func NewStore(db *pgxpool.Pool) *Store {
+	s := &Store{
+		db: db,
 	}
-	s.data = seedData()
-	s.save()
+
+	if err := s.ensureSeeded(); err != nil {
+		log.Printf("adatbázis seed sikertelen: %v", err)
+	}
+
 	return s
 }
 
-func (s *Store) save() {
-	raw, err := json.MarshalIndent(s.data, "", "  ")
-	if err != nil {
-		return
-	}
-	os.WriteFile(s.path, raw, 0o644)
-}
+func (s *Store) ensureSeeded() error {
+	ctx := context.Background()
 
-func (s *Store) Reset() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.data = seedData()
-	s.save()
+	var exists bool
+
+	err := s.db.QueryRow(
+		ctx,
+		`SELECT EXISTS(
+			SELECT 1
+			FROM kreta_store
+			WHERE id = 1
+		)`,
+	).Scan(&exists)
+
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		return nil
+	}
+
+	data := seedData()
+
+	s.SetConfig(data.Config)
+	s.SetStudent(data.Student)
+	s.SetClassGroups(data.ClassGroups)
+	s.SetGrades(data.Grades)
+	s.SetHomework(data.Homework)
+	s.SetTests(data.Tests)
+	s.SetOmissions(data.Omissions)
+	s.SetLessons(data.Lessons)
+	s.SetNotices(data.Notices)
+	s.SetInfoBoard(data.InfoBoard)
+	s.SetDktSubjects(data.DktSubjects)
+	s.SetAverages(data.Averages)
+
+	return nil
 }
 
 func (s *Store) GetConfig() ServerConfig {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.data.Config
+	ctx := context.Background()
+
+	var raw []byte
+
+	err := s.db.QueryRow(
+		ctx,
+		`SELECT config FROM kreta_store WHERE id = 1`,
+	).Scan(&raw)
+
+	if err != nil {
+		log.Printf("GetConfig: %v", err)
+		return ServerConfig{}
+	}
+
+	var result ServerConfig
+
+	if err := json.Unmarshal(raw, &result); err != nil {
+		log.Printf("GetConfig JSON: %v", err)
+		return ServerConfig{}
+	}
+
+	return result
 }
 
 func (s *Store) SetConfig(v ServerConfig) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.data.Config = v
-	s.save()
+	raw, err := json.Marshal(v)
+	if err != nil {
+		log.Printf("SetConfig JSON: %v", err)
+		return
+	}
+
+	_, err = s.db.Exec(
+		context.Background(),
+		`
+		INSERT INTO kreta_store (
+			id,
+			config
+		)
+		VALUES (
+			1,
+			$1
+		)
+		ON CONFLICT (id)
+		DO UPDATE SET
+			config = EXCLUDED.config,
+			updated_at = NOW()
+		`,
+		raw,
+	)
+
+	if err != nil {
+		log.Printf("SetConfig: %v", err)
+	}
 }
 
 func (s *Store) GetStudent() Student {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.data.Student
+	ctx := context.Background()
+
+	var raw []byte
+
+	err := s.db.QueryRow(
+		ctx,
+		`SELECT student FROM kreta_store WHERE id = 1`,
+	).Scan(&raw)
+
+	if err != nil {
+		log.Printf("GetStudent: %v", err)
+		return Student{}
+	}
+
+	var result Student
+
+	if err := json.Unmarshal(raw, &result); err != nil {
+		log.Printf("GetStudent JSON: %v", err)
+		return Student{}
+	}
+
+	return result
 }
 
 func (s *Store) SetStudent(v Student) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.data.Student = v
-	s.save()
+	raw, err := json.Marshal(v)
+	if err != nil {
+		log.Printf("SetStudent JSON: %v", err)
+		return
+	}
+
+	_, err = s.db.Exec(
+		context.Background(),
+		`
+		INSERT INTO kreta_store (
+			id,
+			student
+		)
+		VALUES (
+			1,
+			$1
+		)
+		ON CONFLICT (id)
+		DO UPDATE SET
+			student = EXCLUDED.student,
+			updated_at = NOW()
+		`,
+		raw,
+	)
+
+	if err != nil {
+		log.Printf("SetStudent: %v", err)
+	}
+}
+
+func getCollection[T any](
+	ctx context.Context,
+	db *pgxpool.Pool,
+	table string,
+	orderBy string,
+) []T {
+	query := fmt.Sprintf(
+		`SELECT data FROM %s ORDER BY %s`,
+		table,
+		orderBy,
+	)
+
+	rows, err := db.Query(ctx, query)
+	if err != nil {
+		log.Printf("getCollection(%s): %v", table, err)
+		return []T{}
+	}
+
+	defer rows.Close()
+
+	result := make([]T, 0)
+
+	for rows.Next() {
+		var raw []byte
+
+		if err := rows.Scan(&raw); err != nil {
+			log.Printf(
+				"getCollection(%s) scan: %v",
+				table,
+				err,
+			)
+			return []T{}
+		}
+
+		var item T
+
+		if err := json.Unmarshal(raw, &item); err != nil {
+			log.Printf(
+				"getCollection(%s) JSON: %v",
+				table,
+				err,
+			)
+			return []T{}
+		}
+
+		result = append(result, item)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Printf(
+			"getCollection(%s): %v",
+			table,
+			err,
+		)
+		return []T{}
+	}
+
+	return result
+}
+
+func replaceCollection[T any](
+	db *pgxpool.Pool,
+	table string,
+	items []T,
+	getUID func(T) string,
+) error {
+	ctx := context.Background()
+
+	tx, err := db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback(ctx)
+
+	deleteQuery := fmt.Sprintf(
+		`DELETE FROM %s`,
+		table,
+	)
+
+	if _, err := tx.Exec(ctx, deleteQuery); err != nil {
+		return err
+	}
+
+	insertQuery := fmt.Sprintf(
+		`
+		INSERT INTO %s (
+			uid,
+			data,
+			created_at,
+			updated_at
+		)
+		VALUES (
+			$1,
+			$2,
+			NOW(),
+			NOW()
+		)
+		`,
+		table,
+	)
+
+	for _, item := range items {
+		raw, err := json.Marshal(item)
+		if err != nil {
+			return err
+		}
+
+		uid := getUID(item)
+
+		if uid == "" {
+			continue
+		}
+
+		if _, err := tx.Exec(
+			ctx,
+			insertQuery,
+			uid,
+			raw,
+		); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit(ctx)
 }
 
 func (s *Store) GetClassGroups() []ClassGroup {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.data.ClassGroups
+	return getCollection[ClassGroup](
+		context.Background(),
+		s.db,
+		"class_groups",
+		"uid",
+	)
 }
 
 func (s *Store) SetClassGroups(v []ClassGroup) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.data.ClassGroups = v
-	s.save()
+	if err := replaceCollection(
+		s.db,
+		"class_groups",
+		v,
+		func(x ClassGroup) string {
+			return x.Uid
+		},
+	); err != nil {
+		log.Printf("SetClassGroups: %v", err)
+	}
 }
 
 func (s *Store) GetGrades() []Grade {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.data.Grades
+	return getCollection[Grade](
+		context.Background(),
+		s.db,
+		"grades",
+		"uid",
+	)
 }
 
 func (s *Store) SetGrades(v []Grade) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.data.Grades = v
-	s.save()
+	if err := replaceCollection(
+		s.db,
+		"grades",
+		v,
+		func(x Grade) string {
+			return x.Uid
+		},
+	); err != nil {
+		log.Printf("SetGrades: %v", err)
+	}
 }
 
 func (s *Store) GetHomework() []Homework {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.data.Homework
+	return getCollection[Homework](
+		context.Background(),
+		s.db,
+		"homework",
+		"uid",
+	)
 }
 
 func (s *Store) SetHomework(v []Homework) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.data.Homework = v
-	s.save()
+	if err := replaceCollection(
+		s.db,
+		"homework",
+		v,
+		func(x Homework) string {
+			return x.Uid
+		},
+	); err != nil {
+		log.Printf("SetHomework: %v", err)
+	}
 }
 
 func (s *Store) GetTests() []Test {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.data.Tests
+	return getCollection[Test](
+		context.Background(),
+		s.db,
+		"tests",
+		"uid",
+	)
 }
 
 func (s *Store) SetTests(v []Test) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.data.Tests = v
-	s.save()
+	if err := replaceCollection(
+		s.db,
+		"tests",
+		v,
+		func(x Test) string {
+			return x.Uid
+		},
+	); err != nil {
+		log.Printf("SetTests: %v", err)
+	}
 }
 
 func (s *Store) GetOmissions() []Omission {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.data.Omissions
+	return getCollection[Omission](
+		context.Background(),
+		s.db,
+		"omissions",
+		"uid",
+	)
 }
 
 func (s *Store) SetOmissions(v []Omission) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.data.Omissions = v
-	s.save()
+	if err := replaceCollection(
+		s.db,
+		"omissions",
+		v,
+		func(x Omission) string {
+			return x.Uid
+		},
+	); err != nil {
+		log.Printf("SetOmissions: %v", err)
+	}
 }
 
 func (s *Store) GetLessons() []Lesson {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.data.Lessons
+	return getCollection[Lesson](
+		context.Background(),
+		s.db,
+		"lessons",
+		"uid",
+	)
 }
 
 func (s *Store) SetLessons(v []Lesson) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.data.Lessons = v
-	s.save()
+	if err := replaceCollection(
+		s.db,
+		"lessons",
+		v,
+		func(x Lesson) string {
+			return x.Uid
+		},
+	); err != nil {
+		log.Printf("SetLessons: %v", err)
+	}
 }
 
 func (s *Store) GetNotices() []NoticeBoardItem {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.data.Notices
+	return getCollection[NoticeBoardItem](
+		context.Background(),
+		s.db,
+		"notices",
+		"uid",
+	)
 }
 
 func (s *Store) SetNotices(v []NoticeBoardItem) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.data.Notices = v
-	s.save()
+	if err := replaceCollection(
+		s.db,
+		"notices",
+		v,
+		func(x NoticeBoardItem) string {
+			return x.Uid
+		},
+	); err != nil {
+		log.Printf("SetNotices: %v", err)
+	}
 }
 
 func (s *Store) GetInfoBoard() []InfoBoardItem {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.data.InfoBoard
+	return getCollection[InfoBoardItem](
+		context.Background(),
+		s.db,
+		"info_board",
+		"uid",
+	)
 }
 
 func (s *Store) SetInfoBoard(v []InfoBoardItem) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.data.InfoBoard = v
-	s.save()
+	if err := replaceCollection(
+		s.db,
+		"info_board",
+		v,
+		func(x InfoBoardItem) string {
+			return x.Uid
+		},
+	); err != nil {
+		log.Printf("SetInfoBoard: %v", err)
+	}
 }
 
 func (s *Store) GetDktSubjects() []DktSubject {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.data.DktSubjects
+	ctx := context.Background()
+
+	rows, err := s.db.Query(
+		ctx,
+		`SELECT data FROM dkt_subjects ORDER BY id`,
+	)
+
+	if err != nil {
+		log.Printf("GetDktSubjects: %v", err)
+		return []DktSubject{}
+	}
+
+	defer rows.Close()
+
+	result := make([]DktSubject, 0)
+
+	for rows.Next() {
+		var raw []byte
+
+		if err := rows.Scan(&raw); err != nil {
+			log.Printf(
+				"GetDktSubjects scan: %v",
+				err,
+			)
+			return []DktSubject{}
+		}
+
+		var item DktSubject
+
+		if err := json.Unmarshal(raw, &item); err != nil {
+			log.Printf(
+				"GetDktSubjects JSON: %v",
+				err,
+			)
+			return []DktSubject{}
+		}
+
+		result = append(result, item)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Printf(
+			"GetDktSubjects rows: %v",
+			err,
+		)
+		return []DktSubject{}
+	}
+
+	return result
 }
 
 func (s *Store) SetDktSubjects(v []DktSubject) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.data.DktSubjects = v
-	s.save()
+	ctx := context.Background()
+
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		log.Printf("SetDktSubjects begin: %v", err)
+		return
+	}
+
+	defer tx.Rollback(ctx)
+
+	if _, err := tx.Exec(
+		ctx,
+		`DELETE FROM dkt_subjects`,
+	); err != nil {
+		log.Printf(
+			"SetDktSubjects delete: %v",
+			err,
+		)
+		return
+	}
+
+	for _, item := range v {
+		raw, err := json.Marshal(item)
+		if err != nil {
+			log.Printf(
+				"SetDktSubjects JSON: %v",
+				err,
+			)
+			return
+		}
+
+		id := strconv.Itoa(item.TantargyId)
+
+		if _, err := tx.Exec(
+			ctx,
+			`
+			INSERT INTO dkt_subjects (
+				id,
+				data,
+				created_at,
+				updated_at
+			)
+			VALUES (
+				$1,
+				$2,
+				NOW(),
+				NOW()
+			)
+			ON CONFLICT (id)
+			DO UPDATE SET
+				data = EXCLUDED.data,
+				updated_at = NOW()
+			`,
+			id,
+			raw,
+		); err != nil {
+			log.Printf(
+				"SetDktSubjects insert: %v",
+				err,
+			)
+			return
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Printf(
+			"SetDktSubjects commit: %v",
+			err,
+		)
+	}
 }
 
 func (s *Store) GetAverages() []ClassGroupSubjectAverage {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.data.Averages
+	return getCollection[ClassGroupSubjectAverage](
+		context.Background(),
+		s.db,
+		"averages",
+		"uid",
+	)
 }
 
 func (s *Store) SetAverages(v []ClassGroupSubjectAverage) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.data.Averages = v
-	s.save()
+	if err := replaceCollection(
+		s.db,
+		"averages",
+		v,
+		func(x ClassGroupSubjectAverage) string {
+			return x.Uid
+		},
+	); err != nil {
+		log.Printf("SetAverages: %v", err)
+	}
 }
+
+func (s *Store) Reset() {
+	data := seedData()
+
+	s.SetConfig(data.Config)
+	s.SetStudent(data.Student)
+	s.SetClassGroups(data.ClassGroups)
+	s.SetGrades(data.Grades)
+	s.SetHomework(data.Homework)
+	s.SetTests(data.Tests)
+	s.SetOmissions(data.Omissions)
+	s.SetLessons(data.Lessons)
+	s.SetNotices(data.Notices)
+	s.SetInfoBoard(data.InfoBoard)
+	s.SetDktSubjects(data.DktSubjects)
+	s.SetAverages(data.Averages)
+}
+```

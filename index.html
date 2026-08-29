@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>KRETÉN Napló - Főoldal</title>
-  <link rel="stylesheet" href="https://e-kreten.github.io/src/naplo_main_style.css">
+  <link rel="stylesheet" href="https://puspus-dev.github.io/ujkreta/src/naplo_main_style.css">
 </head>
 <body>
   <div class="background" id="bg"></div>
@@ -48,7 +48,7 @@
     	localStorage.removeItem('local_usr');
       	localStorage.removeItem('local_pw');
       	localStorage.removeItem('local_institution');
-    	window.location.href = "https://e-kreten.github.io/naplo/login";
+    	window.location.href = "https://puspus-dev.github.io/ujkreta/login";
     }
 
     function applySettings() {
@@ -92,7 +92,7 @@
     const local_pw = localStorage.getItem("local_pw");
     const local_institution = localStorage.getItem("local_instituiton");
     if (!local_pw || !local_usr || local_institution) {
-    	window.location.href = "https://e-kreten.github.io/naplo/login";
+    	window.location.href = "https://puspus-dev.github.io/ujkreta/login";
   }
 
     document.getElementById("bg").style.backgroundImage = `url(${url})`;

@@ -12,43 +12,86 @@ import (
 	"time"
 )
 
+// ============================================================
+// TOKEN HELPERS
+// ============================================================
+
 func randomToken() string {
-	b := make([]byte, 24)
-	rand.Read(b)
+	b := make([]byte, 32)
+
+	if _, err := rand.Read(b); err != nil {
+		panic(err)
+	}
+
 	return base64.RawURLEncoding.EncodeToString(b)
 }
 
 func base64URL(v any) string {
-	b, _ := json.Marshal(v)
+	b, err := json.Marshal(v)
+
+	if err != nil {
+		return ""
+	}
+
 	return base64.RawURLEncoding.EncodeToString(b)
 }
 
-func buildIdToken(instituteCode, userId, username, studentName string) string {
-	header := map[string]string{"alg": "none", "typ": "JWT"}
+// ============================================================
+// ID TOKEN
+// ============================================================
+
+func buildIdToken(
+	instituteCode string,
+	userID string,
+	username string,
+	studentName string,
+) string {
+	header := map[string]string{
+		"alg": "none",
+		"typ": "JWT",
+	}
+
 	payload := map[string]any{
 		"kreta:institute_code":    instituteCode,
-		"kreta:institute_user_id": userId,
+		"kreta:institute_user_id": userID,
 		"kreta:user_name":         username,
 		"name":                    studentName,
 		"role":                    "Tanulo",
 		"iat":                     time.Now().Unix(),
 	}
+
 	sig := make([]byte, 16)
-	rand.Read(sig)
-	return base64URL(header) + "." + base64URL(payload) + "." + base64.RawURLEncoding.EncodeToString(sig)
+
+	if _, err := rand.Read(sig); err != nil {
+		return ""
+	}
+
+	return base64URL(header) +
+		"." +
+		base64URL(payload) +
+		"." +
+		base64.RawURLEncoding.EncodeToString(sig)
 }
+
+// ============================================================
+// SESSION
+// ============================================================
 
 type sessionInfo struct {
 	InstituteCode string `json:"instituteCode"`
-	UserId        string `json:"userId"`
+	UserID        string `json:"userId"`
 	Username      string `json:"username"`
 }
 
 type AuthStore struct {
-	mu            sync.Mutex
-	path          string
-	pendingCodes  map[string]bool
-	accessTokens  map[string]sessionInfo
+	mu sync.Mutex
+
+	path string
+
+	pendingCodes map[string]bool
+
+	accessTokens map[string]sessionInfo
+
 	refreshTokens map[string]sessionInfo
 }
 
@@ -57,201 +100,680 @@ type authFile struct {
 	RefreshTokens map[string]sessionInfo `json:"refreshTokens"`
 }
 
+// ============================================================
+// AUTH STORE
+// ============================================================
+
 func NewAuthStore(path string) *AuthStore {
 	a := &AuthStore{
-		path:          path,
-		pendingCodes:  map[string]bool{},
-		accessTokens:  map[string]sessionInfo{},
-		refreshTokens: map[string]sessionInfo{},
+		path: path,
+
+		pendingCodes: make(map[string]bool),
+
+		accessTokens: make(map[string]sessionInfo),
+
+		refreshTokens: make(map[string]sessionInfo),
 	}
+
 	raw, err := os.ReadFile(path)
+
 	if err != nil {
 		return a
 	}
+
 	var f authFile
-	if json.Unmarshal(raw, &f) != nil {
+
+	if err := json.Unmarshal(raw, &f); err != nil {
+		log.Printf(
+			"auth state betöltése sikertelen: %v",
+			err,
+		)
+
 		return a
 	}
+
 	if f.AccessTokens != nil {
 		a.accessTokens = f.AccessTokens
 	}
+
 	if f.RefreshTokens != nil {
 		a.refreshTokens = f.RefreshTokens
 	}
+
 	return a
 }
 
+// ============================================================
+// SAVE
+// ============================================================
+
 func (a *AuthStore) save() {
-	raw, err := json.MarshalIndent(authFile{
-		AccessTokens:  a.accessTokens,
-		RefreshTokens: a.refreshTokens,
-	}, "", "  ")
+	raw, err := json.MarshalIndent(
+		authFile{
+			AccessTokens:  a.accessTokens,
+			RefreshTokens: a.refreshTokens,
+		},
+		"",
+		"  ",
+	)
+
 	if err != nil {
+		log.Printf(
+			"auth state serializálása sikertelen: %v",
+			err,
+		)
+
 		return
 	}
-	os.WriteFile(a.path, raw, 0o644)
+
+	if err := os.WriteFile(
+		a.path,
+		raw,
+		0o600,
+	); err != nil {
+
+		log.Printf(
+			"auth state mentése sikertelen: %v",
+			err,
+		)
+	}
 }
+
+// ============================================================
+// AUTHORIZATION CODE
+// ============================================================
 
 func (a *AuthStore) issueCode() string {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+
 	code := randomToken()
+
 	a.pendingCodes[code] = true
+
 	return code
+}
+
+// hasCode csak ellenőrzi a code-ot.
+// Nem fogyasztja el.
+//
+// Az OAuth redirectnek erre van szüksége.
+func (a *AuthStore) hasCode(code string) bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	return a.pendingCodes[code]
 }
 
 func (a *AuthStore) consumeCode(code string) bool {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+
 	if !a.pendingCodes[code] {
 		return false
 	}
-	delete(a.pendingCodes, code)
+
+	delete(
+		a.pendingCodes,
+		code,
+	)
+
 	return true
 }
 
-func (a *AuthStore) issueTokens(info sessionInfo) (string, string) {
+// ============================================================
+// ACCESS + REFRESH TOKEN
+// ============================================================
+
+func (a *AuthStore) issueTokens(
+	info sessionInfo,
+) (string, string) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+
 	access := randomToken()
 	refresh := randomToken()
+
 	a.accessTokens[access] = info
 	a.refreshTokens[refresh] = info
+
 	a.save()
+
 	return access, refresh
 }
 
-func (a *AuthStore) consumeRefresh(token string) (sessionInfo, bool) {
+func (a *AuthStore) consumeRefresh(
+	token string,
+) (sessionInfo, bool) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+
 	info, ok := a.refreshTokens[token]
+
 	if !ok {
 		return sessionInfo{}, false
 	}
-	delete(a.refreshTokens, token)
+
+	delete(
+		a.refreshTokens,
+		token,
+	)
+
 	a.save()
+
 	return info, true
 }
 
-func (a *AuthStore) isValidAccess(token string) bool {
+func (a *AuthStore) isValidAccess(
+	token string,
+) bool {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+
 	_, ok := a.accessTokens[token]
+
 	return ok
 }
 
-func loginPageHTML(code string) string {
-	return fmt.Sprintf(`<!doctype html>
-<html><head><meta charset="utf-8"><title>Mock e-Kréta login</title>
-<style>body{font-family:sans-serif;max-width:420px;margin:80px auto;padding:0 16px}
-button{width:100%%;padding:12px;font-size:16px;background:#4c6b3a;color:#fff;border:none;border-radius:8px;cursor:pointer}</style>
-</head><body>
-<h2>Mock e-Kréta bejelentkezés</h2>
-<p>Ez a firka mock szerver bejelentkezési képernyője. Nincs szükség valódi felhasználónévre vagy jelszóra.</p>
-<form method="get" action="/ellenorzo-student/prod/oauthredirect">
-<input type="hidden" name="code" value="%s">
-<button type="submit">Belépés mock diákként</button>
-</form>
-</body></html>`, code)
-}
+// ============================================================
+// ERROR RESPONSE
+// ============================================================
 
-func (s *Server) handleAccountLogin(w http.ResponseWriter, r *http.Request) {
-	code := s.auth.issueCode()
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte(loginPageHTML(code)))
-}
-
-func (s *Server) handleOauthRedirect(w http.ResponseWriter, r *http.Request) {
-	code := r.URL.Query().Get("code")
-	if code == "" {
-		http.Error(w, "missing code", http.StatusBadRequest)
-		return
-	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte("<!doctype html><html><body>OK, code issued: " + code + "</body></html>"))
-}
-
-func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
-		return
-	}
-
-	cfg := s.store.GetConfig()
-	student := s.store.GetStudent()
-	grantType := r.FormValue("grant_type")
-	log.Printf(
-		"connect/token: content-type=%q grant_type=%q username=%q form=%v",
-		r.Header.Get("Content-Type"), grantType, r.FormValue("username"), r.Form,
+func writeOAuthError(
+	w http.ResponseWriter,
+	status int,
+	errCode string,
+	description string,
+) {
+	w.Header().Set(
+		"Content-Type",
+		"application/json; charset=utf-8",
 	)
 
-	var info sessionInfo
-	switch grantType {
-	case "authorization_code":
-		code := r.FormValue("code")
-		if !s.auth.consumeCode(code) {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		info = sessionInfo{
-			InstituteCode: cfg.InstituteCode,
-			UserId:        student.Uid,
-			Username:      cfg.Username,
-		}
-	case "refresh_token":
-		token := r.FormValue("refresh_token")
-		found, ok := s.auth.consumeRefresh(token)
-		if !ok {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		info = found
-	case "password":
-		username := r.FormValue("username")
-		password := r.FormValue("password")
-		if username != cfg.Username || password != cfg.Password {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		info = sessionInfo{
-			InstituteCode: cfg.InstituteCode,
-			UserId:        student.Uid,
-			Username:      cfg.Username,
-		}
-	default:
-		w.WriteHeader(http.StatusBadRequest)
+	w.WriteHeader(status)
+
+	_ = json.NewEncoder(w).Encode(
+		map[string]string{
+			"error":             errCode,
+			"error_description": description,
+		},
+	)
+}
+
+// ============================================================
+// MOCK LOGIN PAGE
+// ============================================================
+
+func loginPageHTML(code string) string {
+	return fmt.Sprintf(`<!doctype html>
+<html lang="hu">
+
+<head>
+<meta charset="utf-8">
+
+<title>Mock e-Kréta login</title>
+
+<style>
+
+body {
+	font-family: sans-serif;
+	max-width: 420px;
+	margin: 80px auto;
+	padding: 0 16px;
+}
+
+button {
+	width: 100%%;
+	padding: 12px;
+	font-size: 16px;
+	background: #4c6b3a;
+	color: #fff;
+	border: none;
+	border-radius: 8px;
+	cursor: pointer;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h2>Mock e-Kréta bejelentkezés</h2>
+
+<p>
+Ez a teszt szerver bejelentkezési képernyője.
+</p>
+
+<form
+	method="get"
+	action="/ellenorzo-student/prod/oauthredirect"
+>
+
+<input
+	type="hidden"
+	name="code"
+	value="%s"
+>
+
+<button type="submit">
+	Belépés mock diákként
+</button>
+
+</form>
+
+</body>
+
+</html>`, code)
+}
+
+// ============================================================
+// /Account/Login
+// ============================================================
+
+func (s *Server) handleAccountLogin(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	if r.Method != http.MethodGet {
+		methodNotAllowed(w, "GET")
 		return
 	}
 
-	access, refresh := s.auth.issueTokens(info)
-	idToken := buildIdToken(info.InstituteCode, info.UserId, info.Username, student.Nev)
+	code := s.auth.issueCode()
+
+	w.Header().Set(
+		"Content-Type",
+		"text/html; charset=utf-8",
+	)
+
+	_, _ = w.Write(
+		[]byte(
+			loginPageHTML(code),
+		),
+	)
+}
+
+// ============================================================
+// OAuth REDIRECT
+// ============================================================
+
+func (s *Server) handleOauthRedirect(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	if r.Method != http.MethodGet {
+		methodNotAllowed(w, "GET")
+		return
+	}
+
+	code := r.URL.Query().Get("code")
+
+	if code == "" {
+		http.Error(
+			w,
+			"missing code",
+			http.StatusBadRequest,
+		)
+
+		return
+	}
+
+	// FONTOS:
+	//
+	// Itt még NEM fogyasztjuk el a code-ot.
+	// A /connect/token fogja egyszer felhasználni.
+
+	if !s.auth.hasCode(code) {
+		http.Error(
+			w,
+			"invalid or expired code",
+			http.StatusUnauthorized,
+		)
+
+		return
+	}
+
+	w.Header().Set(
+		"Content-Type",
+		"text/html; charset=utf-8",
+	)
+
+	_, _ = w.Write(
+		[]byte(`
+<!doctype html>
+
+<html lang="hu">
+
+<head>
+<meta charset="utf-8">
+
+<title>KRETÉN</title>
+
+</head>
+
+<body>
+
+<h2>Bejelentkezés sikeres</h2>
+
+<p>
+A hitelesítési kód érvényes.
+</p>
+
+</body>
+
+</html>
+`),
+	)
+}
+
+// ============================================================
+// /connect/token
+// ============================================================
+
+func (s *Server) handleToken(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	if r.Method != http.MethodPost {
+
+		w.Header().Set(
+			"Allow",
+			"POST",
+		)
+
+		writeOAuthError(
+			w,
+			http.StatusMethodNotAllowed,
+			"invalid_request",
+			"Csak POST kérés engedélyezett.",
+		)
+
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+
+		writeOAuthError(
+			w,
+			http.StatusBadRequest,
+			"invalid_request",
+			"Hibás formátumú kérés.",
+		)
+
+		return
+	}
+
+	grantType := r.FormValue("grant_type")
+
+	log.Printf(
+		"connect/token: grant_type=%q username=%q",
+		grantType,
+		r.FormValue("username"),
+	)
+
+	cfg := s.store.GetConfig()
+
+	student := s.store.GetStudent()
+
+	var info sessionInfo
+
+	// ========================================================
+	// AUTHORIZATION CODE
+	// ========================================================
+
+	switch grantType {
+
+	case "authorization_code":
+
+		code := r.FormValue("code")
+
+		if code == "" {
+
+			writeOAuthError(
+				w,
+				http.StatusBadRequest,
+				"invalid_request",
+				"Hiányzik a code.",
+			)
+
+			return
+		}
+
+		if !s.auth.consumeCode(code) {
+
+			writeOAuthError(
+				w,
+				http.StatusUnauthorized,
+				"invalid_grant",
+				"Érvénytelen vagy már felhasznált authorization code.",
+			)
+
+			return
+		}
+
+		info = sessionInfo{
+			InstituteCode: cfg.InstituteCode,
+			UserID:        student.Uid,
+			Username:      cfg.Username,
+		}
+
+	// ========================================================
+	// REFRESH TOKEN
+	// ========================================================
+
+	case "refresh_token":
+
+		refreshToken := r.FormValue("refresh_token")
+
+		if refreshToken == "" {
+
+			writeOAuthError(
+				w,
+				http.StatusBadRequest,
+				"invalid_request",
+				"Hiányzik a refresh_token.",
+			)
+
+			return
+		}
+
+		found, ok := s.auth.consumeRefresh(
+			refreshToken,
+		)
+
+		if !ok {
+
+			writeOAuthError(
+				w,
+				http.StatusBadRequest,
+				"invalid_grant",
+				"Érvénytelen refresh token.",
+			)
+
+			return
+		}
+
+		info = found
+
+	// ========================================================
+	// PASSWORD
+	// ========================================================
+
+	case "password":
+
+		username := r.FormValue("username")
+		password := r.FormValue("password")
+
+		if username == "" || password == "" {
+
+			writeOAuthError(
+				w,
+				http.StatusBadRequest,
+				"invalid_request",
+				"Hiányzik a felhasználónév vagy a jelszó.",
+			)
+
+			return
+		}
+
+		user, err := s.store.GetUserByUsername(username)
+
+		if err != nil {
+
+			writeOAuthError(
+				w,
+				http.StatusUnauthorized,
+				"invalid_grant",
+				"Hibás felhasználónév vagy jelszó.",
+			)
+
+			return
+		}
+
+		if !s.store.CheckPassword(
+			user,
+			password,
+		) {
+
+			writeOAuthError(
+				w,
+				http.StatusUnauthorized,
+				"invalid_grant",
+				"Hibás felhasználónév vagy jelszó.",
+			)
+
+			return
+		}
+
+		info = sessionInfo{
+			InstituteCode: cfg.InstituteCode,
+			UserID:        user.StudentUID,
+			Username:      user.Username,
+		}
+
+	// ========================================================
+	// UNKNOWN GRANT
+	// ========================================================
+
+	default:
+
+		writeOAuthError(
+			w,
+			http.StatusBadRequest,
+			"unsupported_grant_type",
+			"Nem támogatott grant_type.",
+		)
+
+		return
+	}
+
+	// ========================================================
+	// TOKENS
+	// ========================================================
+
+	accessToken, refreshToken :=
+		s.auth.issueTokens(info)
+
+	idToken :=
+		buildIdToken(
+			info.InstituteCode,
+			info.UserID,
+			info.Username,
+			student.Nev,
+		)
+
+	expiresIn :=
+		cfg.AccessTokenTTLSeconds
+
+	if expiresIn <= 0 {
+		expiresIn = 3600
+	}
 
 	resp := map[string]any{
 		"id_token":      idToken,
-		"access_token":  access,
-		"expires_in":    cfg.AccessTokenTTLSeconds,
+		"access_token":  accessToken,
+		"expires_in":    expiresIn,
 		"token_type":    "Bearer",
-		"refresh_token": refresh,
+		"refresh_token": refreshToken,
 		"scope":         "openid email offline_access kreta-ellenorzo-webapi.public",
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	w.Header().Set(
+		"Content-Type",
+		"application/json; charset=utf-8",
+	)
+
+	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(
+		w,
+	).Encode(resp); err != nil {
+
+		log.Printf(
+			"token response írási hiba: %v",
+			err,
+		)
+	}
 }
 
-func (s *Server) requireAuth(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+// ============================================================
+// AUTH MIDDLEWARE
+// ============================================================
+
+func (s *Server) requireAuth(
+	next http.HandlerFunc,
+) http.HandlerFunc {
+	return func(
+		w http.ResponseWriter,
+		r *http.Request,
+	) {
 		authz := r.Header.Get("Authorization")
+
 		const prefix = "Bearer "
-		if len(authz) <= len(prefix) || authz[:len(prefix)] != prefix {
-			w.WriteHeader(http.StatusUnauthorized)
+
+		if len(authz) <= len(prefix) ||
+			!strings.HasPrefix(authz, prefix) {
+
+			writeOAuthError(
+				w,
+				http.StatusUnauthorized,
+				"invalid_token",
+				"Hiányzó vagy hibás Authorization header.",
+			)
+
 			return
 		}
+
 		token := authz[len(prefix):]
-		if !s.auth.isValidAccess(token) {
-			w.WriteHeader(http.StatusUnauthorized)
+
+		if token == "" {
+
+			writeOAuthError(
+				w,
+				http.StatusUnauthorized,
+				"invalid_token",
+				"Hiányzó access token.",
+			)
+
 			return
 		}
-		next(w, r)
+
+		if !s.auth.isValidAccess(token) {
+
+			writeOAuthError(
+				w,
+				http.StatusUnauthorized,
+				"invalid_token",
+				"Érvénytelen vagy lejárt access token.",
+			)
+
+			return
+		}
+
+		next(
+			w,
+			r,
+		)
 	}
 }

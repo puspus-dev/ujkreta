@@ -1,4 +1,3 @@
-```go
 package main
 
 import (
@@ -8,15 +7,11 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
-// A static könyvtár beágyazása.
-// Ha a frontend GitHub Pages-en van, ezt a részt később akár teljesen
-// el is hagyhatjuk, de az /old és egyéb lokális frontendek miatt marad.
-var (
-	//go:embed static
-	staticFiles embed.FS
-)
+//go:embed static
+var staticFiles embed.FS
 
 type Server struct {
 	store *Store
@@ -26,9 +21,9 @@ type Server struct {
 func main() {
 	ctx := context.Background()
 
-	// ------------------------------------------------------------
+	// ============================================================
 	// PostgreSQL
-	// ------------------------------------------------------------
+	// ============================================================
 
 	databaseURL := os.Getenv("DATABASE_URL")
 
@@ -36,24 +31,33 @@ func main() {
 		log.Fatal("DATABASE_URL nincs beállítva")
 	}
 
-	db, err := NewDB(ctx, databaseURL)
+	db, err := NewDB(
+		ctx,
+		databaseURL,
+	)
+
 	if err != nil {
-		log.Fatalf("adatbázis inicializálása sikertelen: %v", err)
+		log.Fatalf(
+			"adatbázis inicializálása sikertelen: %v",
+			err,
+		)
 	}
 
 	defer db.Close()
 
-	log.Println("PostgreSQL kapcsolat létrejött")
+	log.Println(
+		"PostgreSQL kapcsolat létrejött",
+	)
 
-	// ------------------------------------------------------------
+	// ============================================================
 	// Store
-	// ------------------------------------------------------------
+	// ============================================================
 
 	store := NewStore(db)
 
-	// ------------------------------------------------------------
+	// ============================================================
 	// Auth
-	// ------------------------------------------------------------
+	// ============================================================
 
 	auth := NewAuthStore("auth.json")
 
@@ -62,21 +66,24 @@ func main() {
 		auth:  auth,
 	}
 
-	// ------------------------------------------------------------
-	// HTTP router
-	// ------------------------------------------------------------
+	// ============================================================
+	// Router
+	// ============================================================
 
 	mux := http.NewServeMux()
 
-	// ------------------------------------------------------------
+	// ============================================================
 	// Health
-	// ------------------------------------------------------------
+	// ============================================================
 
-	mux.HandleFunc("/health", handleHealth)
+	mux.HandleFunc(
+		"/health",
+		handleHealth,
+	)
 
-	// ------------------------------------------------------------
+	// ============================================================
 	// Authentication
-	// ------------------------------------------------------------
+	// ============================================================
 
 	mux.HandleFunc(
 		"/Account/Login",
@@ -93,9 +100,9 @@ func main() {
 		server.handleToken,
 	)
 
-	// ------------------------------------------------------------
+	// ============================================================
 	// Student API
-	// ------------------------------------------------------------
+	// ============================================================
 
 	mux.HandleFunc(
 		"/ellenorzo/v3/sajat/TanuloAdatlap",
@@ -167,9 +174,9 @@ func main() {
 		),
 	)
 
-	// ------------------------------------------------------------
+	// ============================================================
 	// DKT
-	// ------------------------------------------------------------
+	// ============================================================
 
 	mux.HandleFunc(
 		"/dktapi/intezmenyek/munkaterek/tanulok",
@@ -178,15 +185,15 @@ func main() {
 		),
 	)
 
-	// ------------------------------------------------------------
-	// Admin API
-	// ------------------------------------------------------------
+	// ============================================================
+	// Admin
+	// ============================================================
 
 	server.registerAdminRoutes(mux)
 
-	// ------------------------------------------------------------
-	// Static files
-	// ------------------------------------------------------------
+	// ============================================================
+	// Static
+	// ============================================================
 
 	staticContent, err := fs.Sub(
 		staticFiles,
@@ -200,10 +207,6 @@ func main() {
 		)
 	}
 
-	// A lokális static frontend kiszolgálása.
-	//
-	// Ha a GitHub Pages az elsődleges frontend, ez nem zavarja
-	// a Render API működését.
 	mux.Handle(
 		"/",
 		http.FileServer(
@@ -211,9 +214,9 @@ func main() {
 		),
 	)
 
-	// ------------------------------------------------------------
+	// ============================================================
 	// Port
-	// ------------------------------------------------------------
+	// ============================================================
 
 	port := os.Getenv("PORT")
 
@@ -223,9 +226,9 @@ func main() {
 
 	addr := ":" + port
 
-	// ------------------------------------------------------------
-	// Server
-	// ------------------------------------------------------------
+	// ============================================================
+	// HTTP server
+	// ============================================================
 
 	log.Printf(
 		"ujkreta server listening on %s",
@@ -247,11 +250,13 @@ func main() {
 	)
 }
 
-// ------------------------------------------------------------
+// ============================================================
 // CORS
-// ------------------------------------------------------------
+// ============================================================
 
-func cors(next http.Handler) http.Handler {
+func cors(
+	next http.Handler,
+) http.Handler {
 	return http.HandlerFunc(
 		func(
 			w http.ResponseWriter,
@@ -259,8 +264,8 @@ func cors(next http.Handler) http.Handler {
 		) {
 			origin := r.Header.Get("Origin")
 
-			// A GitHub Pages frontend engedélyezése.
 			if origin == "https://puspus-dev.github.io" {
+
 				w.Header().Set(
 					"Access-Control-Allow-Origin",
 					origin,
@@ -287,7 +292,6 @@ func cors(next http.Handler) http.Handler {
 				)
 			}
 
-			// Preflight request.
 			if r.Method == http.MethodOptions {
 				w.WriteHeader(
 					http.StatusNoContent,
@@ -296,44 +300,43 @@ func cors(next http.Handler) http.Handler {
 				return
 			}
 
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(
+				w,
+				r,
+			)
 		},
 	)
 }
 
-// ------------------------------------------------------------
-// Health endpoint
-// ------------------------------------------------------------
+// ============================================================
+// HEALTH
+// ============================================================
 
 func handleHealth(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
 	if r.Method != http.MethodGet {
-		w.WriteHeader(
-			http.StatusMethodNotAllowed,
+		methodNotAllowed(
+			w,
+			"GET",
 		)
 
 		return
 	}
 
-	w.Header().Set(
-		"Content-Type",
-		"application/json; charset=utf-8",
-	)
-
-	w.WriteHeader(
+	writeJSON(
+		w,
 		http.StatusOK,
-	)
-
-	_, _ = w.Write(
-		[]byte(`{"status":"ok"}`),
+		map[string]string{
+			"status": "ok",
+		},
 	)
 }
 
-// ------------------------------------------------------------
-// Request logging
-// ------------------------------------------------------------
+// ============================================================
+// REQUEST LOGGING
+// ============================================================
 
 func logRequests(
 	next http.Handler,
@@ -350,8 +353,10 @@ func logRequests(
 				r.RemoteAddr,
 			)
 
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(
+				w,
+				r,
+			)
 		},
 	)
 }
-```

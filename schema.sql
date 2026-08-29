@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 CREATE TABLE IF NOT EXISTS kreta_store (
     id INTEGER PRIMARY KEY,
     config JSONB NOT NULL DEFAULT '{}'::jsonb,

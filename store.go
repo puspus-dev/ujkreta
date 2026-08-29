@@ -7,8 +7,11 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UidRef struct {
@@ -244,6 +247,22 @@ type ServerConfig struct {
 	AccessTokenTTLSeconds int    `json:"accessTokenTtlSeconds"`
 }
 
+/*
+	User
+
+	A felhasználói hitelesítéshez használt rekord.
+
+	A PasswordHash soha nem kerül vissza az API válaszába.
+*/
+type User struct {
+	ID           string    `json:"id"`
+	Username     string    `json:"username"`
+	PasswordHash string    `json:"-"`
+	StudentUID   string    `json:"studentUid"`
+	Active       bool      `json:"active"`
+	CreatedAt    time.Time `json:"createdAt"`
+}
+
 type storeData struct {
 	Config      ServerConfig               `json:"config"`
 	Student     Student                    `json:"student"`
@@ -427,21 +446,172 @@ func (s *Store) SetStudent(v Student) {
 	}
 }
 
+// ============================================================
+// USER AUTHENTICATION
+// ============================================================
+
+// GetUserByUsername megkeresi a felhasználót username alapján.
+func (s *Store) GetUserByUsername(
+	username string,
+) (User, error) {
+
+	ctx := context.Background()
+
+	var user User
+
+	err := s.db.QueryRow(
+		ctx,
+		`
+		SELECT
+			id::text,
+			username,
+			password_hash,
+			student_uid,
+			active,
+			created_at
+		FROM users
+		WHERE username = $1
+		LIMIT 1
+		`,
+		username,
+	).Scan(
+		&user.ID,
+		&user.Username,
+		&user.PasswordHash,
+		&user.StudentUID,
+		&user.Active,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return User{}, pgx.ErrNoRows
+		}
+
+		return User{}, err
+	}
+
+	return user, nil
+}
+
+// CreateUser új tesztfelhasználót hoz létre.
+func (s *Store) CreateUser(
+	username string,
+	password string,
+	studentUID string,
+) (User, error) {
+
+	if username == "" {
+		return User{}, fmt.Errorf(
+			"username nem lehet üres",
+		)
+	}
+
+	if password == "" {
+		return User{}, fmt.Errorf(
+			"password nem lehet üres",
+		)
+	}
+
+	// bcrypt hash.
+	hash, err := bcrypt.GenerateFromPassword(
+		[]byte(password),
+		bcrypt.DefaultCost,
+	)
+
+	if err != nil {
+		return User{}, err
+	}
+
+	ctx := context.Background()
+
+	var user User
+
+	err = s.db.QueryRow(
+		ctx,
+		`
+		INSERT INTO users (
+			username,
+			password_hash,
+			student_uid,
+			active
+		)
+		VALUES (
+			$1,
+			$2,
+			$3,
+			TRUE
+		)
+		RETURNING
+			id::text,
+			username,
+			password_hash,
+			student_uid,
+			active,
+			created_at
+		`,
+		username,
+		string(hash),
+		studentUID,
+	).Scan(
+		&user.ID,
+		&user.Username,
+		&user.PasswordHash,
+		&user.StudentUID,
+		&user.Active,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		return User{}, err
+	}
+
+	return user, nil
+}
+
+// CheckPassword ellenőrzi a felhasználó jelszavát.
+func (s *Store) CheckPassword(
+	user User,
+	password string,
+) bool {
+
+	if !user.Active {
+		return false
+	}
+
+	err := bcrypt.CompareHashAndPassword(
+		[]byte(user.PasswordHash),
+		[]byte(password),
+	)
+
+	return err == nil
+}
+
 func getCollection[T any](
 	ctx context.Context,
 	db *pgxpool.Pool,
 	table string,
 	orderBy string,
 ) []T {
+
 	query := fmt.Sprintf(
 		`SELECT data FROM %s ORDER BY %s`,
 		table,
 		orderBy,
 	)
 
-	rows, err := db.Query(ctx, query)
+	rows, err := db.Query(
+		ctx,
+		query,
+	)
+
 	if err != nil {
-		log.Printf("getCollection(%s): %v", table, err)
+		log.Printf(
+			"getCollection(%s): %v",
+			table,
+			err,
+		)
+
 		return []T{}
 	}
 
@@ -450,37 +620,50 @@ func getCollection[T any](
 	result := make([]T, 0)
 
 	for rows.Next() {
+
 		var raw []byte
 
 		if err := rows.Scan(&raw); err != nil {
+
 			log.Printf(
 				"getCollection(%s) scan: %v",
 				table,
 				err,
 			)
+
 			return []T{}
 		}
 
 		var item T
 
-		if err := json.Unmarshal(raw, &item); err != nil {
+		if err := json.Unmarshal(
+			raw,
+			&item,
+		); err != nil {
+
 			log.Printf(
 				"getCollection(%s) JSON: %v",
 				table,
 				err,
 			)
+
 			return []T{}
 		}
 
-		result = append(result, item)
+		result = append(
+			result,
+			item,
+		)
 	}
 
 	if err := rows.Err(); err != nil {
+
 		log.Printf(
 			"getCollection(%s): %v",
 			table,
 			err,
 		)
+
 		return []T{}
 	}
 
@@ -493,9 +676,11 @@ func replaceCollection[T any](
 	items []T,
 	getUID func(T) string,
 ) error {
+
 	ctx := context.Background()
 
 	tx, err := db.Begin(ctx)
+
 	if err != nil {
 		return err
 	}
@@ -507,7 +692,10 @@ func replaceCollection[T any](
 		table,
 	)
 
-	if _, err := tx.Exec(ctx, deleteQuery); err != nil {
+	if _, err := tx.Exec(
+		ctx,
+		deleteQuery,
+	); err != nil {
 		return err
 	}
 
@@ -530,7 +718,9 @@ func replaceCollection[T any](
 	)
 
 	for _, item := range items {
+
 		raw, err := json.Marshal(item)
+
 		if err != nil {
 			return err
 		}
@@ -547,6 +737,7 @@ func replaceCollection[T any](
 			uid,
 			raw,
 		); err != nil {
+
 			return err
 		}
 	}
@@ -572,7 +763,10 @@ func (s *Store) SetClassGroups(v []ClassGroup) {
 			return x.Uid
 		},
 	); err != nil {
-		log.Printf("SetClassGroups: %v", err)
+		log.Printf(
+			"SetClassGroups: %v",
+			err,
+		)
 	}
 }
 
@@ -594,7 +788,10 @@ func (s *Store) SetGrades(v []Grade) {
 			return x.Uid
 		},
 	); err != nil {
-		log.Printf("SetGrades: %v", err)
+		log.Printf(
+			"SetGrades: %v",
+			err,
+		)
 	}
 }
 
@@ -616,7 +813,10 @@ func (s *Store) SetHomework(v []Homework) {
 			return x.Uid
 		},
 	); err != nil {
-		log.Printf("SetHomework: %v", err)
+		log.Printf(
+			"SetHomework: %v",
+			err,
+		)
 	}
 }
 
@@ -638,7 +838,10 @@ func (s *Store) SetTests(v []Test) {
 			return x.Uid
 		},
 	); err != nil {
-		log.Printf("SetTests: %v", err)
+		log.Printf(
+			"SetTests: %v",
+			err,
+		)
 	}
 }
 
@@ -660,7 +863,10 @@ func (s *Store) SetOmissions(v []Omission) {
 			return x.Uid
 		},
 	); err != nil {
-		log.Printf("SetOmissions: %v", err)
+		log.Printf(
+			"SetOmissions: %v",
+			err,
+		)
 	}
 }
 
@@ -682,7 +888,10 @@ func (s *Store) SetLessons(v []Lesson) {
 			return x.Uid
 		},
 	); err != nil {
-		log.Printf("SetLessons: %v", err)
+		log.Printf(
+			"SetLessons: %v",
+			err,
+		)
 	}
 }
 
@@ -704,7 +913,10 @@ func (s *Store) SetNotices(v []NoticeBoardItem) {
 			return x.Uid
 		},
 	); err != nil {
-		log.Printf("SetNotices: %v", err)
+		log.Printf(
+			"SetNotices: %v",
+			err,
+		)
 	}
 }
 
@@ -726,11 +938,15 @@ func (s *Store) SetInfoBoard(v []InfoBoardItem) {
 			return x.Uid
 		},
 	); err != nil {
-		log.Printf("SetInfoBoard: %v", err)
+		log.Printf(
+			"SetInfoBoard: %v",
+			err,
+		)
 	}
 }
 
 func (s *Store) GetDktSubjects() []DktSubject {
+
 	ctx := context.Background()
 
 	rows, err := s.db.Query(
@@ -739,7 +955,11 @@ func (s *Store) GetDktSubjects() []DktSubject {
 	)
 
 	if err != nil {
-		log.Printf("GetDktSubjects: %v", err)
+		log.Printf(
+			"GetDktSubjects: %v",
+			err,
+		)
+
 		return []DktSubject{}
 	}
 
@@ -748,46 +968,67 @@ func (s *Store) GetDktSubjects() []DktSubject {
 	result := make([]DktSubject, 0)
 
 	for rows.Next() {
+
 		var raw []byte
 
 		if err := rows.Scan(&raw); err != nil {
+
 			log.Printf(
 				"GetDktSubjects scan: %v",
 				err,
 			)
+
 			return []DktSubject{}
 		}
 
 		var item DktSubject
 
-		if err := json.Unmarshal(raw, &item); err != nil {
+		if err := json.Unmarshal(
+			raw,
+			&item,
+		); err != nil {
+
 			log.Printf(
 				"GetDktSubjects JSON: %v",
 				err,
 			)
+
 			return []DktSubject{}
 		}
 
-		result = append(result, item)
+		result = append(
+			result,
+			item,
+		)
 	}
 
 	if err := rows.Err(); err != nil {
+
 		log.Printf(
 			"GetDktSubjects rows: %v",
 			err,
 		)
+
 		return []DktSubject{}
 	}
 
 	return result
 }
 
-func (s *Store) SetDktSubjects(v []DktSubject) {
+func (s *Store) SetDktSubjects(
+	v []DktSubject,
+) {
+
 	ctx := context.Background()
 
 	tx, err := s.db.Begin(ctx)
+
 	if err != nil {
-		log.Printf("SetDktSubjects begin: %v", err)
+		log.Printf(
+			"SetDktSubjects begin: %v",
+			err,
+		)
+
 		return
 	}
 
@@ -797,24 +1038,32 @@ func (s *Store) SetDktSubjects(v []DktSubject) {
 		ctx,
 		`DELETE FROM dkt_subjects`,
 	); err != nil {
+
 		log.Printf(
 			"SetDktSubjects delete: %v",
 			err,
 		)
+
 		return
 	}
 
 	for _, item := range v {
+
 		raw, err := json.Marshal(item)
+
 		if err != nil {
+
 			log.Printf(
 				"SetDktSubjects JSON: %v",
 				err,
 			)
+
 			return
 		}
 
-		id := strconv.Itoa(item.TantargyId)
+		id := strconv.Itoa(
+			item.TantargyId,
+		)
 
 		if _, err := tx.Exec(
 			ctx,
@@ -839,15 +1088,18 @@ func (s *Store) SetDktSubjects(v []DktSubject) {
 			id,
 			raw,
 		); err != nil {
+
 			log.Printf(
 				"SetDktSubjects insert: %v",
 				err,
 			)
+
 			return
 		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
+
 		log.Printf(
 			"SetDktSubjects commit: %v",
 			err,
@@ -864,7 +1116,10 @@ func (s *Store) GetAverages() []ClassGroupSubjectAverage {
 	)
 }
 
-func (s *Store) SetAverages(v []ClassGroupSubjectAverage) {
+func (s *Store) SetAverages(
+	v []ClassGroupSubjectAverage,
+) {
+
 	if err := replaceCollection(
 		s.db,
 		"averages",
@@ -873,11 +1128,16 @@ func (s *Store) SetAverages(v []ClassGroupSubjectAverage) {
 			return x.Uid
 		},
 	); err != nil {
-		log.Printf("SetAverages: %v", err)
+
+		log.Printf(
+			"SetAverages: %v",
+			err,
+		)
 	}
 }
 
 func (s *Store) Reset() {
+
 	data := seedData()
 
 	s.SetConfig(data.Config)

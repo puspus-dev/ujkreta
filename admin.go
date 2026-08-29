@@ -65,8 +65,7 @@ return adminSessions.tokens[token]
 
 }
 
-func (s *Server) requireAdmin(w http.ResponseWriter, r *http.Request) bool {
-auth := r.Header.Get("Authorization")
+
 
 
 if auth == "" {

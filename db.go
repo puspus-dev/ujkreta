@@ -5,7 +5,7 @@ import (
 	_ "embed"
 	"fmt"
 	"time"
-
+     "context"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -27,7 +27,7 @@ func NewDB(ctx context.Context, databaseURL string) (*pgxpool.Pool, error) {
 	config.MaxConnLifetime = 30 * time.Minute
 	config.MaxConnIdleTime = 5 * time.Minute
 
-	db, err := pgxpool.NewWithConfig(config)
+	db, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		return nil, fmt.Errorf("PostgreSQL pool létrehozása sikertelen: %w", err)
 	}

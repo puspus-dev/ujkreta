@@ -1,17 +1,524 @@
 <!doctype html>
-<html lang="en">
+<html lang="hu">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>firka mock server</title>
-<link rel="stylesheet" href="style.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>ujKréta Admin Panel</title>
+
+    <link rel="stylesheet" href="/admin_panel/admin.css">
 </head>
+
 <body>
-<header>
-<h1>firka mock kréta server</h1>
-</header>
-<nav id="nav"></nav>
-<main id="main"></main>
-<script src="app.js"></script>
+
+<div class="app">
+
+    <aside class="sidebar" id="sidebar">
+        <div class="brand">
+            <div class="brand-icon">K</div>
+
+            <div>
+                <strong>ujKréta</strong>
+                <span>Admin Panel</span>
+            </div>
+        </div>
+
+        <nav class="navigation">
+
+            <button class="nav-item active" data-section="dashboard">
+                <span>⌂</span>
+                <span>Dashboard</span>
+            </button>
+
+            <button class="nav-item" data-section="users">
+                <span>♙</span>
+                <span>Felhasználók</span>
+            </button>
+
+            <button class="nav-item" data-section="data">
+                <span>▦</span>
+                <span>KRÉTA adatok</span>
+            </button>
+
+            <button class="nav-item" data-section="config">
+                <span>⚙</span>
+                <span>Konfiguráció</span>
+            </button>
+
+        </nav>
+
+        <div class="sidebar-bottom">
+            <button class="nav-item" id="reloadButton">
+                <span>↻</span>
+                <span>Frissítés</span>
+            </button>
+        </div>
+    </aside>
+
+    <main class="main">
+
+        <header class="topbar">
+
+            <button class="mobile-menu" id="mobileMenu">
+                ☰
+            </button>
+
+            <div>
+                <h1 id="pageTitle">Dashboard</h1>
+                <p id="pageSubtitle">A mock KRÉTA szerver áttekintése</p>
+            </div>
+
+            <div class="topbar-actions">
+                <span class="status-pill">
+                    <span class="status-dot"></span>
+                    Admin
+                </span>
+            </div>
+
+        </header>
+
+        <div class="content">
+
+            <!-- DASHBOARD -->
+
+            <section class="section active" id="section-dashboard">
+
+                <div class="cards">
+
+                    <div class="stat-card">
+                        <div class="stat-icon">●</div>
+                        <div>
+                            <span class="stat-label">Szerver</span>
+                            <strong id="serverStatus">Betöltés...</strong>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">♙</div>
+                        <div>
+                            <span class="stat-label">Felhasználók</span>
+                            <strong id="userCount">—</strong>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">★</div>
+                        <div>
+                            <span class="stat-label">Jegyek</span>
+                            <strong id="gradeCount">—</strong>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">▣</div>
+                        <div>
+                            <span class="stat-label">Órák</span>
+                            <strong id="lessonCount">—</strong>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="grid-2">
+
+                    <div class="panel">
+                        <div class="panel-header">
+                            <div>
+                                <h2>Szerver állapota</h2>
+                                <p>Az API aktuális állapota</p>
+                            </div>
+                        </div>
+
+                        <div class="health-box">
+                            <div class="health-indicator" id="healthIndicator"></div>
+
+                            <div>
+                                <strong id="healthText">Ellenőrzés...</strong>
+                                <span id="healthDetails">
+                                    /health endpoint
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-header">
+                            <div>
+                                <h2>Gyors műveletek</h2>
+                                <p>Gyakran használt admin funkciók</p>
+                            </div>
+                        </div>
+
+                        <div class="quick-actions">
+
+                            <button class="action-button" data-section-target="users">
+                                <span>♙</span>
+                                Felhasználók kezelése
+                            </button>
+
+                            <button class="action-button" data-section-target="data">
+                                <span>▦</span>
+                                KRÉTA adatok
+                            </button>
+
+                            <button class="action-button" data-section-target="config">
+                                <span>⚙</span>
+                                Konfiguráció
+                            </button>
+
+                            <button class="action-button danger" id="resetButton">
+                                <span>↺</span>
+                                Seed adatok visszaállítása
+                            </button>
+
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="panel">
+
+                    <div class="panel-header">
+                        <div>
+                            <h2>API végpontok</h2>
+                            <p>A jelenlegi mock API fontosabb végpontjai</p>
+                        </div>
+                    </div>
+
+                    <div class="endpoint-list">
+
+                        <div class="endpoint">
+                            <code>GET</code>
+                            <span>/health</span>
+                            <small>Szerver állapot</small>
+                        </div>
+
+                        <div class="endpoint">
+                            <code>POST</code>
+                            <span>/connect/token</span>
+                            <small>OAuth token</small>
+                        </div>
+
+                        <div class="endpoint">
+                            <code>GET</code>
+                            <span>/ellenorzo/v3/sajat/TanuloAdatlap</span>
+                            <small>Tanulói adatok</small>
+                        </div>
+
+                        <div class="endpoint">
+                            <code>GET</code>
+                            <span>/ellenorzo/v3/sajat/Ertekelesek</span>
+                            <small>Jegyek</small>
+                        </div>
+
+                        <div class="endpoint">
+                            <code>GET</code>
+                            <span>/ellenorzo/v3/sajat/OrarendElemek</span>
+                            <small>Órarend</small>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- USERS -->
+
+            <section class="section" id="section-users">
+
+                <div class="section-toolbar">
+
+                    <div>
+                        <h2>Felhasználók</h2>
+                        <p>A mock szerverhez tartozó felhasználói fiókok</p>
+                    </div>
+
+                    <button class="primary-button" id="newUserButton">
+                        + Új felhasználó
+                    </button>
+
+                </div>
+
+                <div class="panel">
+
+                    <div class="table-wrapper">
+
+                        <table>
+
+                            <thead>
+                                <tr>
+                                    <th>Felhasználónév</th>
+                                    <th>Student UID</th>
+                                    <th>Állapot</th>
+                                    <th>Létrehozva</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="usersTable">
+                                <tr>
+                                    <td colspan="5" class="empty">
+                                        Felhasználók betöltése...
+                                    </td>
+                                </tr>
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- DATA -->
+
+            <section class="section" id="section-data">
+
+                <div class="section-toolbar">
+
+                    <div>
+                        <h2>KRÉTA adatok</h2>
+                        <p>A PostgreSQL-ben tárolt mock adatok</p>
+                    </div>
+
+                </div>
+
+                <div class="data-grid">
+
+                    <button class="data-card" data-endpoint="/ellenorzo/v3/sajat/TanuloAdatlap">
+                        <strong>Tanuló</strong>
+                        <span>Tanulói adatlap</span>
+                    </button>
+
+                    <button class="data-card" data-endpoint="/ellenorzo/v3/sajat/OsztalyCsoportok">
+                        <strong>Osztályok</strong>
+                        <span>Osztályok és csoportok</span>
+                    </button>
+
+                    <button class="data-card" data-endpoint="/ellenorzo/v3/sajat/Ertekelesek">
+                        <strong>Jegyek</strong>
+                        <span>Értékelések</span>
+                    </button>
+
+                    <button class="data-card" data-endpoint="/ellenorzo/v3/sajat/OrarendElemek">
+                        <strong>Órarend</strong>
+                        <span>Órarendi elemek</span>
+                    </button>
+
+                    <button class="data-card" data-endpoint="/ellenorzo/v3/sajat/HaziFeladatok">
+                        <strong>Házi feladatok</strong>
+                        <span>Házi feladatok</span>
+                    </button>
+
+                    <button class="data-card" data-endpoint="/ellenorzo/v3/sajat/BejelentettSzamonkeresek">
+                        <strong>Dolgozatok</strong>
+                        <span>Bejelentett számonkérések</span>
+                    </button>
+
+                    <button class="data-card" data-endpoint="/ellenorzo/v3/sajat/Mulasztasok">
+                        <strong>Mulasztások</strong>
+                        <span>Hiányzások</span>
+                    </button>
+
+                    <button class="data-card" data-endpoint="/ellenorzo/v3/sajat/FaliujsagElemek">
+                        <strong>Faliújság</strong>
+                        <span>Faliújság elemek</span>
+                    </button>
+
+                    <button class="data-card" data-endpoint="/ellenorzo/v3/sajat/Feljegyzesek">
+                        <strong>Feljegyzések</strong>
+                        <span>Tanári feljegyzések</span>
+                    </button>
+
+                </div>
+
+                <div class="panel json-panel">
+
+                    <div class="panel-header">
+                        <div>
+                            <h2>JSON megtekintő</h2>
+                            <p id="jsonEndpoint">Válassz egy adatforrást</p>
+                        </div>
+
+                        <button class="secondary-button" id="copyJsonButton">
+                            Másolás
+                        </button>
+                    </div>
+
+                    <pre id="jsonViewer">Válassz egy adatforrást a megtekintéshez.</pre>
+
+                </div>
+
+            </section>
+
+
+            <!-- CONFIG -->
+
+            <section class="section" id="section-config">
+
+                <div class="section-toolbar">
+
+                    <div>
+                        <h2>Konfiguráció</h2>
+                        <p>A mock szerver alapbeállításai</p>
+                    </div>
+
+                    <button class="primary-button" id="saveConfigButton">
+                        Mentés
+                    </button>
+
+                </div>
+
+                <div class="panel">
+
+                    <form id="configForm">
+
+                        <div class="form-grid">
+
+                            <label>
+                                <span>Intézményazonosító</span>
+                                <input
+                                    id="configInstituteCode"
+                                    type="text"
+                                    autocomplete="off"
+                                >
+                            </label>
+
+                            <label>
+                                <span>Felhasználónév</span>
+                                <input
+                                    id="configUsername"
+                                    type="text"
+                                    autocomplete="off"
+                                >
+                            </label>
+
+                            <label>
+                                <span>Access token élettartam</span>
+                                <input
+                                    id="configTTL"
+                                    type="number"
+                                    min="1"
+                                >
+                            </label>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+                <div class="panel warning-panel">
+
+                    <div>
+                        <h2>Seed adatok</h2>
+                        <p>
+                            A reset visszaállítja a mock KRÉTA adatokat
+                            a beépített alapállapotra.
+                        </p>
+                    </div>
+
+                    <button class="danger-button" id="resetButtonConfig">
+                        Seed visszaállítása
+                    </button>
+
+                </div>
+
+            </section>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<!-- USER MODAL -->
+
+<div class="modal-overlay" id="userModal">
+
+    <div class="modal">
+
+        <div class="modal-header">
+
+            <div>
+                <h2>Új felhasználó</h2>
+                <p>Tesztfelhasználó létrehozása</p>
+            </div>
+
+            <button class="modal-close" id="closeUserModal">
+                ×
+            </button>
+
+        </div>
+
+        <form id="userForm">
+
+            <label>
+                <span>Felhasználónév</span>
+                <input
+                    id="newUsername"
+                    type="text"
+                    required
+                    autocomplete="off"
+                >
+            </label>
+
+            <label>
+                <span>Jelszó</span>
+                <input
+                    id="newPassword"
+                    type="password"
+                    required
+                    autocomplete="new-password"
+                >
+            </label>
+
+            <label>
+                <span>Student UID</span>
+                <input
+                    id="newStudentUID"
+                    type="text"
+                    required
+                    autocomplete="off"
+                >
+            </label>
+
+            <div class="modal-actions">
+
+                <button
+                    type="button"
+                    class="secondary-button"
+                    id="cancelUserModal"
+                >
+                    Mégse
+                </button>
+
+                <button
+                    type="submit"
+                    class="primary-button"
+                >
+                    Létrehozás
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- TOAST -->
+
+<div id="toastContainer"></div>
+
+<script src="/admin_panel/admin.js"></script>
+
 </body>
 </html>

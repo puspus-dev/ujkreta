@@ -35,18 +35,7 @@ adminJSON(w, status, map[string]any{
 })
 }
 
-func randomToken() string {
-buf := make([]byte, 32)
 
-
-if _, err := rand.Read(buf); err != nil {
-	return ""
-}
-
-return hex.EncodeToString(buf)
-
-
-}
 
 func registerAdminToken(token string) {
 if token == "" {

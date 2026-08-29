@@ -38,13 +38,13 @@ adminJSON(w, status, map[string]any{
 func randomToken() string {
 buf := make([]byte, 32)
 
-```
+
 if _, err := rand.Read(buf); err != nil {
 	return ""
 }
 
 return hex.EncodeToString(buf)
-```
+
 
 }
 
@@ -53,12 +53,12 @@ if token == "" {
 return
 }
 
-```
+
 adminSessions.mu.Lock()
 defer adminSessions.mu.Unlock()
 
 adminSessions.tokens[token] = true
-```
+
 
 }
 
@@ -67,19 +67,19 @@ if token == "" {
 return false
 }
 
-```
+
 adminSessions.mu.RLock()
 defer adminSessions.mu.RUnlock()
 
 return adminSessions.tokens[token]
-```
+
 
 }
 
 func (s *Server) requireAdmin(w http.ResponseWriter, r *http.Request) bool {
 auth := r.Header.Get("Authorization")
 
-```
+
 if auth == "" {
 	adminError(
 		w,
@@ -112,7 +112,7 @@ if !isValidAdminToken(token) {
 }
 
 return true
-```
+
 
 }
 
@@ -126,7 +126,7 @@ http.StatusMethodNotAllowed,
 return
 }
 
-```
+
 if err := r.ParseForm(); err != nil {
 	adminError(
 		w,
@@ -167,7 +167,7 @@ adminJSON(w, http.StatusOK, map[string]any{
 	"success": true,
 	"token":   token,
 })
-```
+
 
 }
 
@@ -181,12 +181,12 @@ http.StatusMethodNotAllowed,
 return
 }
 
-```
+
 adminJSON(w, http.StatusOK, map[string]any{
 	"success": true,
 	"status":  "ok",
 })
-```
+
 
 }
 
@@ -195,7 +195,7 @@ if !s.requireAdmin(w, r) {
 return
 }
 
-```
+
 if r.Method != http.MethodGet {
 	adminError(
 		w,
@@ -223,7 +223,7 @@ adminJSON(w, http.StatusOK, map[string]any{
 		"averages":    len(s.store.GetAverages()),
 	},
 })
-```
+
 
 }
 
@@ -232,7 +232,7 @@ if !s.requireAdmin(w, r) {
 return
 }
 
-```
+
 if r.Method != http.MethodPost {
 	adminError(
 		w,
@@ -248,7 +248,7 @@ adminJSON(w, http.StatusOK, map[string]any{
 	"success": true,
 	"message": "Az adatok vissza lettek állítva a seed adatokra.",
 })
-```
+
 
 }
 
@@ -257,7 +257,7 @@ if !s.requireAdmin(w, r) {
 return
 }
 
-```
+
 switch r.Method {
 case http.MethodGet:
 	adminJSON(
@@ -292,7 +292,7 @@ default:
 		"Nem támogatott HTTP metódus.",
 	)
 }
-```
+
 
 }
 

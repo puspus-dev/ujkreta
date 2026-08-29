@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>KRETÉN - Admin Panel</title>
+    <link rel="stylesheet" href="https://puspus-dev.github.io/ujkreta/src/ap_style.css">
+    <script>
+         function startDelete() {
+    document.getElementById('loadingBox').style.display = 'block';
+
+    setTimeout(() => {
+      document.getElementById('loadingBox').style.display = 'none';
+      document.getElementById('successBox').style.display = 'block';
+
+      setTimeout(() => {
+        window.location.href = 'https://puspus-dev.github.io/ujkreta/non-existent-page';  // Replace with your target URL
+      }, 2000); // Redirect after 2 seconds
+
+    }, 3000); // Simulated deletion delay
+  }
+        function backtosignin () {
+            window.location.href = 'https://puspus-dev.github.io/ujkreta/'; 
+        }
+        </script>
+</head>
+<body>
+    <div class="logo-header">
+        <img src="https://e-kreten.github.io/src/logo.png" alt="KRETÉN Logo">
+      </div>
+        <div class="container">
+            <div class="header" id="title">
+              Admin Panel
+            </div>
+            <div class="content">
+                <button class="btn blue">.env fájl megtekintése</button>
+                <button class="btn red" onclick="startDelete()">Egész adatbázis törlése</button>
+                <button class="btn blue" onclick="backtosignin()">Vissza a bejelentkezéshez</button>
+                <div class="loading-box" id="loadingBox">
+                    <p>Adatbázis törlése folyamatban...</p>
+                    <div class="spinner"></div>
+                  </div>
+                  <div class="success-box" id="successBox">
+                    Az adatbázis törlése sikeres volt!
+                  </div>
+            </div>
+          </div>
+        </div>
+        <footer>
+            <p>
+                <a href="https://github.com/e-kreten/e-kreten.github.io/" class="hyperlink">Az oldal forráskódja</a> &nbsp;&nbsp;•&nbsp;&nbsp;
+                Készült 🍊 megbízásából, 12 Mrd ft közpénzből
+            </p>
+        </footer>
+    </div>
+</body>
+</html>

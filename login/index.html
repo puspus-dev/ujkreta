@@ -1,142 +1,769 @@
+```html
 <!DOCTYPE html>
 <html lang="hu">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KRETÉN Napló - Bejelentkezés</title>
-  <link rel="stylesheet" href="https://puspus-dev.github.io/ujkreta/src/naplo_login_style.css">
+
+  <title>KRÁTA Napló - Bejelentkezés</title>
+
+  <link
+    rel="stylesheet"
+    href="https://puspus-dev.github.io/ujkreta/src/naplo_login_style.css"
+  >
 </head>
+
 <body>
+
   <div class="animated-bg" id="background"></div>
 
-  <button class="settings-btn" onclick="toggleSettings()">⚙️</button>
+  <!-- Beállítások -->
+  <button
+    class="settings-btn"
+    onclick="toggleSettings()"
+    type="button"
+    aria-label="Beállítások"
+  >
+    ⚙️
+  </button>
+
   <div class="settings-panel" id="settingsPanel">
+
     <label for="color1">Szín 1:</label>
-    <input type="color" id="color1" value="#3e8ef7" onchange="updateColors()"><br>
+
+    <input
+      type="color"
+      id="color1"
+      value="#3e8ef7"
+      onchange="updateColors()"
+    >
+
+    <br>
+
     <label for="color2">Szín 2:</label>
-    <input type="color" id="color2" value="#6c5ce7" onchange="updateColors()"><br>
+
+    <input
+      type="color"
+      id="color2"
+      value="#6c5ce7"
+      onchange="updateColors()"
+    >
+
+    <br>
+
     <label for="theme">Téma:</label>
-    <button class="theme-toggle" onclick="toggleTheme()" id="theme">🌙</button>
+
+    <button
+      class="theme-toggle"
+      onclick="toggleTheme()"
+      id="theme"
+      type="button"
+    >
+      🌙
+    </button>
+
   </div>
 
+
+  <!-- Login -->
   <div class="login-box">
+
     <div class="logo-header">
-        <img id="logo" src="https://puspus-dev.github.io/ujkreta/src/logo-dark.png" alt="KRETÉN Logo Dark">
+
+      <img
+        id="logo"
+        src="https://puspus-dev.github.io/ujkreta/src/logo-dark.png"
+        alt="KRETÉN Logo"
+      >
+
     </div>
+
     <h2>Bejelentkezés</h2>
-    <label for="institution">Intézmény</label>
+
+
+    <label for="institution">
+      Intézmény
+    </label>
+
     <select id="institution">
-      <option value="">-- Válassz intézményt --</option>
-      <option value="iskola1">Iskola 1</option>
-      <option value="iskola2">Iskola 2</option>
-      <option value="iskola3">Iskola 3</option>
+
+      <option value="">
+        -- Válassz intézményt --
+      </option>
+
+      <option value="iskola1">
+        Iskola 1
+      </option>
+
+      <option value="iskola2">
+        Iskola 2
+      </option>
+
+      <option value="iskola3">
+        Iskola 3
+      </option>
+
     </select>
 
-    <label for="username">Felhasználónév</label>
-    <input type="text" id="username" placeholder="Add meg a felhasználóneved">
 
-    <label for="password">Jelszó</label>
-    <input type="password" id="password" placeholder="Add meg a jelszavad">
+    <label for="username">
+      Felhasználónév
+    </label>
 
-    <button onclick="login()">Bejelentkezés</button>
+    <input
+      type="text"
+      id="username"
+      placeholder="Add meg a felhasználóneved"
+      autocomplete="username"
+    >
+
+
+    <label for="password">
+      Jelszó
+    </label>
+
+    <input
+      type="password"
+      id="password"
+      placeholder="Add meg a jelszavad"
+      autocomplete="current-password"
+    >
+
+
+    <button
+      id="loginButton"
+      onclick="login()"
+      type="button"
+    >
+      Bejelentkezés
+    </button>
+
+    <div
+      id="loginStatus"
+      role="alert"
+      style="display: none;"
+    ></div>
+
   </div>
 
-  <script>
-    function login() {
-      const institution = document.getElementById('institution').value;
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
-      
 
-      if (!institution || !username || !password) {
-        alert("Kérlek, tölts ki minden mezőt!");
-        return;
+<script>
+
+/*
+ * ============================================================
+ * KONFIGURÁCIÓ
+ * ============================================================
+ */
+
+const API_BASE = "https://ujkreta.onrender.com";
+
+
+/*
+ * ============================================================
+ * LOGIN
+ * ============================================================
+ */
+
+async function login() {
+
+  const institution =
+    document.getElementById("institution").value.trim();
+
+  const username =
+    document.getElementById("username").value.trim();
+
+  const password =
+    document.getElementById("password").value;
+
+  const button =
+    document.getElementById("loginButton");
+
+
+  /*
+   * Alapvető ellenőrzés
+   */
+
+  if (!institution || !username || !password) {
+
+    showStatus(
+      "Kérlek, tölts ki minden mezőt!",
+      true
+    );
+
+    return;
+  }
+
+
+  /*
+   * Login gomb letiltása
+   */
+
+  button.disabled = true;
+  button.textContent = "Bejelentkezés...";
+
+  hideStatus();
+
+
+  try {
+
+    /*
+     * OAuth/token endpoint
+     *
+     * FONTOS:
+     *
+     * A jelszót NEM mentjük localStorage-ba.
+     *
+     * Csak HTTPS-en elküldjük a backendnek.
+     */
+
+    const body =
+      new URLSearchParams();
+
+    body.append(
+      "grant_type",
+      "password"
+    );
+
+    body.append(
+      "username",
+      username
+    );
+
+    body.append(
+      "password",
+      password
+    );
+
+    body.append(
+      "institute_code",
+      institution
+    );
+
+
+    const response =
+      await fetch(
+        `${API_BASE}/connect/token`,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/x-www-form-urlencoded"
+          },
+
+          body: body.toString()
+        }
+      );
+
+
+    /*
+     * Hibás HTTP státusz
+     */
+
+    if (!response.ok) {
+
+      let message =
+        "Sikertelen bejelentkezés.";
+
+      try {
+
+        const error =
+          await response.json();
+
+        if (error.error_description) {
+          message =
+            error.error_description;
+        } else if (error.error) {
+          message =
+            error.error;
+        }
+
+      } catch (_) {
+        // Nem JSON válasz
       }
 
-      alert(`Bejelentkezés: ${institution}, ${username}`);
-      localStorage.setItem('local_usr', username);
-      localStorage.setItem('local_pw', password);
-      localStorage.setItem('local_institution', institution);
-      window.location.href = "https://puspus-dev.github.io/ujkreta";
+      throw new Error(message);
     }
 
-    function toggleSettings() {
-      const panel = document.getElementById('settingsPanel');
-      panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
-    }
-    function updateColors() {
-    const color1 = document.getElementById('color1').value;
-    const color2 = document.getElementById('color2').value;
-    document.documentElement.style.setProperty('--color1', color1);
-    document.documentElement.style.setProperty('--color2', color2);
-    
-    // Mentsd el localStorage-be
-    localStorage.setItem('bgColor1', color1);
-    localStorage.setItem('bgColor2', color2);
-    }
-    window.onload = function () {
-    const savedColor1 = localStorage.getItem('bgColor1');
-    const savedColor2 = localStorage.getItem('bgColor2');
 
-    if (savedColor1 && savedColor2) {
-        document.documentElement.style.setProperty('--color1', savedColor1);
-        document.documentElement.style.setProperty('--color2', savedColor2);
-        document.getElementById('color1').value = savedColor1;
-        document.getElementById('color2').value = savedColor2;
-    }
-    };
-    function toggleTheme() {
-    const current = document.body.classList.contains("dark") ? "light" : "dark";
-    setTheme(current);
+    /*
+     * Token feldolgozása
+     */
 
-  if (current == "light") {
-    document.querySelector(".theme-toggle").innerText = "🌙";
+    const data =
+      await response.json();
+
+
+    if (!data.access_token) {
+
+      throw new Error(
+        "A szerver nem küldött hozzáférési tokent."
+      );
+    }
+
+
+    /*
+     * SIKERES LOGIN
+     *
+     * Csak a tokent tároljuk.
+     *
+     * A jelszó SOHA nem kerül localStorage-ba.
+     */
+
+    localStorage.setItem(
+      "access_token",
+      data.access_token
+    );
+
+
+    /*
+     * Opcionálisan eltároljuk az intézményt és
+     * a felhasználónevet a felülethez.
+     *
+     * Ezek önmagukban nem hitelesítő adatok.
+     */
+
+    localStorage.setItem(
+      "local_usr",
+      username
+    );
+
+    localStorage.setItem(
+      "local_institution",
+      institution
+    );
+
+
+    /*
+     * Régi, veszélyes jelszó-bejegyzés eltávolítása,
+     * ha egy korábbi verzió már létrehozta.
+     */
+
+    localStorage.removeItem(
+      "local_pw"
+    );
+
+
+    /*
+     * Dashboard
+     */
+
+    window.location.href =
+      "https://puspus-dev.github.io/ujkreta/";
+
+  } catch (error) {
+
+    console.error(
+      "Login error:",
+      error
+    );
+
+    showStatus(
+      error.message ||
+      "Ismeretlen hiba történt a bejelentkezés során.",
+      true
+    );
+
+  } finally {
+
+    button.disabled = false;
+    button.textContent = "Bejelentkezés";
+
+  }
+}
+
+
+/*
+ * ============================================================
+ * STATUS
+ * ============================================================
+ */
+
+function showStatus(
+  message,
+  isError = false
+) {
+
+  const status =
+    document.getElementById("loginStatus");
+
+  status.textContent =
+    message;
+
+  status.style.display =
+    "block";
+
+  /*
+   * Nem módosítjuk kötelezően a meglévő CSS-edet.
+   * Csak minimális inline állapot.
+   */
+
+  if (isError) {
+
+    status.setAttribute(
+      "data-error",
+      "true"
+    );
+
   } else {
-    document.querySelector(".theme-toggle").innerText = "🔆";
+
+    status.removeAttribute(
+      "data-error"
+    );
+
   }
+}
+
+
+function hideStatus() {
+
+  const status =
+    document.getElementById("loginStatus");
+
+  status.style.display =
+    "none";
+
+  status.textContent =
+    "";
+
+}
+
+
+/*
+ * ============================================================
+ * SETTINGS
+ * ============================================================
+ */
+
+function toggleSettings() {
+
+  const panel =
+    document.getElementById(
+      "settingsPanel"
+    );
+
+  panel.style.display =
+    panel.style.display === "block"
+      ? "none"
+      : "block";
+}
+
+
+/*
+ * ============================================================
+ * SZÍNEK
+ * ============================================================
+ */
+
+function updateColors() {
+
+  const color1 =
+    document.getElementById(
+      "color1"
+    ).value;
+
+  const color2 =
+    document.getElementById(
+      "color2"
+    ).value;
+
+
+  document.documentElement.style.setProperty(
+    "--color1",
+    color1
+  );
+
+  document.documentElement.style.setProperty(
+    "--color2",
+    color2
+  );
+
+
+  localStorage.setItem(
+    "bgColor1",
+    color1
+  );
+
+  localStorage.setItem(
+    "bgColor2",
+    color2
+  );
+}
+
+
+/*
+ * ============================================================
+ * TÉMA
+ * ============================================================
+ */
+
+function toggleTheme() {
+
+  const current =
+    document.body.classList.contains("dark")
+      ? "light"
+      : "dark";
+
+
+  setTheme(current);
+
+
+  const button =
+    document.querySelector(
+      ".theme-toggle"
+    );
+
+
+  if (current === "light") {
+
+    button.innerText =
+      "🌙";
+
+  } else {
+
+    button.innerText =
+      "🔆";
+
+  }
+}
+
+
+function setTheme(theme) {
+
+  document.body.classList.remove(
+    "light",
+    "dark"
+  );
+
+  document.body.classList.add(
+    theme
+  );
+
+
+  localStorage.setItem(
+    "theme",
+    theme
+  );
+
+
+  const logo =
+    document.getElementById(
+      "logo"
+    );
+
+
+  if (theme === "dark") {
+
+    logo.src =
+      "https://puspus-dev.github.io/ujkreta/src/logo.png";
+
+    logo.alt =
+      "KRETÉN Logo Light";
+
+  } else {
+
+    logo.src =
+      "https://puspus-dev.github.io/ujkreta/src/logo-dark.png";
+
+    logo.alt =
+      "KRETÉN Logo Dark";
+
+  }
+}
+
+
+/*
+ * ============================================================
+ * OLD SESSION CLEANUP
+ * ============================================================
+ */
+
+function clearOldLoginData() {
+
+  /*
+   * A régi frontend local_pw kulcsát töröljük.
+   *
+   * Ez azért fontos, mert a korábbi verzió a jelszót
+   * localStorage-ban tárolta.
+   */
+
+  localStorage.removeItem(
+    "local_pw"
+  );
+}
+
+
+/*
+ * ============================================================
+ * OLD SESSION REDIRECT
+ * ============================================================
+ */
+
+function checkExistingSession() {
+
+  const token =
+    localStorage.getItem(
+      "access_token"
+    );
+
+
+  if (!token) {
+    return;
   }
 
-  function setTheme(theme) {
-    document.body.classList.remove("light", "dark");
-    document.body.classList.add(theme);
-    localStorage.setItem("theme", theme);
 
-    const logo = document.getElementById("logo");
-    if (theme === "dark") {
-      logo.src = "https://puspus-dev.github.io/ujkreta/src/logo.png";
-      logo.alt = "KRETÉN Logo Light"
+  /*
+   * Ha már van token, nem kell újra bejelentkezni.
+   */
+
+  window.location.href =
+    "https://puspus-dev.github.io/ujkreta/";
+}
+
+
+/*
+ * ============================================================
+ * ENTER = LOGIN
+ * ============================================================
+ */
+
+document.addEventListener(
+  "keydown",
+  function(event) {
+
+    if (
+      event.key === "Enter" &&
+      document.activeElement &&
+      (
+        document.activeElement.id ===
+          "username" ||
+        document.activeElement.id ===
+          "password"
+      )
+    ) {
+
+      event.preventDefault();
+
+      login();
+
+    }
+
+  }
+);
+
+
+/*
+ * ============================================================
+ * INITIALIZATION
+ * ============================================================
+ */
+
+window.addEventListener(
+  "load",
+  function() {
+
+    /*
+     * Régi jelszó törlése.
+     */
+
+    clearOldLoginData();
+
+
+    /*
+     * Színek betöltése.
+     */
+
+    const savedColor1 =
+      localStorage.getItem(
+        "bgColor1"
+      );
+
+    const savedColor2 =
+      localStorage.getItem(
+        "bgColor2"
+      );
+
+
+    if (
+      savedColor1 &&
+      savedColor2
+    ) {
+
+      document.documentElement.style.setProperty(
+        "--color1",
+        savedColor1
+      );
+
+      document.documentElement.style.setProperty(
+        "--color2",
+        savedColor2
+      );
+
+
+      document.getElementById(
+        "color1"
+      ).value =
+        savedColor1;
+
+
+      document.getElementById(
+        "color2"
+      ).value =
+        savedColor2;
+
+    }
+
+
+    /*
+     * Téma betöltése.
+     */
+
+    const savedTheme =
+      localStorage.getItem(
+        "theme"
+      ) || "light";
+
+
+    setTheme(
+      savedTheme
+    );
+
+
+    const themeButton =
+      document.querySelector(
+        ".theme-toggle"
+      );
+
+
+    if (savedTheme === "light") {
+
+      themeButton.innerText =
+        "🌙";
+
     } else {
-      logo.src = "https://puspus-dev.github.io/ujkreta/src/logo-dark.png";
-      logo.alt = "KRETÉN Logo Dark"
+
+      themeButton.innerText =
+        "🔆";
+
     }
+
+
+    /*
+     * Ha már van érvényes tokenünk,
+     * később itt tudjuk a /me endpointtal
+     * ellenőrizni.
+     *
+     * Egyelőre csak azt nézzük meg,
+     * hogy létezik-e token.
+     */
+
+    checkExistingSession();
+
   }
+);
 
-  window.onload = function () {
-    const savedColor1 = localStorage.getItem('bgColor1');
-    const savedColor2 = localStorage.getItem('bgColor2');
-    const savedTheme = localStorage.getItem("theme") || "light";
-    const local_usr = localStorage.getItem("local_usr");
-    const local_pw = localStorage.getItem("local_pw");
-    const local_institution = localStorage.getItem("local_institution");
+</script>
 
-    if (local_usr && local_pw && local_institution) {
-        window.location.href = "https://puspus-dev.github.io/ujkreta";
-    }
-
-    if (savedColor1 && savedColor2) {
-      document.documentElement.style.setProperty('--color1', savedColor1);
-      document.documentElement.style.setProperty('--color2', savedColor2);
-      document.getElementById('color1').value = savedColor1;
-      document.getElementById('color2').value = savedColor2;
-    }
-    if (savedTheme == "light") {
-    document.querySelector(".theme-toggle").innerText = "🌙";
-  } else {
-    document.querySelector(".theme-toggle").innerText = "🔆";
-  }
-
-    setTheme(savedTheme);
-  };
-  </script>
 </body>
-      </html>
+</html>
+```

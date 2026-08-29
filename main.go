@@ -9,7 +9,6 @@ import (
 	"os"
 	"time"
 )
-
 //go:embed static
 var staticFiles embed.FS
 

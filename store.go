@@ -1,4 +1,4 @@
-```go
+
 package main
 
 import (
@@ -1153,4 +1153,4 @@ func (s *Store) Reset() {
 	s.SetDktSubjects(data.DktSubjects)
 	s.SetAverages(data.Averages)
 }
-```
+

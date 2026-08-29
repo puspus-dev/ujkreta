@@ -1,1210 +1,169 @@
-```go
 package main
 
 import (
-	"encoding/json"
-	"net/http"
-	"os"
-	"strings"
+"encoding/json"
+"net/http"
+"strings"
 )
 
-// ============================================================
-// ADMIN AUTH
-// ============================================================
-//
-// Az admin API egyszerű jelszavas védelmet használ.
-//
-// Renderen állítsd be:
-//
-// ADMIN_PASSWORD=valami-hosszú-admin-jelszó
-//
-// A kliens az alábbi headert küldi:
-//
-// X-Admin-Password: ...
-//
-// ============================================================
-
-func (s *Server) requireAdmin(
-	next http.HandlerFunc,
-) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		password := os.Getenv("ADMIN_PASSWORD")
-
-		// Ha nincs beállítva admin jelszó, az admin API
-		// biztonsági okból ne legyen használható.
-		if password == "" {
-			writeAdminError(
-				w,
-				http.StatusServiceUnavailable,
-				"Az admin felület nincs konfigurálva.",
-			)
-			return
-		}
-
-		provided := r.Header.Get("X-Admin-Password")
-
-		if provided == "" || provided != password {
-			writeAdminError(
-				w,
-				http.StatusUnauthorized,
-				"Hibás admin hitelesítés.",
-			)
-			return
-		}
-
-		next(w, r)
-	}
+func (s *Server) registerAdminRoutes(mux *http.ServeMux) {
+mux.HandleFunc("/admin/api/login", s.handleAdminLogin)
+mux.HandleFunc("/admin/api/overview", s.handleAdminOverview)
+mux.HandleFunc("/admin/api/reset", s.handleAdminReset)
+mux.HandleFunc("/admin/api/config", s.handleAdminConfig)
+mux.HandleFunc("/admin/api/student", s.handleAdminStudent)
+mux.HandleFunc("/admin/api/grades", s.handleAdminGrades)
+mux.HandleFunc("/admin/api/homework", s.handleAdminHomework)
+mux.HandleFunc("/admin/api/tests", s.handleAdminTests)
+mux.HandleFunc("/admin/api/omissions", s.handleAdminOmissions)
+mux.HandleFunc("/admin/api/lessons", s.handleAdminLessons)
+mux.HandleFunc("/admin/api/notices", s.handleAdminNotices)
+mux.HandleFunc("/admin/api/info-board", s.handleAdminInfoBoard)
+mux.HandleFunc("/admin/api/class-groups", s.handleAdminClassGroups)
+mux.HandleFunc("/admin/api/dkt-subjects", s.handleAdminDktSubjects)
+mux.HandleFunc("/admin/api/averages", s.handleAdminAverages)
 }
 
-// ============================================================
-// ADMIN ROUTES
-// ============================================================
+func adminJSON(w http.ResponseWriter, status int, value any) {
+w.Header().Set("Content-Type", "application/json; charset=utf-8")
+w.WriteHeader(status)
 
-func (s *Server) registerAdminRoutes(
-	mux *http.ServeMux,
-) {
-	mux.HandleFunc(
-		"/api/admin/login",
-		s.handleAdminLogin,
-	)
+```
+_ = json.NewEncoder(w).Encode(value)
+```
 
-	mux.HandleFunc(
-		"/api/admin/dashboard",
-		s.requireAdmin(
-			s.handleAdminDashboard,
-		),
-	)
-
-	mux.HandleFunc(
-		"/api/admin/config",
-		s.requireAdmin(
-			s.handleAdminConfig,
-		),
-	)
-
-	mux.HandleFunc(
-		"/api/admin/student",
-		s.requireAdmin(
-			s.handleAdminStudent,
-		),
-	)
-
-	mux.HandleFunc(
-		"/api/admin/users",
-		s.requireAdmin(
-			s.handleAdminUsers,
-		),
-	)
-
-	mux.HandleFunc(
-		"/api/admin/grades",
-		s.requireAdmin(
-			s.handleAdminGrades,
-		),
-	)
-
-	mux.HandleFunc(
-		"/api/admin/homework",
-		s.requireAdmin(
-			s.handleAdminHomework,
-		),
-	)
-
-	mux.HandleFunc(
-		"/api/admin/tests",
-		s.requireAdmin(
-			s.handleAdminTests,
-		),
-	)
-
-	mux.HandleFunc(
-		"/api/admin/omissions",
-		s.requireAdmin(
-			s.handleAdminOmissions,
-		),
-	)
-
-	mux.HandleFunc(
-		"/api/admin/lessons",
-		s.requireAdmin(
-			s.handleAdminLessons,
-		),
-	)
-
-	mux.HandleFunc(
-		"/api/admin/notices",
-		s.requireAdmin(
-			s.handleAdminNotices,
-		),
-	)
-
-	mux.HandleFunc(
-		"/api/admin/info-board",
-		s.requireAdmin(
-			s.handleAdminInfoBoard,
-		),
-	)
-
-	mux.HandleFunc(
-		"/api/admin/class-groups",
-		s.requireAdmin(
-			s.handleAdminClassGroups,
-		),
-	)
-
-	mux.HandleFunc(
-		"/api/admin/dkt-subjects",
-		s.requireAdmin(
-			s.handleAdminDktSubjects,
-		),
-	)
-
-	mux.HandleFunc(
-		"/api/admin/averages",
-		s.requireAdmin(
-			s.handleAdminAverages,
-		),
-	)
-
-	mux.HandleFunc(
-		"/api/admin/reset",
-		s.requireAdmin(
-			s.handleAdminReset,
-		),
-	)
 }
 
-// ============================================================
-// HELPERS
-// ============================================================
-
-func writeAdminJSON(
-	w http.ResponseWriter,
-	status int,
-	value any,
-) {
-	w.Header().Set(
-		"Content-Type",
-		"application/json; charset=utf-8",
-	)
-
-	w.WriteHeader(status)
-
-	_ = json.NewEncoder(w).Encode(value)
+func adminError(w http.ResponseWriter, status int, message string) {
+adminJSON(w, status, map[string]any{
+"error": message,
+})
 }
 
-func writeAdminError(
-	w http.ResponseWriter,
-	status int,
-	message string,
-) {
-	writeAdminJSON(
-		w,
-		status,
-		map[string]any{
-			"ok":      false,
-			"message": message,
-		},
-	)
-}
+func adminTokenValid(r *http.Request) bool {
+auth := r.Header.Get("Authorization")
 
-func adminMethod(
-	w http.ResponseWriter,
-	r *http.Request,
-	method string,
-) bool {
-	if r.Method == method {
-		return true
-	}
-
-	w.Header().Set(
-		"Allow",
-		method,
-	)
-
-	writeAdminError(
-		w,
-		http.StatusMethodNotAllowed,
-		"Nem támogatott HTTP metódus.",
-	)
-
+```
+if auth == "" {
 	return false
 }
 
-func decodeAdminJSON(
-	r *http.Request,
-	dst any,
-) error {
-	decoder := json.NewDecoder(r.Body)
+return strings.HasPrefix(auth, "Bearer ")
+```
 
-	decoder.DisallowUnknownFields()
+}
 
-	return decoder.Decode(dst)
+func (s *Server) requireAdmin(
+w http.ResponseWriter,
+r *http.Request,
+) bool {
+if !adminTokenValid(r) {
+adminError(
+w,
+http.StatusUnauthorized,
+"Hiányzó admin token.",
+)
+
+```
+	return false
+}
+
+return true
+```
+
 }
 
 // ============================================================
-// LOGIN
-// ============================================================
-//
-// Ez nem hoz létre sessiont.
-//
-// A frontend a sikeres ellenőrzés után eltárolhatja a jelszót,
-// és minden admin API kérésnél elküldheti X-Admin-Password
-// headerként.
-//
+// ADMIN LOGIN
 // ============================================================
 
 func (s *Server) handleAdminLogin(
-	w http.ResponseWriter,
-	r *http.Request,
+w http.ResponseWriter,
+r *http.Request,
 ) {
-	if !adminMethod(
+if r.Method != http.MethodPost {
+adminError(
+w,
+http.StatusMethodNotAllowed,
+"Csak POST kérés engedélyezett.",
+)
+return
+}
+
+```
+if err := r.ParseForm(); err != nil {
+	adminError(
 		w,
-		r,
-		http.MethodPost,
-	) {
-		return
-	}
-
-	var request struct {
-		Password string `json:"password"`
-	}
-
-	if err := decodeAdminJSON(
-		r,
-		&request,
-	); err != nil {
-		writeAdminError(
-			w,
-			http.StatusBadRequest,
-			"Hibás JSON.",
-		)
-		return
-	}
-
-	expected := os.Getenv("ADMIN_PASSWORD")
-
-	if expected == "" {
-		writeAdminError(
-			w,
-			http.StatusServiceUnavailable,
-			"Az admin felület nincs konfigurálva.",
-		)
-		return
-	}
-
-	if request.Password == "" ||
-		request.Password != expected {
-		writeAdminError(
-			w,
-			http.StatusUnauthorized,
-			"Hibás admin jelszó.",
-		)
-		return
-	}
-
-	writeAdminJSON(
-		w,
-		http.StatusOK,
-		map[string]any{
-			"ok": true,
-		},
+		http.StatusBadRequest,
+		"Hibás kérés.",
 	)
+	return
 }
 
-// ============================================================
-// DASHBOARD
-// ============================================================
+username := r.FormValue("username")
+password := r.FormValue("password")
 
-func (s *Server) handleAdminDashboard(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	if !adminMethod(
+cfg := s.store.GetConfig()
+
+if username != cfg.Username || password != cfg.Password {
+	adminError(
 		w,
-		r,
-		http.MethodGet,
-	) {
-		return
-	}
-
-	data := map[string]any{
-		"ok": true,
-
-		"student": s.store.GetStudent(),
-
-		"config": s.store.GetConfig(),
-
-		"counts": map[string]int{
-			"users":         s.countUsers(),
-			"grades":        len(s.store.GetGrades()),
-			"homework":      len(s.store.GetHomework()),
-			"tests":         len(s.store.GetTests()),
-			"omissions":     len(s.store.GetOmissions()),
-			"lessons":       len(s.store.GetLessons()),
-			"notices":       len(s.store.GetNotices()),
-			"infoBoard":     len(s.store.GetInfoBoard()),
-			"classGroups":   len(s.store.GetClassGroups()),
-			"dktSubjects":   len(s.store.GetDktSubjects()),
-			"averages":      len(s.store.GetAverages()),
-		},
-	}
-
-	writeAdminJSON(
-		w,
-		http.StatusOK,
-		data,
+		http.StatusUnauthorized,
+		"Hibás admin felhasználónév vagy jelszó.",
 	)
+	return
+}
+
+token := randomToken()
+
+adminJSON(w, http.StatusOK, map[string]any{
+	"success": true,
+	"token":   token,
+})
+```
+
 }
 
 // ============================================================
-// CONFIG
+// OVERVIEW
 // ============================================================
 
-func (s *Server) handleAdminConfig(
-	w http.ResponseWriter,
-	r *http.Request,
+func (s *Server) handleAdminOverview(
+w http.ResponseWriter,
+r *http.Request,
 ) {
-	switch r.Method {
-
-	case http.MethodGet:
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":     true,
-				"config": s.store.GetConfig(),
-			},
-		)
-
-	case http.MethodPut:
-
-		var value ServerConfig
-
-		if err := decodeAdminJSON(
-			r,
-			&value,
-		); err != nil {
-			writeAdminError(
-				w,
-				http.StatusBadRequest,
-				"Hibás JSON.",
-			)
-			return
-		}
-
-		s.store.SetConfig(value)
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":     true,
-				"config": s.store.GetConfig(),
-			},
-		)
-
-	default:
-
-		adminMethod(
-			w,
-			r,
-			http.MethodGet,
-		)
-	}
+if r.Method != http.MethodGet {
+adminError(
+w,
+http.StatusMethodNotAllowed,
+"Csak GET kérés engedélyezett.",
+)
+return
 }
 
-// ============================================================
-// STUDENT
-// ============================================================
-
-func (s *Server) handleAdminStudent(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	switch r.Method {
-
-	case http.MethodGet:
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":      true,
-				"student": s.store.GetStudent(),
-			},
-		)
-
-	case http.MethodPut:
-
-		var value Student
-
-		if err := decodeAdminJSON(
-			r,
-			&value,
-		); err != nil {
-			writeAdminError(
-				w,
-				http.StatusBadRequest,
-				"Hibás JSON.",
-			)
-			return
-		}
-
-		s.store.SetStudent(value)
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":      true,
-				"student": s.store.GetStudent(),
-			},
-		)
-
-	default:
-
-		adminMethod(
-			w,
-			r,
-			http.MethodGet,
-		)
-	}
+```
+if !s.requireAdmin(w, r) {
+	return
 }
 
-// ============================================================
-// USERS
-// ============================================================
+adminJSON(w, http.StatusOK, map[string]any{
+	"config": s.store.GetConfig(),
+
+	"counts": map[string]int{
+		"classGroups": len(s.store.GetClassGroups()),
+		"grades":      len(s.store.GetGrades()),
+		"homework":    len(s.store.GetHomework()),
+		"tests":       len(s.store.GetTests()),
+		"omissions":   len(s.store.GetOmissions()),
+		"lessons":     len(s.store.GetLessons()),
+		"notices":     len(s.store.GetNotices()),
+		"infoBoard":   len(s.store.GetInfoBoard()),
+		"dktSubjects": len(s.store.GetDktSubjects()),
+		"averages":    len(s.store.GetAverages()),
+	},
+})
+```
 
-func (s *Server) countUsers() int {
-	ctx := context.Background()
-
-	var count int
-
-	err := s.store.db.QueryRow(
-		ctx,
-		`SELECT COUNT(*) FROM users`,
-	).Scan(&count)
-
-	if err != nil {
-		return 0
-	}
-
-	return count
-}
-
-func (s *Server) handleAdminUsers(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	switch r.Method {
-
-	case http.MethodGet:
-
-		rows, err := s.store.db.Query(
-			r.Context(),
-			`
-			SELECT
-				id::text,
-				username,
-				student_uid,
-				active,
-				created_at
-			FROM users
-			ORDER BY created_at DESC
-			`,
-		)
-
-		if err != nil {
-			writeAdminError(
-				w,
-				http.StatusInternalServerError,
-				"Felhasználók lekérése sikertelen.",
-			)
-			return
-		}
-
-		defer rows.Close()
-
-		users := make([]User, 0)
-
-		for rows.Next() {
-
-			var user User
-
-			if err := rows.Scan(
-				&user.ID,
-				&user.Username,
-				&user.StudentUID,
-				&user.Active,
-				&user.CreatedAt,
-			); err != nil {
-				writeAdminError(
-					w,
-					http.StatusInternalServerError,
-					"Felhasználók feldolgozása sikertelen.",
-				)
-				return
-			}
-
-			users = append(
-				users,
-				user,
-			)
-		}
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":    true,
-				"users": users,
-			},
-		)
-
-	case http.MethodPost:
-
-		var request struct {
-			Username   string `json:"username"`
-			Password   string `json:"password"`
-			StudentUID string `json:"studentUid"`
-		}
-
-		if err := decodeAdminJSON(
-			r,
-			&request,
-		); err != nil {
-			writeAdminError(
-				w,
-				http.StatusBadRequest,
-				"Hibás JSON.",
-			)
-			return
-		}
-
-		user, err := s.store.CreateUser(
-			strings.TrimSpace(request.Username),
-			request.Password,
-			request.StudentUID,
-		)
-
-		if err != nil {
-			writeAdminError(
-				w,
-				http.StatusBadRequest,
-				err.Error(),
-			)
-			return
-		}
-
-		writeAdminJSON(
-			w,
-			http.StatusCreated,
-			map[string]any{
-				"ok":   true,
-				"user": user,
-			},
-		)
-
-	default:
-
-		adminMethod(
-			w,
-			r,
-			http.MethodGet,
-		)
-	}
-}
-
-// ============================================================
-// GRADES
-// ============================================================
-
-func (s *Server) handleAdminGrades(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	if r.Method == http.MethodGet {
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":     true,
-				"grades": s.store.GetGrades(),
-			},
-		)
-
-		return
-	}
-
-	if r.Method == http.MethodPut {
-
-		var value []Grade
-
-		if err := decodeAdminJSON(
-			r,
-			&value,
-		); err != nil {
-			writeAdminError(
-				w,
-				http.StatusBadRequest,
-				"Hibás JSON.",
-			)
-			return
-		}
-
-		s.store.SetGrades(value)
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":     true,
-				"grades": s.store.GetGrades(),
-			},
-		)
-
-		return
-	}
-
-	adminMethod(
-		w,
-		r,
-		http.MethodGet,
-	)
-}
-
-// ============================================================
-// HOMEWORK
-// ============================================================
-
-func (s *Server) handleAdminHomework(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	if r.Method == http.MethodGet {
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":       true,
-				"homework": s.store.GetHomework(),
-			},
-		)
-
-		return
-	}
-
-	if r.Method == http.MethodPut {
-
-		var value []Homework
-
-		if err := decodeAdminJSON(
-			r,
-			&value,
-		); err != nil {
-			writeAdminError(
-				w,
-				http.StatusBadRequest,
-				"Hibás JSON.",
-			)
-			return
-		}
-
-		s.store.SetHomework(value)
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":       true,
-				"homework": s.store.GetHomework(),
-			},
-		)
-
-		return
-	}
-
-	adminMethod(
-		w,
-		r,
-		http.MethodGet,
-	)
-}
-
-// ============================================================
-// TESTS
-// ============================================================
-
-func (s *Server) handleAdminTests(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	if r.Method == http.MethodGet {
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":    true,
-				"tests": s.store.GetTests(),
-			},
-		)
-
-		return
-	}
-
-	if r.Method == http.MethodPut {
-
-		var value []Test
-
-		if err := decodeAdminJSON(
-			r,
-			&value,
-		); err != nil {
-			writeAdminError(
-				w,
-				http.StatusBadRequest,
-				"Hibás JSON.",
-			)
-			return
-		}
-
-		s.store.SetTests(value)
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":    true,
-				"tests": s.store.GetTests(),
-			},
-		)
-
-		return
-	}
-
-	adminMethod(
-		w,
-		r,
-		http.MethodGet,
-	)
-}
-
-// ============================================================
-// OMISSIONS
-// ============================================================
-
-func (s *Server) handleAdminOmissions(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	if r.Method == http.MethodGet {
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":        true,
-				"omissions": s.store.GetOmissions(),
-			},
-		)
-
-		return
-	}
-
-	if r.Method == http.MethodPut {
-
-		var value []Omission
-
-		if err := decodeAdminJSON(
-			r,
-			&value,
-		); err != nil {
-			writeAdminError(
-				w,
-				http.StatusBadRequest,
-				"Hibás JSON.",
-			)
-			return
-		}
-
-		s.store.SetOmissions(value)
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":        true,
-				"omissions": s.store.GetOmissions(),
-			},
-		)
-
-		return
-	}
-
-	adminMethod(
-		w,
-		r,
-		http.MethodGet,
-	)
-}
-
-// ============================================================
-// LESSONS
-// ============================================================
-
-func (s *Server) handleAdminLessons(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	if r.Method == http.MethodGet {
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":      true,
-				"lessons": s.store.GetLessons(),
-			},
-		)
-
-		return
-	}
-
-	if r.Method == http.MethodPut {
-
-		var value []Lesson
-
-		if err := decodeAdminJSON(
-			r,
-			&value,
-		); err != nil {
-			writeAdminError(
-				w,
-				http.StatusBadRequest,
-				"Hibás JSON.",
-			)
-			return
-		}
-
-		s.store.SetLessons(value)
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":      true,
-				"lessons": s.store.GetLessons(),
-			},
-		)
-
-		return
-	}
-
-	adminMethod(
-		w,
-		r,
-		http.MethodGet,
-	)
-}
-
-// ============================================================
-// NOTICES
-// ============================================================
-
-func (s *Server) handleAdminNotices(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	if r.Method == http.MethodGet {
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":      true,
-				"notices": s.store.GetNotices(),
-			},
-		)
-
-		return
-	}
-
-	if r.Method == http.MethodPut {
-
-		var value []NoticeBoardItem
-
-		if err := decodeAdminJSON(
-			r,
-			&value,
-		); err != nil {
-			writeAdminError(
-				w,
-				http.StatusBadRequest,
-				"Hibás JSON.",
-			)
-			return
-		}
-
-		s.store.SetNotices(value)
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":      true,
-				"notices": s.store.GetNotices(),
-			},
-		)
-
-		return
-	}
-
-	adminMethod(
-		w,
-		r,
-		http.MethodGet,
-	)
-}
-
-// ============================================================
-// INFO BOARD
-// ============================================================
-
-func (s *Server) handleAdminInfoBoard(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	if r.Method == http.MethodGet {
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":        true,
-				"infoBoard": s.store.GetInfoBoard(),
-			},
-		)
-
-		return
-	}
-
-	if r.Method == http.MethodPut {
-
-		var value []InfoBoardItem
-
-		if err := decodeAdminJSON(
-			r,
-			&value,
-		); err != nil {
-			writeAdminError(
-				w,
-				http.StatusBadRequest,
-				"Hibás JSON.",
-			)
-			return
-		}
-
-		s.store.SetInfoBoard(value)
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":        true,
-				"infoBoard": s.store.GetInfoBoard(),
-			},
-		)
-
-		return
-	}
-
-	adminMethod(
-		w,
-		r,
-		http.MethodGet,
-	)
-}
-
-// ============================================================
-// CLASS GROUPS
-// ============================================================
-
-func (s *Server) handleAdminClassGroups(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	if r.Method == http.MethodGet {
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":          true,
-				"classGroups": s.store.GetClassGroups(),
-			},
-		)
-
-		return
-	}
-
-	if r.Method == http.MethodPut {
-
-		var value []ClassGroup
-
-		if err := decodeAdminJSON(
-			r,
-			&value,
-		); err != nil {
-			writeAdminError(
-				w,
-				http.StatusBadRequest,
-				"Hibás JSON.",
-			)
-			return
-		}
-
-		s.store.SetClassGroups(value)
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":          true,
-				"classGroups": s.store.GetClassGroups(),
-			},
-		)
-
-		return
-	}
-
-	adminMethod(
-		w,
-		r,
-		http.MethodGet,
-	)
-}
-
-// ============================================================
-// DKT
-// ============================================================
-
-func (s *Server) handleAdminDktSubjects(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	if r.Method == http.MethodGet {
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":          true,
-				"dktSubjects": s.store.GetDktSubjects(),
-			},
-		)
-
-		return
-	}
-
-	if r.Method == http.MethodPut {
-
-		var value []DktSubject
-
-		if err := decodeAdminJSON(
-			r,
-			&value,
-		); err != nil {
-			writeAdminError(
-				w,
-				http.StatusBadRequest,
-				"Hibás JSON.",
-			)
-			return
-		}
-
-		s.store.SetDktSubjects(value)
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":          true,
-				"dktSubjects": s.store.GetDktSubjects(),
-			},
-		)
-
-		return
-	}
-
-	adminMethod(
-		w,
-		r,
-		http.MethodGet,
-	)
-}
-
-// ============================================================
-// AVERAGES
-// ============================================================
-
-func (s *Server) handleAdminAverages(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	if r.Method == http.MethodGet {
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":       true,
-				"averages": s.store.GetAverages(),
-			},
-		)
-
-		return
-	}
-
-	if r.Method == http.MethodPut {
-
-		var value []ClassGroupSubjectAverage
-
-		if err := decodeAdminJSON(
-			r,
-			&value,
-		); err != nil {
-			writeAdminError(
-				w,
-				http.StatusBadRequest,
-				"Hibás JSON.",
-			)
-			return
-		}
-
-		s.store.SetAverages(value)
-
-		writeAdminJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"ok":       true,
-				"averages": s.store.GetAverages(),
-			},
-		)
-
-		return
-	}
-
-	adminMethod(
-		w,
-		r,
-		http.MethodGet,
-	)
 }
 
 // ============================================================
@@ -1212,36 +171,365 @@ func (s *Server) handleAdminAverages(
 // ============================================================
 
 func (s *Server) handleAdminReset(
-	w http.ResponseWriter,
-	r *http.Request,
+w http.ResponseWriter,
+r *http.Request,
 ) {
-	if !adminMethod(
-		w,
-		r,
-		http.MethodPost,
-	) {
-		return
-	}
+if r.Method != http.MethodPost {
+adminError(
+w,
+http.StatusMethodNotAllowed,
+"Csak POST kérés engedélyezett.",
+)
+return
+}
 
-	s.store.Reset()
+```
+if !s.requireAdmin(w, r) {
+	return
+}
 
-	writeAdminJSON(
-		w,
-		http.StatusOK,
-		map[string]any{
-			"ok":      true,
-			"message": "A mock adatok visszaállítva.",
-		},
-	)
+s.store.Reset()
+
+adminJSON(w, http.StatusOK, map[string]any{
+	"success": true,
+	"message": "Az adatok vissza lettek állítva a seed adatokra.",
+})
+```
+
 }
 
 // ============================================================
-// CONTEXT HELPER
-// ============================================================
-//
-// A dashboard countUsers() számára.
-//
+// CONFIG
 // ============================================================
 
+func (s *Server) handleAdminConfig(
+w http.ResponseWriter,
+r *http.Request,
+) {
+if !s.requireAdmin(w, r) {
+return
+}
 
 ```
+switch r.Method {
+case http.MethodGet:
+	adminJSON(
+		w,
+		http.StatusOK,
+		s.store.GetConfig(),
+	)
+
+case http.MethodPut, http.MethodPost:
+	var value ServerConfig
+
+	if err := json.NewDecoder(r.Body).Decode(&value); err != nil {
+		adminError(
+			w,
+			http.StatusBadRequest,
+			"Hibás JSON.",
+		)
+		return
+	}
+
+	s.store.SetConfig(value)
+
+	adminJSON(w, http.StatusOK, map[string]any{
+		"success": true,
+		"config":  value,
+	})
+
+default:
+	adminError(
+		w,
+		http.StatusMethodNotAllowed,
+		"Nem támogatott HTTP metódus.",
+	)
+}
+```
+
+}
+
+// ============================================================
+// STUDENT
+// ============================================================
+
+func (s *Server) handleAdminStudent(
+w http.ResponseWriter,
+r *http.Request,
+) {
+if !s.requireAdmin(w, r) {
+return
+}
+
+```
+switch r.Method {
+case http.MethodGet:
+	adminJSON(
+		w,
+		http.StatusOK,
+		s.store.GetStudent(),
+	)
+
+case http.MethodPut, http.MethodPost:
+	var value Student
+
+	if err := json.NewDecoder(r.Body).Decode(&value); err != nil {
+		adminError(
+			w,
+			http.StatusBadRequest,
+			"Hibás JSON.",
+		)
+		return
+	}
+
+	s.store.SetStudent(value)
+
+	adminJSON(w, http.StatusOK, map[string]any{
+		"success": true,
+		"student": value,
+	})
+
+default:
+	adminError(
+		w,
+		http.StatusMethodNotAllowed,
+		"Nem támogatott HTTP metódus.",
+	)
+}
+```
+
+}
+
+// ============================================================
+// GENERIC JSON HELPERS
+// ============================================================
+
+func decodeAdminJSON[T any](
+r *http.Request,
+) (T, error) {
+var value T
+
+```
+err := json.NewDecoder(r.Body).Decode(&value)
+
+return value, err
+```
+
+}
+
+func adminCollection[T any](
+w http.ResponseWriter,
+r *http.Request,
+get func() []T,
+set func([]T),
+) {
+if !strings.HasPrefix(
+r.Header.Get("Authorization"),
+"Bearer ",
+) {
+adminError(
+w,
+http.StatusUnauthorized,
+"Hiányzó admin token.",
+)
+return
+}
+
+```
+switch r.Method {
+case http.MethodGet:
+	adminJSON(
+		w,
+		http.StatusOK,
+		get(),
+	)
+
+case http.MethodPut, http.MethodPost:
+	value, err := decodeAdminJSON[[]T](r)
+
+	if err != nil {
+		adminError(
+			w,
+			http.StatusBadRequest,
+			"Hibás JSON.",
+		)
+		return
+	}
+
+	set(value)
+
+	adminJSON(w, http.StatusOK, map[string]any{
+		"success": true,
+		"data":    value,
+	})
+
+default:
+	adminError(
+		w,
+		http.StatusMethodNotAllowed,
+		"Nem támogatott HTTP metódus.",
+	)
+}
+```
+
+}
+
+// ============================================================
+// CLASS GROUPS
+// ============================================================
+
+func (s *Server) handleAdminClassGroups(
+w http.ResponseWriter,
+r *http.Request,
+) {
+adminCollection(
+w,
+r,
+s.store.GetClassGroups,
+s.store.SetClassGroups,
+)
+}
+
+// ============================================================
+// GRADES
+// ============================================================
+
+func (s *Server) handleAdminGrades(
+w http.ResponseWriter,
+r *http.Request,
+) {
+adminCollection(
+w,
+r,
+s.store.GetGrades,
+s.store.SetGrades,
+)
+}
+
+// ============================================================
+// HOMEWORK
+// ============================================================
+
+func (s *Server) handleAdminHomework(
+w http.ResponseWriter,
+r *http.Request,
+) {
+adminCollection(
+w,
+r,
+s.store.GetHomework,
+s.store.SetHomework,
+)
+}
+
+// ============================================================
+// TESTS
+// ============================================================
+
+func (s *Server) handleAdminTests(
+w http.ResponseWriter,
+r *http.Request,
+) {
+adminCollection(
+w,
+r,
+s.store.GetTests,
+s.store.SetTests,
+)
+}
+
+// ============================================================
+// OMISSIONS
+// ============================================================
+
+func (s *Server) handleAdminOmissions(
+w http.ResponseWriter,
+r *http.Request,
+) {
+adminCollection(
+w,
+r,
+s.store.GetOmissions,
+s.store.SetOmissions,
+)
+}
+
+// ============================================================
+// LESSONS
+// ============================================================
+
+func (s *Server) handleAdminLessons(
+w http.ResponseWriter,
+r *http.Request,
+) {
+adminCollection(
+w,
+r,
+s.store.GetLessons,
+s.store.SetLessons,
+)
+}
+
+// ============================================================
+// NOTICES
+// ============================================================
+
+func (s *Server) handleAdminNotices(
+w http.ResponseWriter,
+r *http.Request,
+) {
+adminCollection(
+w,
+r,
+s.store.GetNotices,
+s.store.SetNotices,
+)
+}
+
+// ============================================================
+// INFO BOARD
+// ============================================================
+
+func (s *Server) handleAdminInfoBoard(
+w http.ResponseWriter,
+r *http.Request,
+) {
+adminCollection(
+w,
+r,
+s.store.GetInfoBoard,
+s.store.SetInfoBoard,
+)
+}
+
+// ============================================================
+// DKT
+// ============================================================
+
+func (s *Server) handleAdminDktSubjects(
+w http.ResponseWriter,
+r *http.Request,
+) {
+adminCollection(
+w,
+r,
+s.store.GetDktSubjects,
+s.store.SetDktSubjects,
+)
+}
+
+// ============================================================
+// AVERAGES
+// ============================================================
+
+func (s *Server) handleAdminAverages(
+w http.ResponseWriter,
+r *http.Request,
+) {
+adminCollection(
+w,
+r,
+s.store.GetAverages,
+s.store.SetAverages,
+)
+}

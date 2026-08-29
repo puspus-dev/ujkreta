@@ -30,248 +30,161 @@ func methodNotAllowed(w http.ResponseWriter, allowed string) {
 // STUDENT API
 // ============================================================
 
-func (s *Server) handleGetStudent(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
+func (s *Server) handleGetStudent(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		methodNotAllowed(w, "GET")
 		return
 	}
 
-	writeJSON(
-		w,
-		http.StatusOK,
-		s.store.GetStudent(),
-	)
+	writeJSON(w, http.StatusOK, s.store.GetStudent())
 }
 
 // ============================================================
 // CLASS GROUPS
 // ============================================================
 
-func (s *Server) handleGetClassGroups(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
+func (s *Server) handleGetClassGroups(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		methodNotAllowed(w, "GET")
 		return
 	}
 
-	writeJSON(
-		w,
-		http.StatusOK,
-		s.store.GetClassGroups(),
-	)
+	writeJSON(w, http.StatusOK, s.store.GetClassGroups())
 }
 
 // ============================================================
 // NOTICE BOARD
 // ============================================================
 
-func (s *Server) handleGetNoticeBoard(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
+func (s *Server) handleGetNoticeBoard(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		methodNotAllowed(w, "GET")
 		return
 	}
 
-	writeJSON(
-		w,
-		http.StatusOK,
-		s.store.GetNotices(),
-	)
+	writeJSON(w, http.StatusOK, s.store.GetNotices())
 }
 
 // ============================================================
 // INFO BOARD
 // ============================================================
 
-func (s *Server) handleGetInfoBoard(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
+func (s *Server) handleGetInfoBoard(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		methodNotAllowed(w, "GET")
 		return
 	}
 
-	writeJSON(
-		w,
-		http.StatusOK,
-		s.store.GetInfoBoard(),
-	)
+	writeJSON(w, http.StatusOK, s.store.GetInfoBoard())
 }
 
 // ============================================================
 // GRADES
 // ============================================================
 
-func (s *Server) handleGetGrades(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
+func (s *Server) handleGetGrades(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		methodNotAllowed(w, "GET")
 		return
 	}
 
-	writeJSON(
-		w,
-		http.StatusOK,
-		s.store.GetGrades(),
-	)
+	writeJSON(w, http.StatusOK, s.store.GetGrades())
 }
 
 // ============================================================
 // CLASS GROUP AVERAGES
 // ============================================================
 
-func (s *Server) handleGetClassGroupAverages(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
+func (s *Server) handleGetClassGroupAverages(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		methodNotAllowed(w, "GET")
 		return
 	}
 
-	writeJSON(
-		w,
-		http.StatusOK,
-		s.store.GetAverages(),
-	)
+	writeJSON(w, http.StatusOK, s.store.GetAverages())
 }
 
 // ============================================================
 // TIMETABLE
 // ============================================================
 
-func (s *Server) handleGetTimeTable(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
+func (s *Server) handleGetTimeTable(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		methodNotAllowed(w, "GET")
 		return
 	}
 
-	writeJSON(
-		w,
-		http.StatusOK,
-		s.store.GetLessons(),
-	)
+	writeJSON(w, http.StatusOK, s.store.GetLessons())
 }
 
 // ============================================================
 // OMISSIONS
 // ============================================================
 
-func (s *Server) handleGetOmissions(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
+func (s *Server) handleGetOmissions(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		methodNotAllowed(w, "GET")
 		return
 	}
 
-	writeJSON(
-		w,
-		http.StatusOK,
-		s.store.GetOmissions(),
-	)
+	writeJSON(w, http.StatusOK, s.store.GetOmissions())
 }
 
 // ============================================================
 // HOMEWORK
 // ============================================================
 
-func (s *Server) handleGetHomework(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
+func (s *Server) handleGetHomework(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		methodNotAllowed(w, "GET")
 		return
 	}
 
-	writeJSON(
-		w,
-		http.StatusOK,
-		s.store.GetHomework(),
-	)
+	writeJSON(w, http.StatusOK, s.store.GetHomework())
 }
 
 // ============================================================
 // TESTS
 // ============================================================
 
-func (s *Server) handleGetTests(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
+func (s *Server) handleGetTests(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		methodNotAllowed(w, "GET")
 		return
 	}
 
-	writeJSON(
-		w,
-		http.StatusOK,
-		s.store.GetTests(),
-	)
+	writeJSON(w, http.StatusOK, s.store.GetTests())
 }
 
 // ============================================================
 // DKT
 // ============================================================
 
-func (s *Server) handleGetDktSubjects(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
+func (s *Server) handleGetDktSubjects(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		methodNotAllowed(w, "GET")
 		return
 	}
 
-	writeJSON(
-		w,
-		http.StatusOK,
-		s.store.GetDktSubjects(),
-	)
+	writeJSON(w, http.StatusOK, s.store.GetDktSubjects())
 }
 
 // ============================================================
-// ADMIN AUTH
+// ADMIN AUTH MIDDLEWARE
 // ============================================================
 
-func (s *Server) requireAdmin(
-	next http.HandlerFunc,
-) http.HandlerFunc {
-	return func(
-		w http.ResponseWriter,
-		r *http.Request,
-	) {
+func (s *Server) requireAdmin(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		adminUsername := strings.TrimSpace(
 			os.Getenv("ADMIN_USERNAME"),
 		)
 
 		adminPassword := os.Getenv("ADMIN_PASSWORD")
 
-		// Admin API nincs bekapcsolva.
 		if adminUsername == "" || adminPassword == "" {
-			writeJSON(
-				w,
-				http.StatusForbidden,
-				map[string]string{
-					"error": "admin_disabled",
-				},
-			)
+			writeJSON(w, http.StatusForbidden, map[string]string{
+				"error": "admin_disabled",
+			})
 
 			return
 		}
@@ -284,32 +197,22 @@ func (s *Server) requireAdmin(
 				`Basic realm="admin"`,
 			)
 
-			writeJSON(
-				w,
-				http.StatusUnauthorized,
-				map[string]string{
-					"error": "admin_auth_required",
-				},
-			)
+			writeJSON(w, http.StatusUnauthorized, map[string]string{
+				"error": "admin_auth_required",
+			})
 
 			return
 		}
 
-		if username != adminUsername ||
-			password != adminPassword {
-
+		if username != adminUsername || password != adminPassword {
 			w.Header().Set(
 				"WWW-Authenticate",
 				`Basic realm="admin"`,
 			)
 
-			writeJSON(
-				w,
-				http.StatusUnauthorized,
-				map[string]string{
-					"error": "invalid_admin_credentials",
-				},
-			)
+			writeJSON(w, http.StatusUnauthorized, map[string]string{
+				"error": "invalid_admin_credentials",
+			})
 
 			return
 		}
@@ -322,118 +225,62 @@ func (s *Server) requireAdmin(
 // ADMIN ROUTES
 // ============================================================
 
-func (s *Server) registerAdminRoutes(
-	mux *http.ServeMux,
-) {
-	mux.HandleFunc(
-		"/admin",
-		s.requireAdmin(
-			s.handleAdminIndex,
-		),
-	)
-
-	mux.HandleFunc(
-		"/admin/health",
-		s.requireAdmin(
-			s.handleAdminHealth,
-		),
-	)
-
-	mux.HandleFunc(
-		"/admin/config",
-		s.requireAdmin(
-			s.handleAdminConfig,
-		),
-	)
-
-	mux.HandleFunc(
-		"/admin/student",
-		s.requireAdmin(
-			s.handleAdminStudent,
-		),
-	)
-
-	mux.HandleFunc(
-		"/admin/reset",
-		s.requireAdmin(
-			s.handleAdminReset,
-		),
-	)
-
-	mux.HandleFunc(
-		"/admin/users",
-		s.requireAdmin(
-			s.handleAdminUsers,
-		),
-	)
+func (s *Server) registerAdminRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("/admin", s.requireAdmin(s.handleAdminIndex))
+	mux.HandleFunc("/admin/health", s.requireAdmin(s.handleAdminHealth))
+	mux.HandleFunc("/admin/config", s.requireAdmin(s.handleAdminConfig))
+	mux.HandleFunc("/admin/student", s.requireAdmin(s.handleAdminStudent))
+	mux.HandleFunc("/admin/reset", s.requireAdmin(s.handleAdminReset))
+	mux.HandleFunc("/admin/users", s.requireAdmin(s.handleAdminUsers))
 }
 
 // ============================================================
 // ADMIN INDEX
 // ============================================================
 
-func (s *Server) handleAdminIndex(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
+func (s *Server) handleAdminIndex(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		methodNotAllowed(w, "GET")
 		return
 	}
 
-	writeJSON(
-		w,
-		http.StatusOK,
-		map[string]any{
-			"name":    "mock-kreta-server admin API",
-			"version": 1,
-			"status":  "ok",
-			"routes": []string{
-				"/admin",
-				"/admin/health",
-				"/admin/config",
-				"/admin/student",
-				"/admin/reset",
-				"/admin/users",
-			},
+	writeJSON(w, http.StatusOK, map[string]any{
+		"name":    "mock-kreta-server admin API",
+		"version": 1,
+		"status":  "ok",
+		"routes": []string{
+			"/admin",
+			"/admin/health",
+			"/admin/config",
+			"/admin/student",
+			"/admin/reset",
+			"/admin/users",
 		},
-	)
+	})
 }
 
 // ============================================================
 // ADMIN HEALTH
 // ============================================================
 
-func (s *Server) handleAdminHealth(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
+func (s *Server) handleAdminHealth(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		methodNotAllowed(w, "GET")
 		return
 	}
 
-	writeJSON(
-		w,
-		http.StatusOK,
-		map[string]any{
-			"status": "ok",
-		},
-	)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"status": "ok",
+	})
 }
 
 // ============================================================
 // ADMIN CONFIG
 // ============================================================
 
-func (s *Server) handleAdminConfig(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
+func (s *Server) handleAdminConfig(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-
 	case http.MethodGet:
-
 		writeJSON(
 			w,
 			http.StatusOK,
@@ -441,41 +288,25 @@ func (s *Server) handleAdminConfig(
 		)
 
 	case http.MethodPut, http.MethodPost:
-
 		var config ServerConfig
 
-		if err := json.NewDecoder(
-			r.Body,
-		).Decode(&config); err != nil {
-
-			writeJSON(
-				w,
-				http.StatusBadRequest,
-				map[string]string{
-					"error": "invalid_json",
-				},
-			)
+		if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error": "invalid_json",
+			})
 
 			return
 		}
 
 		s.store.SetConfig(config)
 
-		writeJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"success": true,
-				"config":  s.store.GetConfig(),
-			},
-		)
+		writeJSON(w, http.StatusOK, map[string]any{
+			"success": true,
+			"config":  s.store.GetConfig(),
+		})
 
 	default:
-
-		methodNotAllowed(
-			w,
-			"GET, PUT, POST",
-		)
+		methodNotAllowed(w, "GET, PUT, POST")
 	}
 }
 
@@ -483,14 +314,9 @@ func (s *Server) handleAdminConfig(
 // ADMIN STUDENT
 // ============================================================
 
-func (s *Server) handleAdminStudent(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
+func (s *Server) handleAdminStudent(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-
 	case http.MethodGet:
-
 		writeJSON(
 			w,
 			http.StatusOK,
@@ -498,41 +324,25 @@ func (s *Server) handleAdminStudent(
 		)
 
 	case http.MethodPut, http.MethodPost:
-
 		var student Student
 
-		if err := json.NewDecoder(
-			r.Body,
-		).Decode(&student); err != nil {
-
-			writeJSON(
-				w,
-				http.StatusBadRequest,
-				map[string]string{
-					"error": "invalid_json",
-				},
-			)
+		if err := json.NewDecoder(r.Body).Decode(&student); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error": "invalid_json",
+			})
 
 			return
 		}
 
 		s.store.SetStudent(student)
 
-		writeJSON(
-			w,
-			http.StatusOK,
-			map[string]any{
-				"success": true,
-				"student": s.store.GetStudent(),
-			},
-		)
+		writeJSON(w, http.StatusOK, map[string]any{
+			"success": true,
+			"student": s.store.GetStudent(),
+		})
 
 	default:
-
-		methodNotAllowed(
-			w,
-			"GET, PUT, POST",
-		)
+		methodNotAllowed(w, "GET, PUT, POST")
 	}
 }
 
@@ -540,10 +350,7 @@ func (s *Server) handleAdminStudent(
 // ADMIN RESET
 // ============================================================
 
-func (s *Server) handleAdminReset(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
+func (s *Server) handleAdminReset(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		methodNotAllowed(w, "POST")
 		return
@@ -551,14 +358,10 @@ func (s *Server) handleAdminReset(
 
 	s.store.Reset()
 
-	writeJSON(
-		w,
-		http.StatusOK,
-		map[string]any{
-			"success": true,
-			"message": "A mock adatok vissza lettek állítva.",
-		},
-	)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"success": true,
+		"message": "A mock adatok vissza lettek állítva.",
+	})
 }
 
 // ============================================================
@@ -571,10 +374,7 @@ type createUserRequest struct {
 	StudentUID string `json:"studentUid"`
 }
 
-func (s *Server) handleAdminUsers(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
+func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		methodNotAllowed(w, "POST")
 		return
@@ -582,24 +382,15 @@ func (s *Server) handleAdminUsers(
 
 	var req createUserRequest
 
-	if err := json.NewDecoder(
-		r.Body,
-	).Decode(&req); err != nil {
-
-		writeJSON(
-			w,
-			http.StatusBadRequest,
-			map[string]string{
-				"error": "invalid_json",
-			},
-		)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{
+			"error": "invalid_json",
+		})
 
 		return
 	}
 
-	studentUID := strings.TrimSpace(
-		req.StudentUID,
-	)
+	studentUID := strings.TrimSpace(req.StudentUID)
 
 	if studentUID == "" {
 		studentUID = s.store.GetStudent().Uid
@@ -612,22 +403,13 @@ func (s *Server) handleAdminUsers(
 	)
 
 	if err != nil {
-
-		writeJSON(
-			w,
-			http.StatusBadRequest,
-			map[string]string{
-				"error":   "user_creation_failed",
-				"message": err.Error(),
-			},
-		)
+		writeJSON(w, http.StatusBadRequest, map[string]string{
+			"error":   "user_creation_failed",
+			"message": err.Error(),
+		})
 
 		return
 	}
 
-	writeJSON(
-		w,
-		http.StatusCreated,
-		user,
-	)
+	writeJSON(w, http.StatusCreated, user)
 }

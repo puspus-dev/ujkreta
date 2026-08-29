@@ -1,249 +1,630 @@
+```html
 <!DOCTYPE html>
 <html lang="hu">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>KRÁTA</title>
-  <link rel="stylesheet" href="https://puspus-dev.github.io/ujkreta/src/old/main_style.css">
+
+  <link
+    rel="stylesheet"
+    href="https://puspus-dev.github.io/ujkreta/src/old/main_style.css"
+  >
 </head>
+
 <body>
+
 <script>
-    function login() {
-        let username = document.getElementById("username_input").value;
-        let password = document.getElementById("password_input").value;
-        document.getElementById("logintxt").innerText = `SELECT * FROM users WHERE username = "${username}" AND password = "${password}"`;
-        document.getElementById('loadingBox').style.display = 'block';
+/*
+ * ============================================================
+ * KONFIGURÁCIÓ
+ * ============================================================
+ */
 
-        setTimeout(() => {
-          document.getElementById('loadingBox').style.display = 'none';
+const API_BASE = "https://ujkreta.onrender.com";
 
-          setTimeout(() => {
-            if (username == "admin" && password == "admin") {
-                window.location.href = 'https://puspus-dev.github.io/ujkreta/admin_panel'; 
-            }
-            else if (username == "createSmallLink") {
-              document.getElementById("mklinkModal").style.display = "flex";
-            }
-            else {
-              document.getElementById('failBox').style.display = 'block';
-            }
-          }, 100);
 
-        }, 2000);
-      }
+/*
+ * ============================================================
+ * LOGIN
+ * ============================================================
+ */
+
+async function login() {
+
+    const username =
+        document.getElementById("username_input").value.trim();
+
+    const password =
+        document.getElementById("password_input").value;
+
+    const loadingBox =
+        document.getElementById("loadingBox");
+
+    const failBox =
+        document.getElementById("failBox");
+
+    const loginText =
+        document.getElementById("logintxt");
+
+    const button =
+        document.querySelector(".action-row .button");
+
+
+    /*
+     * Korábbi hiba eltüntetése.
+     */
+
+    failBox.style.display = "none";
+
+
+    /*
+     * Üres mezők.
+     */
+
+    if (!username || !password) {
+
+        failBox.innerText =
+            "Kérlek, add meg a felhasználóneved és a jelszavad!";
+
+        failBox.style.display = "block";
+
+        return;
+    }
+
+
+    /*
+     * Loading.
+     */
+
+    loadingBox.style.display = "block";
+
+    if (button) {
+        button.disabled = true;
+    }
+
+
+    loginText.innerText =
+        "Kapcsolódás a KRÁTA szerverhez...";
+
+
+    try {
+
+        /*
+         * OAuth password grant.
+         *
+         * A jelszót csak HTTPS-en továbbítjuk.
+         * Nem mentjük localStorage-ba.
+         */
+
+        const body =
+            new URLSearchParams();
+
+        body.append(
+            "grant_type",
+            "password"
+        );
+
+        body.append(
+            "username",
+            username
+        );
+
+        body.append(
+            "password",
+            password
+        );
+
+
+        const response =
+            await fetch(
+                `${API_BASE}/connect/token`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/x-www-form-urlencoded"
+                    },
+
+                    body: body.toString()
+                }
+            );
+
+
+        /*
+         * Szerverhiba.
+         */
+
+        if (!response.ok) {
+
+            let errorMessage =
+                "Sikertelen bejelentkezés.";
+
+            try {
+
+                const error =
+                    await response.json();
+
+                if (error.error_description) {
+
+                    errorMessage =
+                        error.error_description;
+
+                } else if (error.error) {
+
+                    errorMessage =
+                        error.error;
+
+                }
+
+            } catch (_) {
+                // A válasz nem JSON.
+            }
+
+            throw new Error(
+                errorMessage
+            );
+        }
+
+
+        /*
+         * Token.
+         */
+
+        const data =
+            await response.json();
+
+
+        if (!data.access_token) {
+
+            throw new Error(
+                "A szerver nem adott vissza hozzáférési tokent."
+            );
+        }
+
+
+        /*
+         * A token mentése.
+         *
+         * A jelszót NEM mentjük el.
+         */
+
+        localStorage.setItem(
+            "access_token",
+            data.access_token
+        );
+
+        localStorage.setItem(
+            "local_usr",
+            username
+        );
+
+
+        /*
+         * Régi, korábbi verzióból esetlegesen megmaradt
+         * jelszó törlése.
+         */
+
+        localStorage.removeItem(
+            "local_pw"
+        );
+
+
+        loginText.innerText =
+            "Sikeres bejelentkezés. Átirányítás...";
+
+
+        /*
+         * Régi napló főoldala.
+         */
+
+        window.location.href =
+            "https://puspus-dev.github.io/ujkreta/";
+
+
+    } catch (error) {
+
+        console.error(
+            "Login error:",
+            error
+        );
+
+
+        loginText.innerText =
+            "A szerver nem tudta feldolgozni a kérést.";
+
+
+        failBox.innerText =
+            error.message ||
+            "Ismeretlen hiba történt.";
+
+
+        failBox.style.display =
+            "block";
+
+
+    } finally {
+
+        setTimeout(
+            () => {
+                loadingBox.style.display =
+                    "none";
+            },
+            500
+        );
+
+
+        if (button) {
+            button.disabled = false;
+        }
+
+    }
+}
+
+
+/*
+ * ============================================================
+ * PASSWORD RESET MODAL
+ * ============================================================
+ */
 
 function reset_pw() {
-      document.getElementById("resetModal").style.display = "flex";
-       }
+
+    document.getElementById(
+        "resetModal"
+    ).style.display = "flex";
+
+}
+
+
 function closeResetModal() {
-      document.getElementById("resetModal").style.display = "none";
+
+    document.getElementById(
+        "resetModal"
+    ).style.display = "none";
+
 }
+
+
+/*
+ * ============================================================
+ * SMALL LINK MODAL
+ * ============================================================
+ */
+
 function closemklinkModal() {
-      document.getElementById("mklinkModal").style.display = "none";
+
+    document.getElementById(
+        "mklinkModal"
+    ).style.display = "none";
+
 }
-async function submitSmallLink() {
-      let token = document.getElementById("password_input").value;
-      let link = document.getElementById("link_input").value;
-      let target = document.getElementById("target_link_input").value;
-      document.getElementById("creatingLoader").style.display = "flex";
-      if (!token || !link || !target) {
-            alert("Fill out all fields");
-          return;
-      }
 
-  const owner = "puspus-dev";
-  const repo = "e-kreten.github.com";
-  const path = `share/${link}/index.html`;
 
-  const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
-  const htmlContent = `
-<!DOCTYPE html>
-<html lang="hu">
-<head>
-    <meta charset="UTF-8">
-    <title>KRETÉN - Hyperlink</title>
-    <link rel="stylesheet" href="https://e-kreten.github.io/src/default_hyperlink_style.css">
-</head>
-<body>
-    <div class="logo-header">
-        <img src="https://puspus-dev.github.io/ujkreta/src/logo.png" alt="KRETÉN Logo">
-      </div>
-        <div class="container">
-            <div class="header" id="title">
-                Hyperlink - Small Link
-            </div>
-            <div class="content">
-            <p class="bold">Valaki Megosztott vele egy hosszú linket<br>Az alábbi gombal ezt eltudja érni!</p>
-           <div class="content2"> 
-           <a href="${target}" target="_blank">
-            <button class="button">Megosztott oldal megnyitása</button>
-            </a>
-            </div>
-            </div>
-            </div>
-          </div>
-        </div>
-        <footer>
-            <p>
-                <a href="https://github.com/e-kreten/e-kreten.github.io/" class="hyperlink">Az oldal forráskódja</a> &nbsp;&nbsp;•&nbsp;&nbsp;
-                Készült 🍊 megbízásából, 12 Mrd ft közpénzből
-            </p>
-        </footer>
-    </div>
-</body>
-</html>
-  `.trim();
+/*
+ * ============================================================
+ * ENTER = LOGIN
+ * ============================================================
+ */
 
-  // Encode content to base64
-  const base64Content = btoa(unescape(encodeURIComponent(htmlContent)));
+document.addEventListener(
+    "keydown",
+    function(event) {
 
-  // First, check if the file exists (to get the SHA)
-  let sha = null;
-  try {
-    const res = await fetch(apiUrl, {
-      headers: { Authorization: `token ${token}` }
-    });
-    if (res.ok) {
-      const json = await res.json();
-      sha = json.sha; // Required to update existing file
+        if (
+            event.key === "Enter" &&
+            (
+                document.activeElement?.id ===
+                    "username_input" ||
+
+                document.activeElement?.id ===
+                    "password_input"
+            )
+        ) {
+
+            event.preventDefault();
+
+            login();
+
+        }
+
     }
-  } catch (e) {
-    console.log("Error checking file:", e);
-  }
+);
 
-  // Now, PUT to create/update the file
-  const response = await fetch(apiUrl, {
-    method: "PUT",
-    headers: {
-      Authorization: `Token ${token}`,
-    },
-    body: JSON.stringify({
-      message: `Create shared link: ${link}`,
-      content: base64Content,
-    })
-  });
 
-  const result = await response.json();
+/*
+ * ============================================================
+ * SESSION CHECK
+ * ============================================================
+ *
+ * Ha ezen az oldalon már van tokenünk,
+ * a felhasználó valószínűleg már bejelentkezett.
+ *
+ * Az old frontend nem tárol jelszót.
+ */
 
-  if (response.ok) {
-    document.getElementById('creatingLoader').style.display = 'none';
-    document.getElementById('succCText').innerHTML = `A Link Sikeresen Elkészült! Lehet hogy kell 1-2 percet fárnod még működni fog a link!<br>https://e-kreten.github.io/share/${link}`;
-    document.getElementById('succCBox').style.display = 'block';
-    console.log(result);
-  } else {
-    resault.message
-    document.getElementById('creatingLoader').style.display = 'none';
-    document.getElementById('failCText').innerText = `A Linket nemsikerült elkészíteni! ${result.message}`;
-    document.getElementById('failCBox').style.display = 'block';
-    console.error(result);
-  }
+function checkSession() {
+
+    const token =
+        localStorage.getItem(
+            "access_token"
+        );
+
+
+    /*
+     * Régi jelszóadat törlése.
+     */
+
+    localStorage.removeItem(
+        "local_pw"
+    );
+
+
+    if (token) {
+
+        /*
+         * Nem automatikusan küldjük el a tokent
+         * sehova ezen az oldalon.
+         *
+         * A fő napló oldal fogja használni.
+         */
+
+        console.log(
+            "Aktív munkamenet található."
+        );
+
+    }
+
 }
+
+
+/*
+ * ============================================================
+ * INITIALIZATION
+ * ============================================================
+ */
+
+window.addEventListener(
+    "load",
+    function() {
+
+        checkSession();
+
+    }
+);
+
 </script>
 
-<!-- Logo Header Section -->
+
+<!-- =========================================================
+     LOGO
+========================================================= -->
+
 <div class="logo-header">
-    <img src="https://e-kreten.github.io/src/logo.png" alt="KRETÉN Logo">
-  </div>
 
-  <div class="container">
-    <div class="header" id="title">
-      Mit akarsz te kis ?
+    <img
+        src="https://e-kreten.github.io/src/logo.png"
+        alt="KRÁTA Logo"
+    >
+
+</div>
+
+
+<!-- =========================================================
+     MAIN CONTENT
+========================================================= -->
+
+<div class="container">
+
+    <div
+        class="header"
+        id="title"
+    >
+        Üdvözlünk a KRÁTA naplóban!
     </div>
+
+
     <div class="content">
-        <p>Kérjük, adja meg az intézményi KRETÉN felhasználónevét és jelszavát. Amennyiben elfelejtette, keresse meg valamelyik publikus adatbázisban</p>
-        <p>Tisztelt <a href="#">(Róbert');-- DROP TABLE Tanuló;</a>, technikai okok miatt lehetséges, hogy a rendszer néha <em>(azaz soha)</em> nem működik.</p>
-        <input type="text" placeholder="Felhasználónév" id="username_input">
-        <input type="password" placeholder="Jelszó"id="password_input">
-        <div class="loading-box" id="loadingBox">
-          <p id="logintxt">SELECT * FROM users WHERE username = "" AND password = ""</p>
-          <div class="spinner"></div>
-        </div>
-        <div class="fail-box" id="failBox">
-          0 rows returned from database query.
-        </div>
-        <div class="action-row">
-          <a onclick="reset_pw()">Elfelejtettem a jelszavam</a>
-          <button class="button" onclick="login()">Bejelentkezés</button>
-        </div>
-  </div>
-</div>
 
-<!-- Modal -->
-<div id="resetModal" class="modal-overlay" style="display:none;">
-    <div class="modal-box">
-      <div class="modal-header">
-        <span>Jelszó visszaállítás</span>
-        <button onclick="closeResetModal()" class="modal-close">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="loader"></div>
-        <p>A jelszó helyreállítási kérelmét feldolgoztuk, és a következő eredményre jutottunk:</p>
-        <p style="color: red; font-weight: bold;">
-          A KRETÉN nem találta önt <a href="#" style="color: #00baff;">(Róbert')(;-- DROP TABLE Tanuló;)</a>+t elég fontosnak ahhoz, hogy foglalkozzon a problémájával.
+        <p>
+            Kérjük, adja meg az intézményi KRÁTA
+            felhasználónevét és jelszavát.
         </p>
-        <p><strong>Javasolt megoldások:</strong></p>
-        <ul>
-          <li>Próbáld meg kitalálni a jelszavad. Tippek: <strong>123456, password, admin, qwerty.</strong></li>
-          <li>Kérdezd meg az informatika tanárodat, ő biztosan jobban emlékszik a jelszavadra, mint te.</li>
-          <li>Kapcsold ki és be a gépedet.</li>
-          <li>Használj firkát. (legjobb opció)</li>
-          <li>Az is lehet, hogy a reFlic leakelt adatbázisában lett elmentve a jelszavad, kérdezd meg Kimát is.</li>
-        </ul>
-        <p style="font-style: italic; color: gray;">Az új jelszót elküldtük egy véletlenszerű e-mail címre, amit hasonlónak véltünk a tiédhez.</p>
-      </div>
+
+
+        <p>
+            Ez az oldal a KRÁTA napló saját,
+            nem hivatalos felülete.
+        </p>
+
+
+        <input
+            type="text"
+            placeholder="Felhasználónév"
+            id="username_input"
+            autocomplete="username"
+        >
+
+
+        <input
+            type="password"
+            placeholder="Jelszó"
+            id="password_input"
+            autocomplete="current-password"
+        >
+
+
+        <!-- Loading -->
+
+        <div
+            class="loading-box"
+            id="loadingBox"
+            style="display:none;"
+        >
+
+            <p id="logintxt">
+                Kapcsolódás...
+            </p>
+
+            <div class="spinner"></div>
+
+        </div>
+
+
+        <!-- Login failure -->
+
+        <div
+            class="fail-box"
+            id="failBox"
+            style="display:none;"
+        >
+            Sikertelen bejelentkezés.
+        </div>
+
+
+        <!-- Actions -->
+
+        <div class="action-row">
+
+            <a
+                href="#"
+                onclick="reset_pw(); return false;"
+            >
+                Elfelejtettem a jelszavam
+            </a>
+
+
+            <button
+                class="button"
+                onclick="login()"
+                type="button"
+            >
+                Bejelentkezés
+            </button>
+
+        </div>
+
     </div>
-  </div>
-   <!-- Modal -->
-<div id="mklinkModal" class="modal-overlay" style="display:none;">
-  <div class="modal-box">
-    <div class="modal-header">
-      <span>KRETÉN Small Link Készítés</span>
-      <button onclick="closemklinkModal()" class="modal-close">&times;</button>
-    </div>
-    <div class="modal-body">
-      <div class="loader" style="display:none;" id="creatingLoader"></div>
-      <div class="success-box" style="display:none;" id="succCBox">
-        <p id="succCText">A Link Sikeresen Elkészült!</p>
-      </div>
-      <div class="fail-box" style="display:none;" id="failCBox">
-        <p id="failCText">A Linket nemsikerült elkészíteni!</p>
-      </div>
-      <p>Adja Meg a Készítendő (Kis) Hyperlinket: https://e-kreten.github.io/share/</p><input type="text" placeholder="exampleLink"id="link_input">
-      <p>Adja megy a Target (Hosszú) Linket: </p><input type="text" placeholder="Destination Link"id="target_link_input">
-      <div class="content2">
-      <button class="button" onclick="submitSmallLink()">Hyperlink Készítése</button>
-    </div>  
-    </div>
-  </div>
+
 </div>
 
-  <div class="idkwhat">
-    Ez az oldal kizárólag szatirikus céllal készült, semmilyen kapcsolatban nincs ez az eredeti e-kretával.<br>
-    A bejelentkezési adatok nem az igazi KRÉTA-hoz tartoznak, hanem az oldal easter egg-jei.<br>
-    <strong>Ne add meg a valódi KRÉTA bejelentkezési adataidat!</strong>
-  </div>
 
-  <!-- Embedded XML with words -->
-  <script>
-  fetch("https://e-kreten.github.io/src/DirtyWords.xml")
-    .then(response => response.text())
-    .then(str => (new DOMParser()).parseFromString(str, "text/xml"))
-    .then(xml => {
-      const words = Array.from(xml.getElementsByTagName('word')).map(el => el.textContent.trim());
+<!-- =========================================================
+     PASSWORD RESET MODAL
+========================================================= -->
 
-      if (words.length >= 3) {
-        const shuffled = words.sort(() => 0.5 - Math.random());
-        const [w1, w2, w3] = shuffled;
-        document.getElementById("title").innerText = `Mit akarsz te kis ${w1} ${w2} ${w3}?`;
-      }
-    })
-    .catch(err => console.error("Failed to load XML:", err));
-</script>
-  <footer>
+<div
+    id="resetModal"
+    class="modal-overlay"
+    style="display:none;"
+>
+
+    <div class="modal-box">
+
+        <div class="modal-header">
+
+            <span>
+                Jelszó visszaállítás
+            </span>
+
+
+            <button
+                onclick="closeResetModal()"
+                class="modal-close"
+                type="button"
+            >
+                &times;
+            </button>
+
+        </div>
+
+
+        <div class="modal-body">
+
+            <div class="loader"></div>
+
+
+            <p>
+                A jelszó-visszaállítás jelenleg
+                nincs bekapcsolva ezen a rendszeren.
+            </p>
+
+
+            <p>
+                Ha nem tudsz bejelentkezni,
+                kérj segítséget az intézmény
+                rendszergazdájától.
+            </p>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     SMALL LINK MODAL
+=========================================================
+
+     A régi GitHub-tokenes Small Link implementációt
+     szándékosan eltávolítottuk.
+
+     Ha később szükség lesz erre a funkcióra,
+     azt biztonságosan a saját backend API-n keresztül
+     lehet megvalósítani.
+========================================================= -->
+
+
+<!-- =========================================================
+     DISCLAIMER
+========================================================= -->
+
+<div class="idkwhat">
+
+    Ez az oldal kizárólag szatirikus céllal készült,
+    semmilyen kapcsolatban nincs a hivatalos KRÉTA rendszerrel.
+    <br>
+
+    A bejelentkezési adatok nem kerülnek mentésre
+    ezen az oldalon.
+    <br>
+
+    <strong>
+        Ne add meg a valódi KRÉTA bejelentkezési adataidat,
+        ha nem vagy biztos benne, hogy a saját tesztrendszeredhez
+        tartoznak!
+    </strong>
+
+</div>
+
+
+<!-- =========================================================
+     FOOTER
+========================================================= -->
+
+<footer>
+
     <p>
-        <a href="https://github.com/e-kreten/e-kreten.github.com" class="hyperlink">Az oldal forráskódja</a> &nbsp;&nbsp;•&nbsp;&nbsp;
-        Készült 🍊 megbízásából, 12 Mrd ft közpénzből
+
+        <a
+            href="https://github.com/e-kreten/e-kreten.github.com"
+            class="hyperlink"
+        >
+            Az eredeti oldal forráskódja
+        </a>
+
+        &nbsp;&nbsp;•&nbsp;&nbsp;
+
+        Készült a SuliKód Verseny megbízásából.
+
     </p>
+
 </footer>
 
+
 </body>
 </html>
+```

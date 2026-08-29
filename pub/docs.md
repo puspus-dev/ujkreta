@@ -1,4 +1,4 @@
-_gemini irta szoval nem tom hogy hiteles e_
+_elavult, hamarosan jön az új dokumentacio_
 AlapadatokAzonosítás (Authentication): Bearer Token (az /oauth/token végpontról kapott token használatával)Tartalomtípus (Content-Type): application/json1. Hitelesítés (OAuth2)A rendszerbe történő bejelentkezéshez és a hívásokhoz szükséges Access Token megszerzéséhez.Token kérése / BejelentkezésVégpont: POST /oauth/tokenContent-Type: application/x-www-form-urlencodedKérés törzse (Form Data):ParaméterTípusLeírásuserNamestringA diák oktatási azonosítója / felhasználónevepasswordstringA felhasználó jelszavagrant_typestringÉrtéke: passwordclient_idstringA kliens azonosítója (pl. 9b023...)Sikeres válasz (200 OK):JSON{
   "access_token": "mock_access_token_12345",
   "token_type": "Bearer",

@@ -1,0 +1,1984 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>ÚjKréta – Diák</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
+      background: #f5f7fb;
+      color: #172033;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* SIDEBAR */
+
+    .sidebar {
+      width: 250px;
+      background: #fff;
+      border-right: 1px solid #e7eaf1;
+
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+
+      padding: 22px 14px;
+      z-index: 20;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      padding: 4px 10px 25px;
+
+      font-size: 21px;
+      font-weight: 800;
+    }
+
+    .logo {
+      width: 38px;
+      height: 38px;
+
+      display: grid;
+      place-items: center;
+
+      border-radius: 12px;
+
+      background: #315efb;
+      color: white;
+
+      font-weight: 900;
+    }
+
+    .nav {
+      display: grid;
+      gap: 5px;
+    }
+
+    .nav button {
+      width: 100%;
+
+      border: 0;
+      background: transparent;
+
+      padding: 12px 13px;
+
+      border-radius: 12px;
+
+      color: #606a7d;
+
+      text-align: left;
+
+      cursor: pointer;
+
+      display: flex;
+      align-items: center;
+      gap: 11px;
+    }
+
+    .nav button:hover,
+    .nav button.active {
+      background: #eef2ff;
+      color: #315efb;
+      font-weight: 700;
+    }
+
+    .icon {
+      width: 22px;
+      text-align: center;
+    }
+
+    /* MAIN */
+
+    .main {
+      margin-left: 250px;
+
+      width: calc(100% - 250px);
+
+      padding: 26px;
+
+      max-width: 1450px;
+    }
+
+    .mobile-header {
+      display: none;
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      margin-top: 5px;
+      color: #697386;
+    }
+
+    .profile-mini {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      background: white;
+
+      border: 1px solid #e7eaf1;
+
+      padding: 8px 12px;
+
+      border-radius: 14px;
+    }
+
+    .avatar {
+      width: 35px;
+      height: 35px;
+
+      display: grid;
+      place-items: center;
+
+      border-radius: 50%;
+
+      background: #e8edff;
+      color: #315efb;
+
+      font-weight: 800;
+    }
+
+    /* GRID */
+
+    .grid {
+      display: grid;
+
+      grid-template-columns: repeat(12, 1fr);
+
+      gap: 16px;
+    }
+
+    .span-12 {
+      grid-column: span 12;
+    }
+
+    .span-8 {
+      grid-column: span 8;
+    }
+
+    .span-6 {
+      grid-column: span 6;
+    }
+
+    .span-4 {
+      grid-column: span 4;
+    }
+
+    .span-3 {
+      grid-column: span 3;
+    }
+
+    /* CARDS */
+
+    .card {
+      background: white;
+
+      border: 1px solid #e7eaf1;
+
+      border-radius: 18px;
+
+      padding: 18px;
+
+      box-shadow:
+        0 8px 30px rgba(28, 39, 68, .07);
+    }
+
+    .stat {
+      min-height: 115px;
+    }
+
+    .stat-label {
+      color: #697386;
+      font-size: 14px;
+    }
+
+    .stat-value {
+      margin-top: 8px;
+
+      font-size: 30px;
+
+      font-weight: 800;
+    }
+
+    .section-title {
+      margin: 0 0 14px;
+
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    /* LIST */
+
+    .list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .item {
+      display: flex;
+      justify-content: space-between;
+      gap: 15px;
+
+      padding: 12px 13px;
+
+      border: 1px solid #e7eaf1;
+
+      border-radius: 13px;
+    }
+
+    .item-title {
+      font-weight: 700;
+    }
+
+    .item-meta {
+      margin-top: 4px;
+
+      color: #697386;
+
+      font-size: 13px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+
+      padding: 5px 8px;
+
+      border-radius: 9px;
+
+      background: #eef2ff;
+      color: #315efb;
+
+      font-size: 12px;
+      font-weight: 700;
+
+      white-space: nowrap;
+    }
+
+    .grade {
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    .empty {
+      padding: 18px 0;
+      color: #697386;
+    }
+
+    /* TABLE */
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 11px 9px;
+
+      text-align: left;
+
+      border-bottom: 1px solid #e7eaf1;
+
+      font-size: 14px;
+    }
+
+    th {
+      color: #697386;
+    }
+
+    /* ERROR */
+
+    .error {
+      padding: 14px;
+
+      background: #fff1f0;
+
+      border: 1px solid #ffd6d2;
+
+      border-radius: 12px;
+
+      color: #d92d20;
+    }
+
+    /* MOBILE */
+
+    @media (max-width: 900px) {
+
+      .sidebar {
+        transform: translateX(-100%);
+
+        transition: transform .2s;
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .main {
+        margin-left: 0;
+
+        width: 100%;
+
+        padding: 18px;
+      }
+
+      .mobile-header {
+        display: flex;
+
+        align-items: center;
+        justify-content: space-between;
+
+        margin-bottom: 18px;
+      }
+
+      .menu-button {
+        border: 1px solid #e7eaf1;
+
+        background: white;
+
+        border-radius: 10px;
+
+        padding: 9px 12px;
+
+        cursor: pointer;
+      }
+
+      .span-3,
+      .span-4,
+      .span-6,
+      .span-8 {
+        grid-column: span 12;
+      }
+
+      .top {
+        align-items: flex-start;
+      }
+
+      .profile-mini {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+
+  <aside class="sidebar" id="sidebar">
+
+    <div class="brand">
+      <div class="logo">K</div>
+      <div>ÚjKréta</div>
+    </div>
+
+    <nav class="nav">
+
+      <button data-page="home" class="active">
+        <span class="icon">⌂</span>
+        Kezdőlap
+      </button>
+
+      <button data-page="grades">
+        <span class="icon">✓</span>
+        Értékelések
+      </button>
+
+      <button data-page="timetable">
+        <span class="icon">▦</span>
+        Órarend
+      </button>
+
+      <button data-page="homework">
+        <span class="icon">☷</span>
+        Házi feladatok
+      </button>
+
+      <button data-page="tests">
+        <span class="icon">!</span>
+        Számonkérések
+      </button>
+
+      <button data-page="omissions">
+        <span class="icon">○</span>
+        Mulasztások
+      </button>
+
+      <button data-page="notices">
+        <span class="icon">▤</span>
+        Faliújság
+      </button>
+
+      <button data-page="info">
+        <span class="icon">i</span>
+        Feljegyzések
+      </button>
+
+      <button data-page="profile">
+        <span class="icon">●</span>
+        Profil
+      </button>
+
+    </nav>
+
+  </aside>
+
+
+  <!-- MAIN -->
+
+  <main class="main">
+
+    <div class="mobile-header">
+      <strong>ÚjKréta</strong>
+
+      <button
+        class="menu-button"
+        id="menuButton">
+        ☰
+      </button>
+    </div>
+
+
+    <header class="top">
+
+      <div>
+
+        <h1 id="pageTitle">
+          Kezdőlap
+        </h1>
+
+        <div
+          class="subtitle"
+          id="pageSubtitle">
+
+          A tanulmányi adataid egy helyen.
+
+        </div>
+
+      </div>
+
+
+      <div class="profile-mini">
+
+        <div
+          class="avatar"
+          id="avatar">
+
+          D
+
+        </div>
+
+        <strong id="studentName">
+          Diák
+        </strong>
+
+      </div>
+
+    </header>
+
+
+    <div id="content">
+
+      <div class="card">
+        Adatok betöltése…
+      </div>
+
+    </div>
+
+  </main>
+
+</div>
+
+
+<script>
+
+const API = window.location.origin;
+
+
+/* =========================================================
+   STATE
+========================================================= */
+
+const state = {
+
+  student: null,
+
+  groups: [],
+
+  grades: [],
+
+  lessons: [],
+
+  homework: [],
+
+  tests: [],
+
+  omissions: [],
+
+  notices: [],
+
+  info: [],
+
+  averages: []
+
+};
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function escapeHTML(value) {
+
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+
+function array(value) {
+
+  return Array.isArray(value)
+    ? value
+    : [];
+
+}
+
+
+function getToken() {
+
+  return (
+    localStorage.getItem("access_token") ||
+    localStorage.getItem("accessToken") ||
+    localStorage.getItem("token") ||
+    ""
+  );
+
+}
+
+
+function subject(item) {
+
+  return (
+    item?.Tantargy?.Nev ||
+    item?.TantargyNeve ||
+    "Ismeretlen tantárgy"
+  );
+
+}
+
+
+function formatDate(value) {
+
+  if (!value)
+    return "";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime()))
+    return String(value);
+
+  return date.toLocaleDateString(
+    "hu-HU"
+  );
+
+}
+
+
+function formatTime(value) {
+
+  if (!value)
+    return "";
+
+  const match =
+    String(value).match(
+      /(\d{1,2}):(\d{2})/
+    );
+
+  if (!match)
+    return String(value);
+
+  return (
+    match[1].padStart(2, "0") +
+    ":" +
+    match[2]
+  );
+
+}
+
+
+function gradeAverage() {
+
+  const values =
+    state.grades
+
+      .map(
+        grade =>
+          Number(grade.SzamErtek)
+      )
+
+      .filter(
+        value =>
+          Number.isFinite(value) &&
+          value > 0
+      );
+
+  if (!values.length)
+    return "–";
+
+  const average =
+    values.reduce(
+      (a, b) => a + b,
+      0
+    ) / values.length;
+
+  return average.toFixed(2);
+
+}
+
+
+/* =========================================================
+   API
+========================================================= */
+
+async function api(path) {
+
+  const headers = {
+    "Accept":
+      "application/json"
+  };
+
+  const token = getToken();
+
+  if (token) {
+
+    headers.Authorization =
+      "Bearer " + token;
+
+  }
+
+  const response =
+    await fetch(
+      API + path,
+      {
+        method: "GET",
+        headers,
+        credentials: "include"
+      }
+    );
+
+  if (!response.ok) {
+
+    throw new Error(
+      response.status +
+      " " +
+      response.statusText
+    );
+
+  }
+
+  return response.json();
+
+}
+
+
+/* =========================================================
+   LOAD
+========================================================= */
+
+async function loadData() {
+
+  const endpoints = {
+
+    student:
+      "/ellenorzo/v3/sajat/TanuloAdatlap",
+
+    groups:
+      "/ellenorzo/v3/sajat/OsztalyCsoportok",
+
+    grades:
+      "/ellenorzo/v3/sajat/Ertekelesek",
+
+    lessons:
+      "/ellenorzo/v3/sajat/OrarendElemek",
+
+    homework:
+      "/ellenorzo/v3/sajat/HaziFeladatok",
+
+    tests:
+      "/ellenorzo/v3/sajat/BejelentettSzamonkeresek",
+
+    omissions:
+      "/ellenorzo/v3/sajat/Mulasztasok",
+
+    notices:
+      "/ellenorzo/v3/sajat/FaliujsagElemek",
+
+    info:
+      "/ellenorzo/v3/sajat/Feljegyzesek",
+
+    averages:
+      "/ellenorzo/v3/sajat/Ertekelesek/Atlagok/OsztalyAtlagok"
+
+  };
+
+
+  await Promise.all(
+
+    Object.entries(endpoints)
+
+      .map(
+        async ([key, endpoint]) => {
+
+          try {
+
+            state[key] =
+              await api(endpoint);
+
+          }
+          catch (error) {
+
+            console.error(
+              key,
+              error
+            );
+
+            state[key] =
+              key === "student"
+                ? null
+                : [];
+
+          }
+
+        }
+      )
+
+  );
+
+
+  const student =
+    state.student;
+
+  const name =
+    student?.Nev ||
+    "Diák";
+
+
+  document
+    .getElementById("studentName")
+    .textContent = name;
+
+
+  document
+    .getElementById("avatar")
+    .textContent =
+      name.trim()[0]?.toUpperCase()
+      || "D";
+
+}
+
+
+/* =========================================================
+   HOME
+========================================================= */
+
+function renderHome() {
+
+  const latestGrades =
+    array(state.grades)
+
+      .slice()
+      .sort(
+        (a, b) =>
+          new Date(b.RogzitesDatuma) -
+          new Date(a.RogzitesDatuma)
+      )
+
+      .slice(0, 6);
+
+
+  const homework =
+    array(state.homework)
+
+      .filter(
+        item =>
+          !item.IsMegoldva
+      )
+
+      .slice(0, 5);
+
+
+  return `
+
+    <div class="grid">
+
+
+      <div class="card stat span-3">
+
+        <div class="stat-label">
+          Jegyek átlaga
+        </div>
+
+        <div class="stat-value">
+          ${gradeAverage()}
+        </div>
+
+      </div>
+
+
+      <div class="card stat span-3">
+
+        <div class="stat-label">
+          Értékelések
+        </div>
+
+        <div class="stat-value">
+          ${state.grades.length}
+        </div>
+
+      </div>
+
+
+      <div class="card stat span-3">
+
+        <div class="stat-label">
+          Mulasztások
+        </div>
+
+        <div class="stat-value">
+          ${state.omissions.length}
+        </div>
+
+      </div>
+
+
+      <div class="card stat span-3">
+
+        <div class="stat-label">
+          Nyitott házik
+        </div>
+
+        <div class="stat-value">
+
+          ${
+            state.homework
+              .filter(
+                x => !x.IsMegoldva
+              )
+              .length
+          }
+
+        </div>
+
+      </div>
+
+
+      <div class="card span-6">
+
+        <h2 class="section-title">
+          Legutóbbi értékelések
+        </h2>
+
+        <div class="list">
+
+          ${
+            latestGrades.length
+
+              ? latestGrades
+                  .map(
+                    grade => `
+
+                    <div class="item">
+
+                      <div>
+
+                        <div class="item-title">
+
+                          ${escapeHTML(
+                            subject(grade)
+                          )}
+
+                        </div>
+
+                        <div class="item-meta">
+
+                          ${escapeHTML(
+                            grade.Tema ||
+                            grade.Tipus?.Nev ||
+                            ""
+                          )}
+
+                          ·
+
+                          ${formatDate(
+                            grade.RogzitesDatuma
+                          )}
+
+                        </div>
+
+                      </div>
+
+
+                      <div class="grade">
+
+                        ${escapeHTML(
+                          grade.SzamErtek ||
+                          grade.SzovegesErtek ||
+                          "–"
+                        )}
+
+                      </div>
+
+                    </div>
+
+                  `
+                  )
+                  .join("")
+
+              : `<div class="empty">
+                   Nincs értékelés.
+                 </div>`
+
+          }
+
+        </div>
+
+      </div>
+
+
+      <div class="card span-6">
+
+        <h2 class="section-title">
+          Házi feladatok
+        </h2>
+
+        <div class="list">
+
+          ${
+            homework.length
+
+              ? homework
+                  .map(
+                    item => `
+
+                    <div class="item">
+
+                      <div>
+
+                        <div class="item-title">
+
+                          ${escapeHTML(
+                            item.TantargyNeve ||
+                            subject(item)
+                          )}
+
+                        </div>
+
+                        <div class="item-meta">
+
+                          Határidő:
+
+                          ${formatDate(
+                            item.HataridoDatuma
+                          )}
+
+                        </div>
+
+                      </div>
+
+                      <span class="badge">
+                        Nyitott
+                      </span>
+
+                    </div>
+
+                  `
+                  )
+                  .join("")
+
+              : `<div class="empty">
+                   Nincs nyitott házi feladat.
+                 </div>`
+
+          }
+
+        </div>
+
+      </div>
+
+
+      <div class="card span-6">
+
+        <h2 class="section-title">
+          Faliújság
+        </h2>
+
+        <div class="list">
+
+          ${
+            array(state.notices)
+              .slice(0, 5)
+              .map(
+                item => `
+
+                <div class="item">
+
+                  <div>
+
+                    <div class="item-title">
+
+                      ${escapeHTML(
+                        item.Cim
+                      )}
+
+                    </div>
+
+                    <div class="item-meta">
+
+                      ${escapeHTML(
+                        item.RogzitoNeve ||
+                        ""
+                      )}
+
+                      ·
+
+                      ${formatDate(
+                        item.ErvenyessegKezdete
+                      )}
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              `
+              )
+              .join("")
+
+            ||
+
+            `<div class="empty">
+              Nincs bejegyzés.
+            </div>`
+
+          }
+
+        </div>
+
+      </div>
+
+
+    </div>
+
+  `;
+
+}
+
+
+/* =========================================================
+   GRADES
+========================================================= */
+
+function renderGrades() {
+
+  return `
+
+    <div class="card">
+
+      <h2 class="section-title">
+        Értékelések
+      </h2>
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th>Dátum</th>
+
+            <th>Tantárgy</th>
+
+            <th>Téma</th>
+
+            <th>Típus</th>
+
+            <th>Jegy</th>
+
+            <th>Tanár</th>
+
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+          ${
+            array(state.grades)
+              .map(
+                grade => `
+
+                <tr>
+
+                  <td>
+                    ${formatDate(
+                      grade.RogzitesDatuma
+                    )}
+                  </td>
+
+                  <td>
+                    <strong>
+                      ${escapeHTML(
+                        subject(grade)
+                      )}
+                    </strong>
+                  </td>
+
+                  <td>
+                    ${escapeHTML(
+                      grade.Tema || ""
+                    )}
+                  </td>
+
+                  <td>
+                    ${escapeHTML(
+                      grade.Tipus?.Nev ||
+                      ""
+                    )}
+                  </td>
+
+                  <td>
+                    <strong>
+                      ${escapeHTML(
+                        grade.SzamErtek ||
+                        grade.SzovegesErtek ||
+                        "–"
+                      )}
+                    </strong>
+                  </td>
+
+                  <td>
+                    ${escapeHTML(
+                      grade.ErtekeloTanarNeve ||
+                      ""
+                    )}
+                  </td>
+
+                </tr>
+
+              `
+              )
+              .join("")
+
+            ||
+
+            `
+              <tr>
+                <td colspan="6">
+                  Nincs adat.
+                </td>
+              </tr>
+            `
+
+          }
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  `;
+
+}
+
+
+/* =========================================================
+   TIMETABLE
+========================================================= */
+
+function renderTimetable() {
+
+  const grouped = {};
+
+
+  array(state.lessons)
+    .forEach(
+      lesson => {
+
+        const day =
+          lesson.Datum?.slice(
+            0,
+            10
+          ) ||
+          "Ismeretlen";
+
+        if (!grouped[day])
+          grouped[day] = [];
+
+        grouped[day].push(
+          lesson
+        );
+
+      }
+    );
+
+
+  return `
+
+    <div class="grid">
+
+      ${
+        Object.entries(grouped)
+          .sort()
+          .map(
+            ([day, lessons]) => `
+
+              <div class="card span-6">
+
+                <h2 class="section-title">
+
+                  ${formatDate(day)}
+
+                </h2>
+
+                <div class="list">
+
+                  ${
+                    lessons
+
+                      .sort(
+                        (a, b) =>
+                          formatTime(
+                            a.KezdetIdopont
+                          )
+                          .localeCompare(
+                            formatTime(
+                              b.KezdetIdopont
+                            )
+                          )
+                      )
+
+                      .map(
+                        lesson => `
+
+                          <div class="item">
+
+                            <div>
+
+                              <div class="item-title">
+
+                                ${escapeHTML(
+                                  subject(lesson)
+                                )}
+
+                              </div>
+
+                              <div class="item-meta">
+
+                                ${formatTime(
+                                  lesson.KezdetIdopont
+                                )}
+
+                                –
+
+                                ${formatTime(
+                                  lesson.VegIdopont
+                                )}
+
+                                ·
+
+                                ${escapeHTML(
+                                  lesson.TeremNeve ||
+                                  ""
+                                )}
+
+                                ·
+
+                                ${escapeHTML(
+                                  lesson.TanarNeve ||
+                                  ""
+                                )}
+
+                              </div>
+
+                            </div>
+
+
+                            <span class="badge">
+
+                              ${escapeHTML(
+                                lesson.Oraszam ||
+                                "óra"
+                              )}
+
+                            </span>
+
+                          </div>
+
+                        `
+                      )
+                      .join("")
+
+                  }
+
+                </div>
+
+              </div>
+
+            `
+          )
+          .join("")
+
+        ||
+
+        `
+          <div class="card span-12">
+            <div class="empty">
+              Nincs órarendi adat.
+            </div>
+          </div>
+        `
+
+      }
+
+    </div>
+
+  `;
+
+}
+
+
+/* =========================================================
+   GENERIC LIST
+========================================================= */
+
+function renderList(type) {
+
+  const configs = {
+
+    homework: {
+      title: "Házi feladatok",
+      data: state.homework,
+
+      titleFn:
+        item =>
+          item.TantargyNeve ||
+          subject(item),
+
+      metaFn:
+        item =>
+          `Határidő: ${formatDate(
+            item.HataridoDatuma
+          )}`
+
+    },
+
+    tests: {
+      title:
+        "Bejelentett számonkérések",
+
+      data: state.tests,
+
+      titleFn:
+        item =>
+          item.TantargyNeve ||
+          subject(item),
+
+      metaFn:
+        item =>
+          `${formatDate(item.Datum)}
+           ·
+           ${item.Temaja || ""}
+           ·
+           ${item.Modja?.Nev || ""}`
+
+    },
+
+    omissions: {
+      title:
+        "Mulasztások",
+
+      data:
+        state.omissions,
+
+      titleFn:
+        item =>
+          subject(item),
+
+      metaFn:
+        item =>
+          `${formatDate(item.Datum)}
+           ·
+           ${item.Tipus?.Nev || ""}
+           ·
+           ${item.Mod?.Nev || ""}`
+
+    },
+
+    notices: {
+      title:
+        "Faliújság",
+
+      data:
+        state.notices,
+
+      titleFn:
+        item =>
+          item.Cim,
+
+      metaFn:
+        item =>
+          `${item.RogzitoNeve || ""}
+           ·
+           ${formatDate(
+             item.ErvenyessegKezdete
+           )}`
+
+    },
+
+    info: {
+      title:
+        "Feljegyzések",
+
+      data:
+        state.info,
+
+      titleFn:
+        item =>
+          item.Cim,
+
+      metaFn:
+        item =>
+          `${item.KeszitoTanarNeve || ""}
+           ·
+           ${formatDate(item.Datum)}`
+    }
+
+  };
+
+
+  const config =
+    configs[type];
+
+
+  return `
+
+    <div class="card">
+
+      <h2 class="section-title">
+
+        ${config.title}
+
+      </h2>
+
+      <div class="list">
+
+        ${
+          array(config.data)
+
+            .map(
+              item => `
+
+                <div class="item">
+
+                  <div>
+
+                    <div class="item-title">
+
+                      ${escapeHTML(
+                        config.titleFn(item)
+                      )}
+
+                    </div>
+
+                    <div class="item-meta">
+
+                      ${escapeHTML(
+                        config.metaFn(item)
+                      )}
+
+                    </div>
+
+                    ${
+                      item.Szoveg
+
+                        ? `
+                          <div
+                            style="
+                              margin-top:8px
+                            "
+                          >
+                            ${escapeHTML(
+                              item.Szoveg
+                            )}
+                          </div>
+                        `
+
+                        : ""
+                    }
+
+                    ${
+                      item.TartalomText
+
+                        ? `
+                          <div
+                            style="
+                              margin-top:8px
+                            "
+                          >
+                            ${escapeHTML(
+                              item.TartalomText
+                            )}
+                          </div>
+                        `
+
+                        : ""
+                    }
+
+                  </div>
+
+
+                  ${
+                    type === "homework"
+
+                      ? `
+                        <span class="badge">
+
+                          ${
+                            item.IsMegoldva
+                              ? "Megoldva"
+                              : "Nyitott"
+                          }
+
+                        </span>
+                      `
+
+                      : ""
+
+                  }
+
+                </div>
+
+              `
+            )
+
+            .join("")
+
+          ||
+
+          `
+            <div class="empty">
+              Nincs adat.
+            </div>
+          `
+
+        }
+
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+
+/* =========================================================
+   PROFILE
+========================================================= */
+
+function renderProfile() {
+
+  const student =
+    state.student || {};
+
+
+  return `
+
+    <div class="grid">
+
+
+      <div class="card span-6">
+
+        <h2 class="section-title">
+          Tanuló adatai
+        </h2>
+
+        <div class="list">
+
+          <div class="item">
+            <span>Név</span>
+            <strong>
+              ${escapeHTML(
+                student.Nev
+              )}
+            </strong>
+          </div>
+
+          <div class="item">
+            <span>Azonosító</span>
+            <strong>
+              ${escapeHTML(
+                student.Uid
+              )}
+            </strong>
+          </div>
+
+          <div class="item">
+            <span>Intézmény</span>
+            <strong>
+              ${escapeHTML(
+                student.IntezmenyNev
+              )}
+            </strong>
+          </div>
+
+          <div class="item">
+            <span>E-mail</span>
+            <strong>
+              ${escapeHTML(
+                student.EmailCim ||
+                "–"
+              )}
+            </strong>
+          </div>
+
+          <div class="item">
+            <span>Telefon</span>
+            <strong>
+              ${escapeHTML(
+                student.Telefonszam ||
+                "–"
+              )}
+            </strong>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="card span-6">
+
+        <h2 class="section-title">
+          Osztályok / csoportok
+        </h2>
+
+        <div class="list">
+
+          ${
+            array(state.groups)
+
+              .map(
+                group => `
+
+                  <div class="item">
+
+                    <strong>
+                      ${escapeHTML(
+                        group.Nev
+                      )}
+                    </strong>
+
+                    <span class="badge">
+
+                      ${
+                        group.IsAktiv
+                          ? "Aktív"
+                          : "Inaktív"
+                      }
+
+                    </span>
+
+                  </div>
+
+                `
+              )
+
+              .join("")
+
+            ||
+
+            `
+              <div class="empty">
+                Nincs adat.
+              </div>
+            `
+
+          }
+
+        </div>
+
+      </div>
+
+
+    </div>
+
+  `;
+
+}
+
+
+/* =========================================================
+   PAGES
+========================================================= */
+
+const pages = {
+
+  home: [
+    "Kezdőlap",
+    "A tanulmányi adataid egy helyen.",
+    renderHome
+  ],
+
+  grades: [
+    "Értékelések",
+    "Jegyek és értékelések.",
+    renderGrades
+  ],
+
+  timetable: [
+    "Órarend",
+    "Az elérhető órarendi bejegyzések.",
+    renderTimetable
+  ],
+
+  homework: [
+    "Házi feladatok",
+    "Feladott és teljesített házi feladatok.",
+    () =>
+      renderList("homework")
+  ],
+
+  tests: [
+    "Számonkérések",
+    "Bejelentett dolgozatok és számonkérések.",
+    () =>
+      renderList("tests")
+  ],
+
+  omissions: [
+    "Mulasztások",
+    "Hiányzások és késések.",
+    () =>
+      renderList("omissions")
+  ],
+
+  notices: [
+    "Faliújság",
+    "Az intézmény aktuális közleményei.",
+    () =>
+      renderList("notices")
+  ],
+
+  info: [
+    "Feljegyzések",
+    "Tanári és intézményi feljegyzések.",
+    () =>
+      renderList("info")
+  ],
+
+  profile: [
+    "Profil",
+    "A tanulói profilod adatai.",
+    renderProfile
+  ]
+
+};
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+function showPage(page) {
+
+  const selected =
+    pages[page] ||
+    pages.home;
+
+
+  document
+    .getElementById("pageTitle")
+    .textContent =
+      selected[0];
+
+
+  document
+    .getElementById("pageSubtitle")
+    .textContent =
+      selected[1];
+
+
+  document
+    .getElementById("content")
+    .innerHTML =
+      selected[2]();
+
+
+  document
+    .querySelectorAll(".nav button")
+    .forEach(
+      button => {
+
+        button.classList.toggle(
+          "active",
+          button.dataset.page === page
+        );
+
+      }
+    );
+
+
+  history.replaceState(
+    null,
+    "",
+    "#" + page
+  );
+
+
+  document
+    .getElementById("sidebar")
+    .classList.remove("open");
+
+}
+
+
+/* =========================================================
+   EVENTS
+========================================================= */
+
+document
+  .querySelectorAll(".nav button")
+  .forEach(
+    button => {
+
+      button.addEventListener(
+        "click",
+        () =>
+          showPage(
+            button.dataset.page
+          )
+      );
+
+    }
+  );
+
+
+document
+  .getElementById("menuButton")
+  .addEventListener(
+    "click",
+    () =>
+      document
+        .getElementById("sidebar")
+        .classList.toggle("open")
+  );
+
+
+/* =========================================================
+   START
+========================================================= */
+
+(async function () {
+
+  try {
+
+    await loadData();
+
+    showPage(
+      location.hash.slice(1) ||
+      "home"
+    );
+
+  }
+  catch (error) {
+
+    console.error(error);
+
+    document
+      .getElementById("content")
+      .innerHTML = `
+
+        <div class="card">
+
+          <div class="error">
+
+            Nem sikerült betölteni
+            a tanulói adatokat.
+
+            <br><br>
+
+            Ellenőrizd, hogy
+            be vagy-e jelentkezve,
+            és a backend elérhető-e.
+
+            <br><br>
+
+            <small>
+              ${escapeHTML(
+                error.message
+              )}
+            </small>
+
+          </div>
+
+        </div>
+
+      `;
+
+  }
+
+})();
+
+</script>
+
+</body>
+</html>

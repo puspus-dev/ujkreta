@@ -1,0 +1,138 @@
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #000;
+      overflow: hidden;
+      background: var(--bg-color);
+  	  color: var(--text-color);
+    }
+
+    .background {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-size: cover;
+      background-position: center;
+      filter: blur(var(--blur-amount, 10px));
+      z-index: -1;
+    }
+
+    .content {
+      position: relative;
+      padding: 40px;
+      display: flex;
+      gap: 30px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .panel {
+      poition: relative;
+      padding: 50px;
+      border-radius: 12px;
+      min-width: 300px;
+      max-width: 400px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.5);
+      background: var(--panel-bg);
+    }
+
+    .panel h2 {
+      margin-top: 0;
+      color: #ffd700;
+    }
+
+    .item {
+      margin: 10px 0;
+      padding: 10px;
+      background: var(--item-bg);
+      border-radius: 8px;
+    }
+
+.settings-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  font-size: 24px;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.settings-panel {
+  position: fixed;
+  top: 60px;
+  right: 20px;
+  padding: 15px;
+  border-radius: 10px;
+  display: none;
+  z-index: 10;
+  background: var(--panel-bg);
+  color: var(--text-color);
+}
+}
+
+    .settings-panel input[type="range"] {
+      width: 100%;
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+      color: #ccc;
+    }
+#bgUrl {
+  width: 100%;
+  padding: 8px 2px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  border-radius: 8px;
+  outline: none;
+}
+
+.settings-panel button {
+  margin-top: 15px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+.settings-panel label {
+  color: var(--text-color);
+}
+
+.settings-panel button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+:root {
+  --bg-color: #000;
+  --text-color: #fff;
+  --panel-bg: rgba(0, 0, 0, 0.6);
+  --item-bg: rgba(255, 255, 255, 0.1);
+  --input-bg: rgba(255, 255, 255, 0.1);
+  --border-color: rgba(255, 255, 255, 0.2);
+}
+
+.light-theme {
+  --bg-color: #f0f0f0;
+  --text-color: #333;
+  --panel-bg: rgba(255, 255, 255, 0.8);
+  --item-bg: rgba(0, 0, 0, 0.05);
+  --input-bg: rgba(0, 0, 0, 0.05);
+  --border-color: rgba(0, 0, 0, 0.2);
+}
+.theme-toggle {
+  top: 20px;
+  right: 60px;
+  font-size: 24px;
+  background: none;
+  border: none;
+  color: var(--text-color);
+  cursor: pointer;
+}

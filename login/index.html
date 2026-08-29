@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KRETÉN Napló - Bejelentkezés</title>
+  <link rel="stylesheet" href="https://e-kreten.github.io/src/naplo_login_style.css">
+</head>
+<body>
+  <div class="animated-bg" id="background"></div>
+
+  <button class="settings-btn" onclick="toggleSettings()">⚙️</button>
+  <div class="settings-panel" id="settingsPanel">
+    <label for="color1">Szín 1:</label>
+    <input type="color" id="color1" value="#3e8ef7" onchange="updateColors()"><br>
+    <label for="color2">Szín 2:</label>
+    <input type="color" id="color2" value="#6c5ce7" onchange="updateColors()"><br>
+    <label for="theme">Téma:</label>
+    <button class="theme-toggle" onclick="toggleTheme()" id="theme">🌙</button>
+  </div>
+
+  <div class="login-box">
+    <div class="logo-header">
+        <img id="logo" src="https://e-kreten.github.io/src/logo-dark.png" alt="KRETÉN Logo Dark">
+    </div>
+    <h2>Bejelentkezés</h2>
+    <label for="institution">Intézmény</label>
+    <select id="institution">
+      <option value="">-- Válassz intézményt --</option>
+      <option value="iskola1">Iskola 1</option>
+      <option value="iskola2">Iskola 2</option>
+      <option value="iskola3">Iskola 3</option>
+    </select>
+
+    <label for="username">Felhasználónév</label>
+    <input type="text" id="username" placeholder="Add meg a felhasználóneved">
+
+    <label for="password">Jelszó</label>
+    <input type="password" id="password" placeholder="Add meg a jelszavad">
+
+    <button onclick="login()">Bejelentkezés</button>
+  </div>
+
+  <script>
+    function login() {
+      const institution = document.getElementById('institution').value;
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      
+
+      if (!institution || !username || !password) {
+        alert("Kérlek, tölts ki minden mezőt!");
+        return;
+      }
+
+      alert(`Bejelentkezés: ${institution}, ${username}`);
+      localStorage.setItem('local_usr', username);
+      localStorage.setItem('local_pw', password);
+      localStorage.setItem('local_institution', institution);
+      window.location.href = "https://e-kreten.github.io/naplo";
+    }
+
+    function toggleSettings() {
+      const panel = document.getElementById('settingsPanel');
+      panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
+    }
+    function updateColors() {
+    const color1 = document.getElementById('color1').value;
+    const color2 = document.getElementById('color2').value;
+    document.documentElement.style.setProperty('--color1', color1);
+    document.documentElement.style.setProperty('--color2', color2);
+    
+    // Mentsd el localStorage-be
+    localStorage.setItem('bgColor1', color1);
+    localStorage.setItem('bgColor2', color2);
+    }
+    window.onload = function () {
+    const savedColor1 = localStorage.getItem('bgColor1');
+    const savedColor2 = localStorage.getItem('bgColor2');
+
+    if (savedColor1 && savedColor2) {
+        document.documentElement.style.setProperty('--color1', savedColor1);
+        document.documentElement.style.setProperty('--color2', savedColor2);
+        document.getElementById('color1').value = savedColor1;
+        document.getElementById('color2').value = savedColor2;
+    }
+    };
+    function toggleTheme() {
+    const current = document.body.classList.contains("dark") ? "light" : "dark";
+    setTheme(current);
+
+  if (current == "light") {
+    document.querySelector(".theme-toggle").innerText = "🌙";
+  } else {
+    document.querySelector(".theme-toggle").innerText = "🔆";
+  }
+  }
+
+  function setTheme(theme) {
+    document.body.classList.remove("light", "dark");
+    document.body.classList.add(theme);
+    localStorage.setItem("theme", theme);
+
+    const logo = document.getElementById("logo");
+    if (theme === "dark") {
+      logo.src = "https://e-kreten.github.io/src/logo.png";
+      logo.alt = "KRETÉN Logo Light"
+    } else {
+      logo.src = "https://e-kreten.github.io/src/logo-dark.png";
+      logo.alt = "KRETÉN Logo Dark"
+    }
+  }
+
+  window.onload = function () {
+    const savedColor1 = localStorage.getItem('bgColor1');
+    const savedColor2 = localStorage.getItem('bgColor2');
+    const savedTheme = localStorage.getItem("theme") || "light";
+    const local_usr = localStorage.getItem("local_usr");
+    const local_pw = localStorage.getItem("local_pw");
+    const local_institution = localStorage.getItem("local_institution");
+
+    if (local_usr && local_pw && local_institution) {
+        window.location.href = "https://e-kreten.github.io/naplo";
+    }
+
+    if (savedColor1 && savedColor2) {
+      document.documentElement.style.setProperty('--color1', savedColor1);
+      document.documentElement.style.setProperty('--color2', savedColor2);
+      document.getElementById('color1').value = savedColor1;
+      document.getElementById('color2').value = savedColor2;
+    }
+    if (savedTheme == "light") {
+    document.querySelector(".theme-toggle").innerText = "🌙";
+  } else {
+    document.querySelector(".theme-toggle").innerText = "🔆";
+  }
+
+    setTheme(savedTheme);
+  };
+  </script>
+</body>
+      </html>

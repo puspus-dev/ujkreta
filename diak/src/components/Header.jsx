@@ -26,7 +26,7 @@ export default function Header() {
     <header className="topbar">
       <div>
         <div className="brand">
-          ÚjKréta
+          KRÁTA
         </div>
 
         <div className="page-title">

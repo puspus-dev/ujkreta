@@ -1,524 +1,425 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="hu">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>ÚjKréta Admin</title>
 
-    <title>újKréta Admin Panel</title>
-
-    <link rel="stylesheet" href="/static/admin.css">
+    <link rel="stylesheet" href="/style.css">
 </head>
 
 <body>
 
-<div class="app">
-
-    <aside class="sidebar" id="sidebar">
+<div id="loginScreen" class="login-screen">
+    <div class="login-card">
         <div class="brand">
             <div class="brand-icon">K</div>
-
             <div>
-                <strong>ujKréta</strong>
-                <span>Admin Panel</span>
+                <h1>ÚjKréta</h1>
+                <p>Adminisztrációs felület</p>
             </div>
         </div>
 
-        <nav class="navigation">
+        <form id="loginForm">
+            <label>
+                Felhasználónév
+                <input
+                    id="username"
+                    type="text"
+                    autocomplete="username"
+                    required
+                >
+            </label>
 
-            <button class="nav-item active" data-section="dashboard">
+            <label>
+                Jelszó
+                <input
+                    id="password"
+                    type="password"
+                    autocomplete="current-password"
+                    required
+                >
+            </label>
+
+            <button type="submit">
+                Bejelentkezés
+            </button>
+
+            <div id="loginError" class="error hidden"></div>
+        </form>
+    </div>
+</div>
+
+
+<div id="app" class="app hidden">
+
+    <aside class="sidebar">
+
+        <div class="sidebar-brand">
+            <div class="brand-icon">K</div>
+
+            <div>
+                <strong>ÚjKréta</strong>
+                <span>Admin</span>
+            </div>
+        </div>
+
+        <nav>
+            <button class="nav-item active" data-page="dashboard">
                 <span>⌂</span>
-                <span>Dashboard</span>
+                Áttekintés
             </button>
 
-            <button class="nav-item" data-section="users">
-                <span>♙</span>
-                <span>Felhasználók</span>
+            <button class="nav-item" data-page="student">
+                <span>👤</span>
+                Diák
             </button>
 
-            <button class="nav-item" data-section="data">
-                <span>▦</span>
-                <span>KRÉTA adatok</span>
-            </button>
-
-            <button class="nav-item" data-section="config">
+            <button class="nav-item" data-page="config">
                 <span>⚙</span>
-                <span>Konfiguráció</span>
+                Beállítások
             </button>
 
+            <button class="nav-item" data-page="users">
+                <span>♙</span>
+                Felhasználók
+            </button>
         </nav>
 
         <div class="sidebar-bottom">
-            <button class="nav-item" id="reloadButton">
-                <span>↻</span>
-                <span>Frissítés</span>
+            <button id="logoutButton" class="logout-button">
+                ↪ Kijelentkezés
             </button>
         </div>
+
     </aside>
+
 
     <main class="main">
 
         <header class="topbar">
-
-            <button class="mobile-menu" id="mobileMenu">
-                ☰
-            </button>
-
             <div>
-                <h1 id="pageTitle">Dashboard</h1>
-                <p id="pageSubtitle">A mock KRÉTA szerver áttekintése</p>
+                <h2 id="pageTitle">Áttekintés</h2>
+                <p id="pageSubtitle">
+                    Az ÚjKréta szerver állapota
+                </p>
             </div>
 
-            <div class="topbar-actions">
-                <span class="status-pill">
-                    <span class="status-dot"></span>
-                    Admin
-                </span>
+            <div class="status">
+                <span id="statusDot"></span>
+                <span id="statusText">Ellenőrzés...</span>
             </div>
-
         </header>
 
-        <div class="content">
 
-            <!-- DASHBOARD -->
+        <section id="dashboardPage" class="page">
 
-            <section class="section active" id="section-dashboard">
+            <div class="cards">
 
-                <div class="cards">
-
-                    <div class="stat-card">
-                        <div class="stat-icon">●</div>
-                        <div>
-                            <span class="stat-label">Szerver</span>
-                            <strong id="serverStatus">Betöltés...</strong>
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">♙</div>
-                        <div>
-                            <span class="stat-label">Felhasználók</span>
-                            <strong id="userCount">—</strong>
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">★</div>
-                        <div>
-                            <span class="stat-label">Jegyek</span>
-                            <strong id="gradeCount">—</strong>
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">▣</div>
-                        <div>
-                            <span class="stat-label">Órák</span>
-                            <strong id="lessonCount">—</strong>
-                        </div>
-                    </div>
-
+                <div class="card stat-card">
+                    <span class="card-label">Szerver</span>
+                    <strong id="serverStatus">–</strong>
+                    <small>API állapot</small>
                 </div>
 
-                <div class="grid-2">
-
-                    <div class="panel">
-                        <div class="panel-header">
-                            <div>
-                                <h2>Szerver állapota</h2>
-                                <p>Az API aktuális állapota</p>
-                            </div>
-                        </div>
-
-                        <div class="health-box">
-                            <div class="health-indicator" id="healthIndicator"></div>
-
-                            <div>
-                                <strong id="healthText">Ellenőrzés...</strong>
-                                <span id="healthDetails">
-                                    /health endpoint
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="panel">
-                        <div class="panel-header">
-                            <div>
-                                <h2>Gyors műveletek</h2>
-                                <p>Gyakran használt admin funkciók</p>
-                            </div>
-                        </div>
-
-                        <div class="quick-actions">
-
-                            <button class="action-button" data-section-target="users">
-                                <span>♙</span>
-                                Felhasználók kezelése
-                            </button>
-
-                            <button class="action-button" data-section-target="data">
-                                <span>▦</span>
-                                KRÉTA adatok
-                            </button>
-
-                            <button class="action-button" data-section-target="config">
-                                <span>⚙</span>
-                                Konfiguráció
-                            </button>
-
-                            <button class="action-button danger" id="resetButton">
-                                <span>↺</span>
-                                Seed adatok visszaállítása
-                            </button>
-
-                        </div>
-                    </div>
-
+                <div class="card stat-card">
+                    <span class="card-label">Diák</span>
+                    <strong id="studentName">–</strong>
+                    <small>Aktuális tanuló</small>
                 </div>
+
+                <div class="card stat-card">
+                    <span class="card-label">Intézmény</span>
+                    <strong id="institutionName">–</strong>
+                    <small>Iskola</small>
+                </div>
+
+                <div class="card stat-card">
+                    <span class="card-label">Felhasználónév</span>
+                    <strong id="adminName">–</strong>
+                    <small>Admin munkamenet</small>
+                </div>
+
+            </div>
+
+
+            <div class="grid-2">
 
                 <div class="panel">
-
                     <div class="panel-header">
                         <div>
-                            <h2>API végpontok</h2>
-                            <p>A jelenlegi mock API fontosabb végpontjai</p>
+                            <h3>Gyors műveletek</h3>
+                            <p>Gyakran használt adminisztráció</p>
                         </div>
                     </div>
 
-                    <div class="endpoint-list">
+                    <div class="actions">
 
-                        <div class="endpoint">
-                            <code>GET</code>
-                            <span>/health</span>
-                            <small>Szerver állapot</small>
-                        </div>
+                        <button
+                            class="action"
+                            data-page="student"
+                        >
+                            <span>👤</span>
+                            <div>
+                                <strong>Diák szerkesztése</strong>
+                                <small>Tanulói adatok módosítása</small>
+                            </div>
+                        </button>
 
-                        <div class="endpoint">
-                            <code>POST</code>
-                            <span>/connect/token</span>
-                            <small>OAuth token</small>
-                        </div>
+                        <button
+                            class="action"
+                            data-page="config"
+                        >
+                            <span>⚙</span>
+                            <div>
+                                <strong>Szerverbeállítások</strong>
+                                <small>KRÉTA konfiguráció</small>
+                            </div>
+                        </button>
 
-                        <div class="endpoint">
-                            <code>GET</code>
-                            <span>/ellenorzo/v3/sajat/TanuloAdatlap</span>
-                            <small>Tanulói adatok</small>
-                        </div>
-
-                        <div class="endpoint">
-                            <code>GET</code>
-                            <span>/ellenorzo/v3/sajat/Ertekelesek</span>
-                            <small>Jegyek</small>
-                        </div>
-
-                        <div class="endpoint">
-                            <code>GET</code>
-                            <span>/ellenorzo/v3/sajat/OrarendElemek</span>
-                            <small>Órarend</small>
-                        </div>
+                        <button
+                            class="action danger"
+                            id="resetButton"
+                        >
+                            <span>↻</span>
+                            <div>
+                                <strong>Mock adatok visszaállítása</strong>
+                                <small>Minden seed adat újratöltése</small>
+                            </div>
+                        </button>
 
                     </div>
-
                 </div>
 
-            </section>
-
-
-            <!-- USERS -->
-
-            <section class="section" id="section-users">
-
-                <div class="section-toolbar">
-
-                    <div>
-                        <h2>Felhasználók</h2>
-                        <p>A mock szerverhez tartozó felhasználói fiókok</p>
-                    </div>
-
-                    <button class="primary-button" id="newUserButton">
-                        + Új felhasználó
-                    </button>
-
-                </div>
 
                 <div class="panel">
-
-                    <div class="table-wrapper">
-
-                        <table>
-
-                            <thead>
-                                <tr>
-                                    <th>Felhasználónév</th>
-                                    <th>Student UID</th>
-                                    <th>Állapot</th>
-                                    <th>Létrehozva</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-
-                            <tbody id="usersTable">
-                                <tr>
-                                    <td colspan="5" class="empty">
-                                        Felhasználók betöltése...
-                                    </td>
-                                </tr>
-                            </tbody>
-
-                        </table>
-
-                    </div>
-
-                </div>
-
-            </section>
-
-
-            <!-- DATA -->
-
-            <section class="section" id="section-data">
-
-                <div class="section-toolbar">
-
-                    <div>
-                        <h2>KRÉTA adatok</h2>
-                        <p>A PostgreSQL-ben tárolt mock adatok</p>
-                    </div>
-
-                </div>
-
-                <div class="data-grid">
-
-                    <button class="data-card" data-endpoint="/ellenorzo/v3/sajat/TanuloAdatlap">
-                        <strong>Tanuló</strong>
-                        <span>Tanulói adatlap</span>
-                    </button>
-
-                    <button class="data-card" data-endpoint="/ellenorzo/v3/sajat/OsztalyCsoportok">
-                        <strong>Osztályok</strong>
-                        <span>Osztályok és csoportok</span>
-                    </button>
-
-                    <button class="data-card" data-endpoint="/ellenorzo/v3/sajat/Ertekelesek">
-                        <strong>Jegyek</strong>
-                        <span>Értékelések</span>
-                    </button>
-
-                    <button class="data-card" data-endpoint="/ellenorzo/v3/sajat/OrarendElemek">
-                        <strong>Órarend</strong>
-                        <span>Órarendi elemek</span>
-                    </button>
-
-                    <button class="data-card" data-endpoint="/ellenorzo/v3/sajat/HaziFeladatok">
-                        <strong>Házi feladatok</strong>
-                        <span>Házi feladatok</span>
-                    </button>
-
-                    <button class="data-card" data-endpoint="/ellenorzo/v3/sajat/BejelentettSzamonkeresek">
-                        <strong>Dolgozatok</strong>
-                        <span>Bejelentett számonkérések</span>
-                    </button>
-
-                    <button class="data-card" data-endpoint="/ellenorzo/v3/sajat/Mulasztasok">
-                        <strong>Mulasztások</strong>
-                        <span>Hiányzások</span>
-                    </button>
-
-                    <button class="data-card" data-endpoint="/ellenorzo/v3/sajat/FaliujsagElemek">
-                        <strong>Faliújság</strong>
-                        <span>Faliújság elemek</span>
-                    </button>
-
-                    <button class="data-card" data-endpoint="/ellenorzo/v3/sajat/Feljegyzesek">
-                        <strong>Feljegyzések</strong>
-                        <span>Tanári feljegyzések</span>
-                    </button>
-
-                </div>
-
-                <div class="panel json-panel">
-
                     <div class="panel-header">
                         <div>
-                            <h2>JSON megtekintő</h2>
-                            <p id="jsonEndpoint">Válassz egy adatforrást</p>
+                            <h3>Rendszer</h3>
+                            <p>API információk</p>
+                        </div>
+                    </div>
+
+                    <div class="info-list">
+
+                        <div>
+                            <span>API</span>
+                            <strong>/ellenorzo/v3/sajat/*</strong>
                         </div>
 
-                        <button class="secondary-button" id="copyJsonButton">
-                            Másolás
+                        <div>
+                            <span>Admin API</span>
+                            <strong>/admin/*</strong>
+                        </div>
+
+                        <div>
+                            <span>Adatbázis</span>
+                            <strong>PostgreSQL</strong>
+                        </div>
+
+                        <div>
+                            <span>Frontend</span>
+                            <strong>ÚjKréta Admin</strong>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section id="studentPage" class="page hidden">
+
+            <div class="panel">
+
+                <div class="panel-header">
+                    <div>
+                        <h3>Diák adatai</h3>
+                        <p>A mock tanulói profil szerkesztése</p>
+                    </div>
+
+                    <button id="reloadStudent" class="secondary">
+                        Frissítés
+                    </button>
+                </div>
+
+                <form id="studentForm" class="form-grid">
+
+                    <label>
+                        UID
+                        <input id="studentUid">
+                    </label>
+
+                    <label>
+                        Név
+                        <input id="studentNev">
+                    </label>
+
+                    <label>
+                        Születési év
+                        <input id="studentYear" type="number">
+                    </label>
+
+                    <label>
+                        Születési hónap
+                        <input id="studentMonth" type="number">
+                    </label>
+
+                    <label>
+                        Születési nap
+                        <input id="studentDay" type="number">
+                    </label>
+
+                    <label>
+                        E-mail
+                        <input id="studentEmail" type="email">
+                    </label>
+
+                    <label>
+                        Telefonszám
+                        <input id="studentPhone">
+                    </label>
+
+                    <label>
+                        Tanév UID
+                        <input id="studentTanev">
+                    </label>
+
+                    <label class="full">
+                        Intézmény azonosító
+                        <input id="studentInstitutionCode">
+                    </label>
+
+                    <label class="full">
+                        Intézmény neve
+                        <input id="studentInstitutionName">
+                    </label>
+
+                    <div class="form-actions full">
+                        <button type="submit">
+                            Mentés
                         </button>
                     </div>
 
-                    <pre id="jsonViewer">Válassz egy adatforrást a megtekintéshez.</pre>
+                </form>
 
-                </div>
+            </div>
 
-            </section>
+        </section>
 
 
-            <!-- CONFIG -->
+        <section id="configPage" class="page hidden">
 
-            <section class="section" id="section-config">
+            <div class="panel">
 
-                <div class="section-toolbar">
-
+                <div class="panel-header">
                     <div>
-                        <h2>Konfiguráció</h2>
-                        <p>A mock szerver alapbeállításai</p>
+                        <h3>Szerverbeállítások</h3>
+                        <p>A mock KRÉTA konfigurációja</p>
                     </div>
 
-                    <button class="primary-button" id="saveConfigButton">
-                        Mentés
+                    <button id="reloadConfig" class="secondary">
+                        Frissítés
                     </button>
-
                 </div>
 
-                <div class="panel">
+                <form id="configForm" class="form-grid">
 
-                    <form id="configForm">
+                    <label>
+                        Intézménykód
+                        <input id="configInstitute">
+                    </label>
 
-                        <div class="form-grid">
+                    <label>
+                        Felhasználónév
+                        <input id="configUsername">
+                    </label>
 
-                            <label>
-                                <span>Intézményazonosító</span>
-                                <input
-                                    id="configInstituteCode"
-                                    type="text"
-                                    autocomplete="off"
-                                >
-                            </label>
+                    <label>
+                        Jelszó
+                        <input id="configPassword" type="password">
+                    </label>
 
-                            <label>
-                                <span>Felhasználónév</span>
-                                <input
-                                    id="configUsername"
-                                    type="text"
-                                    autocomplete="off"
-                                >
-                            </label>
+                    <label>
+                        Access token TTL
+                        <input
+                            id="configTTL"
+                            type="number"
+                        >
+                    </label>
 
-                            <label>
-                                <span>Access token élettartam</span>
-                                <input
-                                    id="configTTL"
-                                    type="number"
-                                    min="1"
-                                >
-                            </label>
-
-                        </div>
-
-                    </form>
-
-                </div>
-
-                <div class="panel warning-panel">
-
-                    <div>
-                        <h2>Seed adatok</h2>
-                        <p>
-                            A reset visszaállítja a mock KRÉTA adatokat
-                            a beépített alapállapotra.
-                        </p>
+                    <div class="form-actions full">
+                        <button type="submit">
+                            Beállítások mentése
+                        </button>
                     </div>
 
-                    <button class="danger-button" id="resetButtonConfig">
-                        Seed visszaállítása
-                    </button>
+                </form>
 
+            </div>
+
+        </section>
+
+
+        <section id="usersPage" class="page hidden">
+
+            <div class="panel">
+
+                <div class="panel-header">
+                    <div>
+                        <h3>Felhasználó létrehozása</h3>
+                        <p>Új tesztfelhasználó az autentikációhoz</p>
+                    </div>
                 </div>
 
-            </section>
+                <form id="userForm" class="form-grid">
 
-        </div>
+                    <label>
+                        Felhasználónév
+                        <input id="newUsername" required>
+                    </label>
+
+                    <label>
+                        Jelszó
+                        <input
+                            id="newPassword"
+                            type="password"
+                            required
+                        >
+                    </label>
+
+                    <label class="full">
+                        Diák UID
+                        <input id="newStudentUid">
+                    </label>
+
+                    <div class="form-actions full">
+                        <button type="submit">
+                            Felhasználó létrehozása
+                        </button>
+                    </div>
+
+                </form>
+
+                <div id="userResult" class="result hidden"></div>
+
+            </div>
+
+        </section>
 
     </main>
 
 </div>
 
 
-<!-- USER MODAL -->
+<div id="toast" class="toast"></div>
 
-<div class="modal-overlay" id="userModal">
-
-    <div class="modal">
-
-        <div class="modal-header">
-
-            <div>
-                <h2>Új felhasználó</h2>
-                <p>Tesztfelhasználó létrehozása</p>
-            </div>
-
-            <button class="modal-close" id="closeUserModal">
-                ×
-            </button>
-
-        </div>
-
-        <form id="userForm">
-
-            <label>
-                <span>Felhasználónév</span>
-                <input
-                    id="newUsername"
-                    type="text"
-                    required
-                    autocomplete="off"
-                >
-            </label>
-
-            <label>
-                <span>Jelszó</span>
-                <input
-                    id="newPassword"
-                    type="password"
-                    required
-                    autocomplete="new-password"
-                >
-            </label>
-
-            <label>
-                <span>Student UID</span>
-                <input
-                    id="newStudentUID"
-                    type="text"
-                    required
-                    autocomplete="off"
-                >
-            </label>
-
-            <div class="modal-actions">
-
-                <button
-                    type="button"
-                    class="secondary-button"
-                    id="cancelUserModal"
-                >
-                    Mégse
-                </button>
-
-                <button
-                    type="submit"
-                    class="primary-button"
-                >
-                    Létrehozás
-                </button>
-
-            </div>
-
-        </form>
-
-    </div>
-
-</div>
-
-
-<!-- TOAST -->
-
-<div id="toastContainer"></div>
-
-<script src="/static/admin.js"></script>
+<script src="/app.js"></script>
 
 </body>
 </html>

@@ -118,6 +118,7 @@ type Grade struct {
 	SzovegesErtekelesRovidNev string       `json:"SzovegesErtekelesRovidNev,omitempty"`
 	OsztalyCsoport            UidRef       `json:"OsztalyCsoport"`
 	SortIndex                 int          `json:"SortIndex"`
+	TanuloUid                 string       `json:"TanuloUid,omitempty"`
 }
 
 type Homework struct {
@@ -168,6 +169,7 @@ type Omission struct {
 	IgazolasAllapota string         `json:"IgazolasAllapota"`
 	IgazolasTipusa   NameUidDesc    `json:"IgazolasTipusa"`
 	OsztalyCsoport   UidRef         `json:"OsztalyCsoport"`
+	TanuloUid        string         `json:"TanuloUid,omitempty"`
 }
 
 type Lesson struct {
@@ -259,6 +261,7 @@ type User struct {
 	Username     string    `json:"username"`
 	PasswordHash string    `json:"-"`
 	StudentUID   string    `json:"studentUid"`
+	Role         string    `json:"role"`
 	Active       bool      `json:"active"`
 	CreatedAt    time.Time `json:"createdAt"`
 }
@@ -449,125 +452,6 @@ func (s *Store) SetStudent(v Student) {
 // ============================================================
 // USER AUTHENTICATION
 // ============================================================
-
-// GetUserByUsername megkeresi a felhasználót username alapján.
-func (s *Store) GetUserByUsername(
-	username string,
-) (User, error) {
-
-	ctx := context.Background()
-
-	var user User
-
-	err := s.db.QueryRow(
-		ctx,
-		`
-		SELECT
-			id::text,
-			username,
-			password_hash,
-			student_uid,
-			active,
-			created_at
-		FROM users
-		WHERE username = $1
-		LIMIT 1
-		`,
-		username,
-	).Scan(
-		&user.ID,
-		&user.Username,
-		&user.PasswordHash,
-		&user.StudentUID,
-		&user.Active,
-		&user.CreatedAt,
-	)
-
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return User{}, pgx.ErrNoRows
-		}
-
-		return User{}, err
-	}
-
-	return user, nil
-}
-
-// CreateUser új tesztfelhasználót hoz létre.
-func (s *Store) CreateUser(
-	username string,
-	password string,
-	studentUID string,
-) (User, error) {
-
-	if username == "" {
-		return User{}, fmt.Errorf(
-			"username nem lehet üres",
-		)
-	}
-
-	if password == "" {
-		return User{}, fmt.Errorf(
-			"password nem lehet üres",
-		)
-	}
-
-	// bcrypt hash.
-	hash, err := bcrypt.GenerateFromPassword(
-		[]byte(password),
-		bcrypt.DefaultCost,
-	)
-
-	if err != nil {
-		return User{}, err
-	}
-
-	ctx := context.Background()
-
-	var user User
-
-	err = s.db.QueryRow(
-		ctx,
-		`
-		INSERT INTO users (
-			username,
-			password_hash,
-			student_uid,
-			active
-		)
-		VALUES (
-			$1,
-			$2,
-			$3,
-			TRUE
-		)
-		RETURNING
-			id::text,
-			username,
-			password_hash,
-			student_uid,
-			active,
-			created_at
-		`,
-		username,
-		string(hash),
-		studentUID,
-	).Scan(
-		&user.ID,
-		&user.Username,
-		&user.PasswordHash,
-		&user.StudentUID,
-		&user.Active,
-		&user.CreatedAt,
-	)
-
-	if err != nil {
-		return User{}, err
-	}
-
-	return user, nil
-}
 
 // CheckPassword ellenőrzi a felhasználó jelszavát.
 func (s *Store) CheckPassword(

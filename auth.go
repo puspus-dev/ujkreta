@@ -46,7 +46,11 @@ func buildIdToken(
 	userID string,
 	username string,
 	studentName string,
+	role string,
 ) string {
+	if role == "" {
+		role = "Tanulo"
+	}
 	header := map[string]string{
 		"alg": "none",
 		"typ": "JWT",
@@ -57,7 +61,7 @@ func buildIdToken(
 		"kreta:institute_user_id": userID,
 		"kreta:user_name":         username,
 		"name":                    studentName,
-		"role":                    "Tanulo",
+		"role":                    role,
 		"iat":                     time.Now().Unix(),
 	}
 
@@ -82,6 +86,7 @@ type sessionInfo struct {
 	InstituteCode string `json:"instituteCode"`
 	UserID        string `json:"userId"`
 	Username      string `json:"username"`
+	Role          string `json:"role"`
 }
 
 type AuthStore struct {
@@ -505,6 +510,7 @@ func (s *Server) handleToken(
 			InstituteCode: cfg.InstituteCode,
 			UserID:        student.Uid,
 			Username:      cfg.Username,
+			Role:          "Tanulo",
 		}
 
 	case "refresh_token":
@@ -538,6 +544,9 @@ func (s *Server) handleToken(
 
 	case "password":
 		username := r.FormValue("username")
+		if username == "" {
+			username = r.FormValue("userName")
+		}
 		password := r.FormValue("password")
 
 		if username == "" || password == "" {
@@ -575,10 +584,15 @@ func (s *Server) handleToken(
 			return
 		}
 
+		role := user.Role
+		if role == "" {
+			role = "Tanulo"
+		}
 		info = sessionInfo{
 			InstituteCode: cfg.InstituteCode,
 			UserID:        user.StudentUID,
 			Username:      user.Username,
+			Role:          role,
 		}
 
 	default:
@@ -605,11 +619,16 @@ func (s *Server) handleToken(
 		return
 	}
 
+	displayName := student.Nev
+	if info.Role == "Tanar" {
+		displayName = info.Username
+	}
 	idToken := buildIdToken(
 		info.InstituteCode,
 		info.UserID,
 		info.Username,
-		student.Nev,
+		displayName,
+		info.Role,
 	)
 
 	expiresIn := cfg.AccessTokenTTLSeconds

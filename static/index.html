@@ -1,425 +1,233 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-    <meta charset="UTF-8">
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-    <title>ÚjKréta Admin</title>
-
-    <link rel="stylesheet" href="/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ÚjKréta Admin</title>
+  <style>
+    :root {
+      --bg: #0f1419; --card: #1a2332; --border: #2d3a4f;
+      --text: #e7ecf3; --muted: #8b9bb4; --accent: #3b82f6;
+      --ok: #22c55e; --err: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
+    h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
+    .muted { color: var(--muted); font-size: 0.9rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin: 1rem 0; }
+    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.25rem; }
+    input, select, textarea {
+      width: 100%; padding: 0.55rem 0.75rem; margin-bottom: 0.75rem;
+      border: 1px solid var(--border); border-radius: 8px;
+      background: var(--bg); color: var(--text); font-size: 0.95rem;
+    }
+    button {
+      background: var(--accent); color: #fff; border: none; border-radius: 8px;
+      padding: 0.55rem 1rem; font-weight: 500; cursor: pointer;
+    }
+    button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .row > * { flex: 1; min-width: 140px; }
+    .msg { padding: 0.75rem; border-radius: 8px; margin: 0.75rem 0; font-size: 0.9rem; }
+    .msg.ok { background: #14532d33; color: var(--ok); border: 1px solid #166534; }
+    .msg.err { background: #7f1d1d33; color: var(--err); border: 1px solid #991b1b; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { text-align: left; padding: 0.45rem; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); }
+    .hidden { display: none !important; }
+  </style>
 </head>
-
 <body>
+  <div class="wrap">
+    <h1>ÚjKréta – Admin</h1>
+    <p class="muted">Diák / tanár felhasználók, reset. Basic Auth kell (ADMIN_USERNAME / ADMIN_PASSWORD).</p>
 
-<div id="loginScreen" class="login-screen">
-    <div class="login-card">
-        <div class="brand">
-            <div class="brand-icon">K</div>
-            <div>
-                <h1>ÚjKréta</h1>
-                <p>Adminisztrációs felület</p>
-            </div>
+    <div class="card" id="loginCard">
+      <h2 style="font-size:1rem;margin-bottom:0.75rem;">Bejelentkezés</h2>
+      <label>API base</label>
+      <input id="base" value="https://ujkreta.onrender.com">
+      <div class="row">
+        <div>
+          <label>Admin user</label>
+          <input id="adminUser" autocomplete="username">
         </div>
-
-        <form id="loginForm">
-            <label>
-                Felhasználónév
-                <input
-                    id="username"
-                    type="text"
-                    autocomplete="username"
-                    required
-                >
-            </label>
-
-            <label>
-                Jelszó
-                <input
-                    id="password"
-                    type="password"
-                    autocomplete="current-password"
-                    required
-                >
-            </label>
-
-            <button type="submit">
-                Bejelentkezés
-            </button>
-
-            <div id="loginError" class="error hidden"></div>
-        </form>
+        <div>
+          <label>Admin jelszó</label>
+          <input id="adminPass" type="password" autocomplete="current-password">
+        </div>
+      </div>
+      <button id="btnConnect">Csatlakozás</button>
+      <div id="loginMsg"></div>
     </div>
-</div>
 
-
-<div id="app" class="app hidden">
-
-    <aside class="sidebar">
-
-        <div class="sidebar-brand">
-            <div class="brand-icon">K</div>
-
-            <div>
-                <strong>ÚjKréta</strong>
-                <span>Admin</span>
-            </div>
+    <div id="app" class="hidden">
+      <div class="card">
+        <div class="row" style="align-items:center">
+          <div>
+            <strong id="healthLabel">–</strong>
+            <div class="muted" id="baseLabel"></div>
+          </div>
+          <button class="secondary" id="btnRefresh" style="flex:0">Frissítés</button>
+          <button class="secondary" id="btnLogout" style="flex:0">Kijelentkezés</button>
         </div>
+      </div>
 
-        <nav>
-            <button class="nav-item active" data-page="dashboard">
-                <span>⌂</span>
-                Áttekintés
-            </button>
-
-            <button class="nav-item" data-page="student">
-                <span>👤</span>
-                Diák
-            </button>
-
-            <button class="nav-item" data-page="config">
-                <span>⚙</span>
-                Beállítások
-            </button>
-
-            <button class="nav-item" data-page="users">
-                <span>♙</span>
-                Felhasználók
-            </button>
-        </nav>
-
-        <div class="sidebar-bottom">
-            <button id="logoutButton" class="logout-button">
-                ↪ Kijelentkezés
-            </button>
+      <div class="card">
+        <h2 style="font-size:1rem;margin-bottom:0.75rem;">Új felhasználó</h2>
+        <div class="row">
+          <div>
+            <label>Username</label>
+            <input id="uName">
+          </div>
+          <div>
+            <label>Jelszó</label>
+            <input id="uPass" type="password">
+          </div>
         </div>
-
-    </aside>
-
-
-    <main class="main">
-
-        <header class="topbar">
-            <div>
-                <h2 id="pageTitle">Áttekintés</h2>
-                <p id="pageSubtitle">
-                    A KRÁTA szerver állapota
-                </p>
-            </div>
-
-            <div class="status">
-                <span id="statusDot"></span>
-                <span id="statusText">Ellenőrzés...</span>
-            </div>
-        </header>
-
-
-        <section id="dashboardPage" class="page">
-
-            <div class="cards">
-
-                <div class="card stat-card">
-                    <span class="card-label">Szerver</span>
-                    <strong id="serverStatus">–</strong>
-                    <small>API állapot</small>
-                </div>
-
-                <div class="card stat-card">
-                    <span class="card-label">Diák</span>
-                    <strong id="studentName">–</strong>
-                    <small>Aktuális tanuló</small>
-                </div>
-
-                <div class="card stat-card">
-                    <span class="card-label">Intézmény</span>
-                    <strong id="institutionName">–</strong>
-                    <small>Iskola</small>
-                </div>
-
-                <div class="card stat-card">
-                    <span class="card-label">Felhasználónév</span>
-                    <strong id="adminName">–</strong>
-                    <small>Admin munkamenet</small>
-                </div>
-
-            </div>
-
-
-            <div class="grid-2">
-
-                <div class="panel">
-                    <div class="panel-header">
-                        <div>
-                            <h3>Gyors műveletek</h3>
-                            <p>Gyakran használt adminisztráció</p>
-                        </div>
-                    </div>
-
-                    <div class="actions">
-
-                        <button
-                            class="action"
-                            data-page="student"
-                        >
-                            <span>👤</span>
-                            <div>
-                                <strong>Diák szerkesztése</strong>
-                                <small>Tanulói adatok módosítása</small>
-                            </div>
-                        </button>
-
-                        <button
-                            class="action"
-                            data-page="config"
-                        >
-                            <span>⚙</span>
-                            <div>
-                                <strong>Szerverbeállítások</strong>
-                                <small>KRÉTA konfiguráció</small>
-                            </div>
-                        </button>
-
-                        <button
-                            class="action danger"
-                            id="resetButton"
-                        >
-                            <span>↻</span>
-                            <div>
-                                <strong>Mock adatok visszaállítása</strong>
-                                <small>Minden seed adat újratöltése</small>
-                            </div>
-                        </button>
-
-                    </div>
-                </div>
-
-
-                <div class="panel">
-                    <div class="panel-header">
-                        <div>
-                            <h3>Rendszer</h3>
-                            <p>API információk</p>
-                        </div>
-                    </div>
-
-                    <div class="info-list">
-
-                        <div>
-                            <span>API</span>
-                            <strong>/ellenorzo/v3/sajat/*</strong>
-                        </div>
-
-                        <div>
-                            <span>Admin API</span>
-                            <strong>/admin/*</strong>
-                        </div>
-
-                        <div>
-                            <span>Adatbázis</span>
-                            <strong>PostgreSQL</strong>
-                        </div>
-
-                        <div>
-                            <span>Frontend</span>
-                            <strong>ÚjKréta Admin</strong>
-                        </div>
-
-                    </div>
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <section id="studentPage" class="page hidden">
-
-            <div class="panel">
-
-                <div class="panel-header">
-                    <div>
-                        <h3>Diák adatai</h3>
-                        <p>A mock tanulói profil szerkesztése</p>
-                    </div>
-
-                    <button id="reloadStudent" class="secondary">
-                        Frissítés
-                    </button>
-                </div>
-
-                <form id="studentForm" class="form-grid">
-
-                    <label>
-                        UID
-                        <input id="studentUid">
-                    </label>
-
-                    <label>
-                        Név
-                        <input id="studentNev">
-                    </label>
-
-                    <label>
-                        Születési év
-                        <input id="studentYear" type="number">
-                    </label>
-
-                    <label>
-                        Születési hónap
-                        <input id="studentMonth" type="number">
-                    </label>
-
-                    <label>
-                        Születési nap
-                        <input id="studentDay" type="number">
-                    </label>
-
-                    <label>
-                        E-mail
-                        <input id="studentEmail" type="email">
-                    </label>
-
-                    <label>
-                        Telefonszám
-                        <input id="studentPhone">
-                    </label>
-
-                    <label>
-                        Tanév UID
-                        <input id="studentTanev">
-                    </label>
-
-                    <label class="full">
-                        Intézmény azonosító
-                        <input id="studentInstitutionCode">
-                    </label>
-
-                    <label class="full">
-                        Intézmény neve
-                        <input id="studentInstitutionName">
-                    </label>
-
-                    <div class="form-actions full">
-                        <button type="submit">
-                            Mentés
-                        </button>
-                    </div>
-
-                </form>
-
-            </div>
-
-        </section>
-
-
-        <section id="configPage" class="page hidden">
-
-            <div class="panel">
-
-                <div class="panel-header">
-                    <div>
-                        <h3>Szerverbeállítások</h3>
-                        <p>A mock KRÉTA konfigurációja</p>
-                    </div>
-
-                    <button id="reloadConfig" class="secondary">
-                        Frissítés
-                    </button>
-                </div>
-
-                <form id="configForm" class="form-grid">
-
-                    <label>
-                        Intézménykód
-                        <input id="configInstitute">
-                    </label>
-
-                    <label>
-                        Felhasználónév
-                        <input id="configUsername">
-                    </label>
-
-                    <label>
-                        Jelszó
-                        <input id="configPassword" type="password">
-                    </label>
-
-                    <label>
-                        Access token TTL
-                        <input
-                            id="configTTL"
-                            type="number"
-                        >
-                    </label>
-
-                    <div class="form-actions full">
-                        <button type="submit">
-                            Beállítások mentése
-                        </button>
-                    </div>
-
-                </form>
-
-            </div>
-
-        </section>
-
-
-        <section id="usersPage" class="page hidden">
-
-            <div class="panel">
-
-                <div class="panel-header">
-                    <div>
-                        <h3>Felhasználó létrehozása</h3>
-                        <p>Új tesztfelhasználó az autentikációhoz</p>
-                    </div>
-                </div>
-
-                <form id="userForm" class="form-grid">
-
-                    <label>
-                        Felhasználónév
-                        <input id="newUsername" required>
-                    </label>
-
-                    <label>
-                        Jelszó
-                        <input
-                            id="newPassword"
-                            type="password"
-                            required
-                        >
-                    </label>
-
-                    <label class="full">
-                        Diák UID
-                        <input id="newStudentUid">
-                    </label>
-
-                    <div class="form-actions full">
-                        <button type="submit">
-                            Felhasználó létrehozása
-                        </button>
-                    </div>
-
-                </form>
-
-                <div id="userResult" class="result hidden"></div>
-
-            </div>
-
-        </section>
-
-    </main>
-
-</div>
-
-
-<div id="toast" class="toast"></div>
-
-<script src="/app.js"></script>
-
+        <div class="row">
+          <div>
+            <label>Kapcsolt UID (diák/tanár)</label>
+            <input id="uUid" placeholder="100">
+          </div>
+          <div>
+            <label>Role</label>
+            <select id="uRole">
+              <option value="Tanulo">Tanulo</option>
+              <option value="Tanar">Tanar</option>
+            </select>
+          </div>
+        </div>
+        <button id="btnCreateUser">Létrehozás</button>
+        <div id="userMsg"></div>
+      </div>
+
+      <div class="card">
+        <h2 style="font-size:1rem;margin-bottom:0.75rem;">Diák profil (GET/PUT /admin/student)</h2>
+        <button class="secondary" id="btnLoadStudent">Betöltés</button>
+        <textarea id="studentJson" rows="12" style="margin-top:0.75rem;font-family:monospace;font-size:0.8rem"></textarea>
+        <button id="btnSaveStudent" style="margin-top:0.5rem">Mentés</button>
+        <div id="studentMsg"></div>
+      </div>
+
+      <div class="card">
+        <h2 style="font-size:1rem;margin-bottom:0.75rem;">Veszélyes</h2>
+        <button id="btnReset" style="background:var(--err)">Mock / seed visszaállítás</button>
+        <div id="resetMsg"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const S = { base: '', auth: '' };
+    const $ = id => document.getElementById(id);
+
+    function msg(el, text, ok) {
+      el.className = 'msg ' + (ok ? 'ok' : 'err');
+      el.textContent = text;
+    }
+
+    async function api(path, opts = {}) {
+      const res = await fetch(S.base + path, {
+        ...opts,
+        headers: {
+          Authorization: 'Basic ' + S.auth,
+          ...(opts.body ? { 'Content-Type': 'application/json' } : {}),
+          ...(opts.headers || {}),
+        },
+      });
+      const text = await res.text();
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+      if (!res.ok) throw new Error((data && data.error) || res.statusText || String(res.status));
+      return data;
+    }
+
+    $('btnConnect').onclick = async () => {
+      S.base = $('base').value.replace(/\/$/, '');
+      S.auth = btoa($('adminUser').value + ':' + $('adminPass').value);
+      try {
+        const h = await api('/admin/health');
+        $('loginCard').classList.add('hidden');
+        $('app').classList.remove('hidden');
+        $('baseLabel').textContent = S.base;
+        $('healthLabel').textContent = 'OK · ' + JSON.stringify(h);
+        localStorage.setItem('ujkreta_admin', JSON.stringify({
+          base: S.base, user: $('adminUser').value, pass: $('adminPass').value
+        }));
+      } catch (e) {
+        msg($('loginMsg'), e.message, false);
+      }
+    };
+
+    $('btnLogout').onclick = () => {
+      localStorage.removeItem('ujkreta_admin');
+      location.reload();
+    };
+
+    $('btnRefresh').onclick = async () => {
+      try {
+        const h = await api('/admin/health');
+        $('healthLabel').textContent = 'OK · ' + JSON.stringify(h);
+      } catch (e) {
+        $('healthLabel').textContent = 'Hiba: ' + e.message;
+      }
+    };
+
+    $('btnCreateUser').onclick = async () => {
+      try {
+        const body = {
+          username: $('uName').value.trim(),
+          password: $('uPass').value,
+          studentUid: $('uUid').value.trim() || undefined,
+          role: $('uRole').value,
+        };
+        const u = await api('/admin/users', { method: 'POST', body: JSON.stringify(body) });
+        msg($('userMsg'), 'Létrehozva: ' + (u.username || JSON.stringify(u)), true);
+      } catch (e) {
+        msg($('userMsg'), e.message, false);
+      }
+    };
+
+    $('btnLoadStudent').onclick = async () => {
+      try {
+        const s = await api('/admin/student');
+        $('studentJson').value = JSON.stringify(s, null, 2);
+        msg($('studentMsg'), 'Betöltve', true);
+      } catch (e) {
+        msg($('studentMsg'), e.message, false);
+      }
+    };
+
+    $('btnSaveStudent').onclick = async () => {
+      try {
+        const body = JSON.parse($('studentJson').value);
+        await api('/admin/student', { method: 'PUT', body: JSON.stringify(body) });
+        msg($('studentMsg'), 'Mentve', true);
+      } catch (e) {
+        msg($('studentMsg'), e.message, false);
+      }
+    };
+
+    $('btnReset').onclick = async () => {
+      if (!confirm('Biztosan visszaállítod a seed adatokat?')) return;
+      try {
+        await api('/admin/reset', { method: 'POST', body: '{}' });
+        msg($('resetMsg'), 'Reset kész', true);
+      } catch (e) {
+        msg($('resetMsg'), e.message, false);
+      }
+    };
+
+    // Auto restore
+    try {
+      const saved = JSON.parse(localStorage.getItem('ujkreta_admin') || 'null');
+      if (saved) {
+        $('base').value = saved.base || '';
+        $('adminUser').value = saved.user || '';
+        $('adminPass').value = saved.pass || '';
+      }
+    } catch (_) {}
+  </script>
 </body>
 </html>

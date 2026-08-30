@@ -16,11 +16,6 @@ import (
 // ============================================================
 
 // UserRole: Tanulo | Tanar | Admin (admin HTTP Basic maradhat külön)
-const (
-	RoleStudent = "Tanulo"
-	RoleTeacher = "Tanar"
-)
-
 // ============================================================
 // STUDENTS
 // ============================================================
@@ -345,104 +340,7 @@ func (s *Store) GetTestsForClass(classUID string) []Test {
 // USERS – role támogatással
 // ============================================================
 
-func (s *Store) GetUserByUsername(username string) (User, error) {
-	ctx := context.Background()
 
-	var user User
-	var role *string
-
-	err := s.db.QueryRow(
-		ctx,
-		`
-		SELECT
-			id::text,
-			username,
-			password_hash,
-			student_uid,
-			role,
-			active,
-			created_at
-		FROM users
-		WHERE username = $1
-		LIMIT 1
-		`,
-		username,
-	).Scan(
-		&user.ID,
-		&user.Username,
-		&user.PasswordHash,
-		&user.StudentUID,
-		&role,
-		&user.Active,
-		&user.CreatedAt,
-	)
-
-	if err != nil {
-		return User{}, err
-	}
-
-	if role != nil && *role != "" {
-		user.Role = *role
-	} else {
-		user.Role = RoleStudent
-	}
-
-	return user, nil
-}
-
-func (s *Store) CreateUserWithRole(
-	username, password, linkedUID, role string,
-) (User, error) {
-
-	if username == "" || password == "" {
-		return User{}, fmt.Errorf("username és password kötelező")
-	}
-
-	if role == "" {
-		role = RoleStudent
-	}
-	if role != RoleStudent && role != RoleTeacher {
-		return User{}, fmt.Errorf("role csak Tanulo vagy Tanar lehet")
-	}
-
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return User{}, err
-	}
-
-	ctx := context.Background()
-
-	var user User
-	var roleOut string
-
-	err = s.db.QueryRow(
-		ctx,
-		`
-		INSERT INTO users (username, password_hash, student_uid, role, active)
-		VALUES ($1, $2, $3, $4, TRUE)
-		RETURNING id::text, username, password_hash, student_uid, role, active, created_at
-		`,
-		username,
-		string(hash),
-		linkedUID,
-		role,
-	).Scan(
-		&user.ID,
-		&user.Username,
-		&user.PasswordHash,
-		&user.StudentUID,
-		&roleOut,
-		&user.Active,
-		&user.CreatedAt,
-	)
-
-	if err != nil {
-		return User{}, err
-	}
-
-	user.Role = roleOut
-	return user, nil
-}
 
 // EnsureDefaultUsers – seed diák + tanár user, ha még nincs.
 func (s *Store) EnsureDefaultUsers() {

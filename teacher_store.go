@@ -131,6 +131,7 @@ func (s *Store) AddGrade(req createGradeRequest) (Grade, error) {
 		SulySzazalekErteke: req.SulySzazalekErteke,
 		OsztalyCsoport:     UidRef{Uid: req.OsztalyCsoportUid},
 		SortIndex:          len(grades) + 1,
+		TanuloUid:          req.TanuloUid,
 	}
 
 	if grade.SulySzazalekErteke == 0 {
@@ -219,6 +220,7 @@ func (s *Store) AddOmission(req createOmissionRequest) (Omission, error) {
 		KeszitesDatuma:   iso(now),
 		IgazolasAllapota: "Igazolatlan",
 		OsztalyCsoport:   UidRef{Uid: req.OsztalyCsoportUid},
+		TanuloUid:        req.TanuloUid,
 	}
 
 	list = append(list, om)
@@ -270,125 +272,6 @@ func (s *Store) AddTest(req createTestRequest) (Test, error) {
 	s.SetTests(list)
 
 	return test, nil
-}
-
-// ============================================================
-// USER ROLE SUPPORT
-// ============================================================
-
-// CreateUserWithRole új felhasználót hoz létre role mezővel.
-func (s *Store) CreateUserWithRole(
-	username string,
-	password string,
-	linkedUID string,
-	role string,
-) (User, error) {
-
-	if username == "" {
-		return User{}, fmt.Errorf("username nem lehet üres")
-	}
-
-	if password == "" {
-		return User{}, fmt.Errorf("password nem lehet üres")
-	}
-
-	if role == "" {
-		role = "Tanulo"
-	}
-
-	if role != "Tanulo" && role != "Tanar" {
-		return User{}, fmt.Errorf("role csak Tanulo vagy Tanar lehet")
-	}
-
-	hash, err := bcrypt.GenerateFromPassword(
-		[]byte(password),
-		bcrypt.DefaultCost,
-	)
-	if err != nil {
-		return User{}, err
-	}
-
-	ctx := context.Background()
-
-	var user User
-
-	err = s.db.QueryRow(
-		ctx,
-		`
-		INSERT INTO users (
-			username,
-			password_hash,
-			student_uid,
-			role,
-			active
-		)
-		VALUES ($1, $2, $3, $4, TRUE)
-		RETURNING
-			id::text,
-			username,
-			password_hash,
-			student_uid,
-			COALESCE(role, 'Tanulo'),
-			active,
-			created_at
-		`,
-		username,
-		string(hash),
-		linkedUID,
-		role,
-	).Scan(
-		&user.ID,
-		&user.Username,
-		&user.PasswordHash,
-		&user.StudentUID,
-		&user.Role,
-		&user.Active,
-		&user.CreatedAt,
-	)
-
-	if err != nil {
-		return User{}, err
-	}
-
-	return user, nil
-}
-
-func (s *Store) GetUserByUsernameWithRole(username string) (User, error) {
-	ctx := context.Background()
-
-	var user User
-
-	err := s.db.QueryRow(
-		ctx,
-		`
-		SELECT
-			id::text,
-			username,
-			password_hash,
-			student_uid,
-			COALESCE(role, 'Tanulo'),
-			active,
-			created_at
-		FROM users
-		WHERE username = $1
-		LIMIT 1
-		`,
-		username,
-	).Scan(
-		&user.ID,
-		&user.Username,
-		&user.PasswordHash,
-		&user.StudentUID,
-		&user.Role,
-		&user.Active,
-		&user.CreatedAt,
-	)
-
-	if err != nil {
-		return User{}, err
-	}
-
-	return user, nil
 }
 
 // ============================================================

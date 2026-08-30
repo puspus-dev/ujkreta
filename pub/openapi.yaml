@@ -1,0 +1,644 @@
+openapi: 3.0.3
+info:
+  title: ÚjKréta / KRÁTA Mock API
+  description: |
+    Diák (ellenorzo) + Tanár (naplo) + Admin API dokumentáció.
+    Base: https://nemkapodmeg.onrender.com
+  version: 1.1.0
+
+servers:
+  - url: https://innensem.onrender.com
+    description: Render mock
+  - url: http://localhost:8090
+    description: Local
+
+tags:
+  - name: Auth
+  - name: Student
+  - name: Teacher
+  - name: Admin
+  - name: System
+
+paths:
+  /health:
+    get:
+      tags: [System]
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /connect/token:
+    post:
+      tags: [Auth]
+      summary: OAuth2 token
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                grant_type:
+                  type: string
+                  enum: [password, refresh_token, authorization_code]
+                username:
+                  type: string
+                password:
+                  type: string
+                refresh_token:
+                  type: string
+                code:
+                  type: string
+      responses:
+        "200":
+          description: Token response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          description: Invalid request
+        "401":
+          description: Invalid credentials
+
+  /ellenorzo/v3/sajat/TanuloAdatlap:
+    get:
+      tags: [Student]
+      security: [{ bearerAuth: [] }]
+      summary: Diák adatlap
+      responses:
+        "200":
+          description: Student profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Student"
+
+  /ellenorzo/v3/sajat/OsztalyCsoportok:
+    get:
+      tags: [Student]
+      security: [{ bearerAuth: [] }]
+      summary: Osztálycsoportok
+      responses:
+        "200":
+          description: Class groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClassGroup"
+
+  /ellenorzo/v3/sajat/Ertekelesek:
+    get:
+      tags: [Student]
+      security: [{ bearerAuth: [] }]
+      summary: Értékelések
+      responses:
+        "200":
+          description: Grades
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Grade"
+
+  /ellenorzo/v3/sajat/OrarendElemek:
+    get:
+      tags: [Student]
+      security: [{ bearerAuth: [] }]
+      summary: Órarend
+      responses:
+        "200":
+          description: Lessons
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Lesson"
+
+  /ellenorzo/v3/sajat/HaziFeladatok:
+    get:
+      tags: [Student]
+      security: [{ bearerAuth: [] }]
+      summary: Házi feladatok
+      responses:
+        "200":
+          description: Homework list
+
+  /ellenorzo/v3/sajat/Mulasztasok:
+    get:
+      tags: [Student]
+      security: [{ bearerAuth: [] }]
+      summary: Mulasztások
+      responses:
+        "200":
+          description: Omissions
+
+  /ellenorzo/v3/sajat/BejelentettSzamonkeresek:
+    get:
+      tags: [Student]
+      security: [{ bearerAuth: [] }]
+      summary: Bejelentett számonkérések
+      responses:
+        "200":
+          description: Tests
+
+  /ellenorzo/v3/sajat/FaliujsagElemek:
+    get:
+      tags: [Student]
+      security: [{ bearerAuth: [] }]
+      summary: Faliújság
+      responses:
+        "200":
+          description: Notice board
+
+  /ellenorzo/v3/sajat/Feljegyzesek:
+    get:
+      tags: [Student]
+      security: [{ bearerAuth: [] }]
+      summary: Feljegyzések
+      responses:
+        "200":
+          description: Info board
+
+  /ellenorzo/v3/sajat/Ertekelesek/Atlagok/OsztalyAtlagok:
+    get:
+      tags: [Student]
+      security: [{ bearerAuth: [] }]
+      summary: Osztályátlagok
+      responses:
+        "200":
+          description: Averages
+
+  /naplo/v3/sajat/TanarAdatlap:
+    get:
+      tags: [Teacher]
+      security: [{ bearerAuth: [] }]
+      summary: Tanár adatlap
+      responses:
+        "200":
+          description: Teacher profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Teacher"
+
+  /naplo/v3/sajat/Tanulok:
+    get:
+      tags: [Teacher]
+      security: [{ bearerAuth: [] }]
+      summary: Diákok listája
+      responses:
+        "200":
+          description: Students for teacher
+
+  /naplo/v3/sajat/OsztalyCsoportok:
+    get:
+      tags: [Teacher]
+      security: [{ bearerAuth: [] }]
+      summary: Tanár osztályai
+      responses:
+        "200":
+          description: Class groups
+
+  /naplo/v3/sajat/OrarendElemek:
+    get:
+      tags: [Teacher]
+      security: [{ bearerAuth: [] }]
+      summary: Tanári órarend
+      responses:
+        "200":
+          description: Lessons
+
+  /naplo/v3/sajat/Ertekelesek:
+    get:
+      tags: [Teacher]
+      security: [{ bearerAuth: [] }]
+      summary: Értékelések listája
+      responses:
+        "200":
+          description: Grades
+    post:
+      tags: [Teacher]
+      security: [{ bearerAuth: [] }]
+      summary: Új értékelés
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGradeRequest"
+      responses:
+        "201":
+          description: Created grade
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Grade"
+
+  /naplo/v3/sajat/HaziFeladatok:
+    get:
+      tags: [Teacher]
+      security: [{ bearerAuth: [] }]
+      summary: Házi feladatok
+      responses:
+        "200":
+          description: Homework
+    post:
+      tags: [Teacher]
+      security: [{ bearerAuth: [] }]
+      summary: Új házi feladat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateHomeworkRequest"
+      responses:
+        "201":
+          description: Created homework
+
+  /naplo/v3/sajat/Mulasztasok:
+    get:
+      tags: [Teacher]
+      security: [{ bearerAuth: [] }]
+      summary: Mulasztások
+      responses:
+        "200":
+          description: Omissions
+    post:
+      tags: [Teacher]
+      security: [{ bearerAuth: [] }]
+      summary: Új mulasztás
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOmissionRequest"
+      responses:
+        "201":
+          description: Created omission
+
+  /naplo/v3/sajat/BejelentettSzamonkeresek:
+    get:
+      tags: [Teacher]
+      security: [{ bearerAuth: [] }]
+      summary: Számonkérések
+      responses:
+        "200":
+          description: Tests
+    post:
+      tags: [Teacher]
+      security: [{ bearerAuth: [] }]
+      summary: Új számonkérés
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTestRequest"
+      responses:
+        "201":
+          description: Created test
+
+  /admin:
+    get:
+      tags: [Admin]
+      security: [{ basicAuth: [] }]
+      summary: Admin index
+      responses:
+        "200":
+          description: Endpoint list
+
+  /admin/health:
+    get:
+      tags: [Admin]
+      security: [{ basicAuth: [] }]
+      summary: Admin health
+      responses:
+        "200":
+          description: OK
+
+  /admin/config:
+    get:
+      tags: [Admin]
+      security: [{ basicAuth: [] }]
+      summary: Get config
+      responses:
+        "200":
+          description: Config
+    put:
+      tags: [Admin]
+      security: [{ basicAuth: [] }]
+      summary: Update config
+      responses:
+        "200":
+          description: Updated
+    post:
+      tags: [Admin]
+      security: [{ basicAuth: [] }]
+      summary: Update config
+      responses:
+        "200":
+          description: Updated
+
+  /admin/student:
+    get:
+      tags: [Admin]
+      security: [{ basicAuth: [] }]
+      summary: Get student
+      responses:
+        "200":
+          description: Student
+    put:
+      tags: [Admin]
+      security: [{ basicAuth: [] }]
+      summary: Update student
+      responses:
+        "200":
+          description: Updated
+    post:
+      tags: [Admin]
+      security: [{ basicAuth: [] }]
+      summary: Update student
+      responses:
+        "200":
+          description: Updated
+
+  /admin/teacher:
+    get:
+      tags: [Admin]
+      security: [{ basicAuth: [] }]
+      summary: Get teacher
+      responses:
+        "200":
+          description: Teacher
+    put:
+      tags: [Admin]
+      security: [{ basicAuth: [] }]
+      summary: Update teacher
+      responses:
+        "200":
+          description: Updated
+    post:
+      tags: [Admin]
+      security: [{ basicAuth: [] }]
+      summary: Update teacher
+      responses:
+        "200":
+          description: Updated
+
+  /admin/reset:
+    post:
+      tags: [Admin]
+      security: [{ basicAuth: [] }]
+      summary: Reset mock data
+      responses:
+        "200":
+          description: Reset done
+
+  /admin/users:
+    post:
+      tags: [Admin]
+      security: [{ basicAuth: [] }]
+      summary: Create user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                studentUid:
+                  type: string
+                role:
+                  type: string
+                  enum: [Tanulo, Tanar]
+                  default: Tanulo
+      responses:
+        "201":
+          description: User created
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+    basicAuth:
+      type: http
+      scheme: basic
+
+  schemas:
+    TokenResponse:
+      type: object
+      properties:
+        id_token:
+          type: string
+        access_token:
+          type: string
+        expires_in:
+          type: integer
+        token_type:
+          type: string
+        refresh_token:
+          type: string
+        scope:
+          type: string
+
+    NameUid:
+      type: object
+      properties:
+        Uid:
+          type: string
+        Nev:
+          type: string
+
+    NameUidDesc:
+      type: object
+      properties:
+        Uid:
+          type: string
+        Nev:
+          type: string
+        Leiras:
+          type: string
+
+    Subject:
+      type: object
+      properties:
+        Uid:
+          type: string
+        Nev:
+          type: string
+        Kategoria:
+          $ref: "#/components/schemas/NameUidDesc"
+        SortIndex:
+          type: integer
+
+    Student:
+      type: object
+      properties:
+        Uid:
+          type: string
+        Nev:
+          type: string
+        EmailCim:
+          type: string
+        TanevUid:
+          type: string
+        IntezmenyAzonosito:
+          type: string
+        IntezmenyNev:
+          type: string
+
+    Teacher:
+      type: object
+      properties:
+        Uid:
+          type: string
+        Nev:
+          type: string
+        EmailCim:
+          type: string
+        Telefonszam:
+          type: string
+        IntezmenyAzonosito:
+          type: string
+        IntezmenyNev:
+          type: string
+        OsztalyFonokOsztalyok:
+          type: array
+          items:
+            $ref: "#/components/schemas/NameUid"
+        Tantargyak:
+          type: array
+          items:
+            $ref: "#/components/schemas/Subject"
+
+    ClassGroup:
+      type: object
+      properties:
+        Uid:
+          type: string
+        Nev:
+          type: string
+        IsAktiv:
+          type: boolean
+        Tipus:
+          type: string
+
+    Grade:
+      type: object
+      properties:
+        Uid:
+          type: string
+        RogzitesDatuma:
+          type: string
+        Tantargy:
+          $ref: "#/components/schemas/Subject"
+        Tema:
+          type: string
+        SzamErtek:
+          type: integer
+        SzovegesErtek:
+          type: string
+        ErtekeloTanarNeve:
+          type: string
+        SulySzazalekErteke:
+          type: integer
+
+    Lesson:
+      type: object
+      properties:
+        Uid:
+          type: string
+        Datum:
+          type: string
+        KezdetIdopont:
+          type: string
+        VegIdopont:
+          type: string
+        Nev:
+          type: string
+        TanarNeve:
+          type: string
+        Tantargy:
+          $ref: "#/components/schemas/Subject"
+        TeremNeve:
+          type: string
+
+    CreateGradeRequest:
+      type: object
+      properties:
+        TantargyUid:
+          type: string
+        Tema:
+          type: string
+        SzamErtek:
+          type: integer
+        SzovegesErtek:
+          type: string
+        SulySzazalekErteke:
+          type: integer
+        Tipus:
+          $ref: "#/components/schemas/NameUidDesc"
+        OsztalyCsoportUid:
+          type: string
+        TanuloUid:
+          type: string
+
+    CreateHomeworkRequest:
+      type: object
+      properties:
+        TantargyUid:
+          type: string
+        Szoveg:
+          type: string
+        Hatarido:
+          type: string
+        OsztalyCsoportUid:
+          type: string
+
+    CreateOmissionRequest:
+      type: object
+      properties:
+        TanuloUid:
+          type: string
+        Datum:
+          type: string
+        Tipus:
+          $ref: "#/components/schemas/NameUidDesc"
+        KesesPercben:
+          type: integer
+        OsztalyCsoportUid:
+          type: string
+
+    CreateTestRequest:
+      type: object
+      properties:
+        TantargyUid:
+          type: string
+        Datum:
+          type: string
+        Modja:
+          $ref: "#/components/schemas/NameUidDesc"
+        OsztalyCsoportUid:
+          type: string

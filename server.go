@@ -232,6 +232,8 @@ func (s *Server) registerAdminRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/admin/student", s.requireAdmin(s.handleAdminStudent))
 	mux.HandleFunc("/admin/reset", s.requireAdmin(s.handleAdminReset))
 	mux.HandleFunc("/admin/users", s.requireAdmin(s.handleAdminUsers))
+	mux.HandleFunc("/admin/teacher", s.requireAdmin(s.handleAdminTeacher))
+	mux.HandleFunc("/admin/students", s.requireAdmin(s.handleAdminStudents))
 }
 
 // ============================================================
@@ -372,6 +374,7 @@ type createUserRequest struct {
 	Username   string `json:"username"`
 	Password   string `json:"password"`
 	StudentUID string `json:"studentUid"`
+	Role       string `json:"role"`
 }
 
 func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
@@ -396,10 +399,15 @@ func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 		studentUID = s.store.GetStudent().Uid
 	}
 
-	user, err := s.store.CreateUser(
+	role := req.Role
+	if role == "" {
+		role = "Tanulo"
+	}
+	user, err := s.store.CreateUserWithRole(
 		req.Username,
 		req.Password,
 		studentUID,
+		role,
 	)
 
 	if err != nil {

@@ -53,6 +53,7 @@ func main() {
 	// ============================================================
 
 	store := NewStore(db)
+	store.BootstrapMultiUser()
 
 	// ============================================================
 	// Auth
@@ -100,77 +101,57 @@ func main() {
 	)
 
 	// ============================================================
-	// Student API
+	// Student API (session-scoped)
 	// ============================================================
 
 	mux.HandleFunc(
 		"/ellenorzo/v3/sajat/TanuloAdatlap",
-		server.requireAuth(
-			server.handleGetStudent,
-		),
+		server.requireAuthSession(server.handleGetStudentScoped),
 	)
 
 	mux.HandleFunc(
 		"/ellenorzo/v3/sajat/OsztalyCsoportok",
-		server.requireAuth(
-			server.handleGetClassGroups,
-		),
+		server.requireAuthSession(server.handleGetClassGroupsScoped),
 	)
 
 	mux.HandleFunc(
 		"/ellenorzo/v3/sajat/FaliujsagElemek",
-		server.requireAuth(
-			server.handleGetNoticeBoard,
-		),
+		server.requireAuthSession(server.handleGetNoticeBoard),
 	)
 
 	mux.HandleFunc(
 		"/ellenorzo/v3/sajat/Feljegyzesek",
-		server.requireAuth(
-			server.handleGetInfoBoard,
-		),
+		server.requireAuthSession(server.handleGetInfoBoard),
 	)
 
 	mux.HandleFunc(
 		"/ellenorzo/v3/sajat/Ertekelesek",
-		server.requireAuth(
-			server.handleGetGrades,
-		),
+		server.requireAuthSession(server.handleGetGradesScoped),
 	)
 
 	mux.HandleFunc(
 		"/ellenorzo/v3/sajat/Ertekelesek/Atlagok/OsztalyAtlagok",
-		server.requireAuth(
-			server.handleGetClassGroupAverages,
-		),
+		server.requireAuthSession(server.handleGetClassGroupAverages),
 	)
 
 	mux.HandleFunc(
 		"/ellenorzo/v3/sajat/OrarendElemek",
-		server.requireAuth(
-			server.handleGetTimeTable,
-		),
+		server.requireAuthSession(server.handleGetTimeTableScoped),
 	)
 
 	mux.HandleFunc(
 		"/ellenorzo/v3/sajat/Mulasztasok",
-		server.requireAuth(
-			server.handleGetOmissions,
-		),
+		server.requireAuthSession(server.handleGetOmissionsScoped),
 	)
 
 	mux.HandleFunc(
 		"/ellenorzo/v3/sajat/HaziFeladatok",
-		server.requireAuth(
-			server.handleGetHomework,
-		),
+		server.requireAuthSession(server.handleGetHomeworkScoped),
 	)
 
 	mux.HandleFunc(
 		"/ellenorzo/v3/sajat/BejelentettSzamonkeresek",
-		server.requireAuth(
-			server.handleGetTests,
-		),
+		server.requireAuthSession(server.handleGetTestsScoped),
 	)
 
 	// ============================================================
@@ -179,10 +160,14 @@ func main() {
 
 	mux.HandleFunc(
 		"/dktapi/intezmenyek/munkaterek/tanulok",
-		server.requireAuth(
-			server.handleGetDktSubjects,
-		),
+		server.requireAuthSession(server.handleGetDktSubjects),
 	)
+
+	// ============================================================
+	// Teacher (Napló) API
+	// ============================================================
+
+	server.registerTeacherRoutes(mux)
 
 	// ============================================================
 	// Admin

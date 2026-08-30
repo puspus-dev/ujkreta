@@ -77,31 +77,31 @@ func (s *Server) registerTeacherRoutes(mux *http.ServeMux) {
 	)
 	mux.HandleFunc(
 		"/naplo/v3/sajat/OsztalyCsoportok",
-		s.requireAuth(s.handleTeacherClassGroups),
+		s.requireTeacher(s.handleTeacherClassGroups),
 	)
 	mux.HandleFunc(
 		"/naplo/v3/sajat/Tanulok",
-		s.requireAuth(s.handleTeacherStudents),
+		s.requireTeacher(s.handleTeacherStudents),
 	)
 	mux.HandleFunc(
 		"/naplo/v3/sajat/OrarendElemek",
-		s.requireAuth(s.handleTeacherTimetable),
+		s.requireTeacher(s.handleTeacherTimetable),
 	)
 	mux.HandleFunc(
 		"/naplo/v3/sajat/Ertekelesek",
-		s.requireAuth(s.handleTeacherGrades),
+		s.requireTeacher(s.handleTeacherGrades),
 	)
 	mux.HandleFunc(
 		"/naplo/v3/sajat/HaziFeladatok",
-		s.requireAuth(s.handleTeacherHomework),
+		s.requireTeacher(s.handleTeacherHomework),
 	)
 	mux.HandleFunc(
 		"/naplo/v3/sajat/Mulasztasok",
-		s.requireAuth(s.handleTeacherOmissions),
+		s.requireTeacher(s.handleTeacherOmissions),
 	)
 	mux.HandleFunc(
 		"/naplo/v3/sajat/BejelentettSzamonkeresek",
-		s.requireAuth(s.handleTeacherTests),
+		s.requireTeacher(s.handleTeacherTests),
 	)
 }
 

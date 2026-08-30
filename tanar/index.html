@@ -2,473 +2,436 @@
 <html lang="hu">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ÚjKréta – Tanár</title>
   <style>
     :root {
-      --bg: #0f1419;
-      --card: #1a2332;
-      --border: #2d3a4f;
-      --text: #e7ecf3;
-      --muted: #8b9bb4;
-      --accent: #3b82f6;
-      --accent-hover: #2563eb;
-      --ok: #22c55e;
-      --warn: #f59e0b;
-      --danger: #ef4444;
+      --bg: #0b1220; --card: #151e2e; --border: #2a3548;
+      --text: #eef2f8; --muted: #8b9bb4; --accent: #2563eb;
+      --ok: #16a34a; --err: #dc2626; --warn: #ca8a04;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      line-height: 1.5;
-    }
-    .container { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
-    h1 { font-size: 1.5rem; font-weight: 600; }
-    h2 { font-size: 1.1rem; margin-bottom: 0.75rem; color: var(--muted); }
-    .login-card, .panel {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.5rem;
-      margin-bottom: 1rem;
-    }
-    label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.25rem; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 1.25rem; }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.05rem; margin-bottom: 0.75rem; }
+    .muted { color: var(--muted); font-size: 0.88rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.15rem; margin: 1rem 0; }
+    label { display: block; font-size: 0.78rem; color: var(--muted); margin: 0.4rem 0 0.2rem; }
     input, select, textarea {
-      width: 100%;
-      padding: 0.6rem 0.75rem;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--bg);
-      color: var(--text);
-      margin-bottom: 0.75rem;
-      font-size: 0.95rem;
+      width: 100%; padding: 0.55rem 0.7rem; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 0.95rem;
     }
     button {
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 0.6rem 1.2rem;
-      font-weight: 500;
-      cursor: pointer;
-      font-size: 0.95rem;
+      background: var(--accent); color: #fff; border: none; border-radius: 8px;
+      padding: 0.55rem 1rem; font-weight: 600; cursor: pointer; margin-top: 0.5rem;
     }
-    button:hover { background: var(--accent-hover); }
     button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
-    button.secondary:hover { border-color: var(--accent); }
-    .row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
-    .tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
-    .tab {
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--muted);
-      cursor: pointer;
-    }
-    .tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .row { display: flex; gap: 0.65rem; flex-wrap: wrap; }
+    .row > * { flex: 1; min-width: 140px; }
+    .msg { padding: 0.65rem 0.8rem; border-radius: 8px; margin-top: 0.65rem; font-size: 0.9rem; }
+    .msg.ok { background: #14532d33; color: #4ade80; border: 1px solid #166534; }
+    .msg.err { background: #7f1d1d33; color: #f87171; border: 1px solid #991b1b; }
     .hidden { display: none !important; }
-    .muted { color: var(--muted); font-size: 0.9rem; }
-    .badge {
-      display: inline-block;
-      padding: 0.15rem 0.5rem;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      background: #1e3a5f;
-      color: #93c5fd;
-    }
-    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th, td { text-align: left; padding: 0.5rem 0.4rem; border-bottom: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 0.5rem; }
+    th, td { text-align: left; padding: 0.4rem; border-bottom: 1px solid var(--border); }
     th { color: var(--muted); font-weight: 500; }
-    .msg { padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; }
-    .msg.ok { background: #14532d33; color: var(--ok); border: 1px solid #166534; }
-    .msg.err { background: #7f1d1d33; color: var(--danger); border: 1px solid #991b1b; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
-    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem; }
+    .tabs { display: flex; gap: 0.35rem; flex-wrap: wrap; margin: 1rem 0 0; }
+    .tabs button { margin: 0; background: transparent; border: 1px solid var(--border); }
+    .tabs button.active { background: var(--accent); border-color: var(--accent); }
+    .bar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- LOGIN -->
-    <div id="loginView">
-      <div class="login-card" style="max-width: 400px; margin: 4rem auto;">
-        <h1 style="margin-bottom: 0.25rem;">ÚjKréta Tanár</h1>
-        <p class="muted" style="margin-bottom: 1.25rem;">Napló mock felület</p>
-        <div id="loginMsg"></div>
-        <label>API base URL</label>
-        <input id="apiBase" value="" placeholder="https://ujkreta.onrender.com">
-        <label>Felhasználónév</label>
-        <input id="username" value="teacher" autocomplete="username">
-        <label>Jelszó</label>
-        <input id="password" type="password" value="teacher" autocomplete="current-password">
-        <button id="loginBtn" style="width: 100%;">Bejelentkezés</button>
-        <p class="muted" style="margin-top: 1rem; font-size: 0.8rem;">
-          Alapértelmezett: teacher / teacher
-        </p>
+  <div class="wrap">
+    <div class="bar">
+      <div>
+        <h1>ÚjKréta – Tanári napló</h1>
+        <p class="muted">Bejelentkezés: Render <code>TEACHER_USERNAME</code> / <code>TEACHER_PASSWORD</code></p>
       </div>
+      <div id="userBadge" class="muted hidden"></div>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="card" id="loginCard">
+      <h2>Bejelentkezés</h2>
+      <label>API base URL</label>
+      <input id="base" value="">
+      <div class="row">
+        <div>
+          <label>Felhasználónév</label>
+          <input id="username" autocomplete="username" placeholder="TEACHER_USERNAME">
+        </div>
+        <div>
+          <label>Jelszó</label>
+          <input id="password" type="password" autocomplete="current-password" placeholder="TEACHER_PASSWORD">
+        </div>
+      </div>
+      <button id="btnLogin">Belépés</button>
+      <div id="loginMsg"></div>
     </div>
 
     <!-- APP -->
-    <div id="appView" class="hidden">
-      <header>
-        <div>
-          <h1>Tanári napló</h1>
-          <p class="muted" id="teacherName">–</p>
+    <div id="app" class="hidden">
+      <div class="card">
+        <div class="bar">
+          <div>
+            <strong id="teacherName">Tanár</strong>
+            <div class="muted" id="baseLabel"></div>
+          </div>
+          <button class="secondary" id="btnLogout" style="margin:0">Kijelentkezés</button>
         </div>
-        <div class="row">
-          <span class="badge" id="roleBadge">Tanar</span>
-          <button class="secondary" id="logoutBtn">Kijelentkezés</button>
-        </div>
-      </header>
+      </div>
 
       <div class="tabs">
-        <button class="tab active" data-tab="profil">Profil</button>
-        <button class="tab" data-tab="tanulok">Diákok</button>
-        <button class="tab" data-tab="jegyek">Jegyek</button>
-        <button class="tab" data-tab="hazi">Házi</button>
-        <button class="tab" data-tab="mulasztas">Mulasztás</button>
-        <button class="tab" data-tab="orarend">Órarend</button>
+        <button class="active" data-tab="grades">Jegy</button>
+        <button data-tab="homework">Házi</button>
+        <button data-tab="omission">Mulasztás</button>
+        <button data-tab="test">Számonkérés</button>
+        <button data-tab="list">Lista</button>
       </div>
 
-      <div id="msg"></div>
-
-      <div id="tab-profil" class="panel">
-        <h2>Tanár adatlap</h2>
-        <pre id="profilJson" class="muted" style="white-space: pre-wrap; font-size: 0.85rem;"></pre>
-      </div>
-
-      <div id="tab-tanulok" class="panel hidden">
-        <h2>Diákok</h2>
-        <div id="tanulokList"></div>
-      </div>
-
-      <div id="tab-jegyek" class="panel hidden">
-        <h2>Új értékelés</h2>
-        <div class="grid-2">
+      <!-- JEGY -->
+      <div class="card tab" id="tab-grades">
+        <h2>Jegy beírása</h2>
+        <div class="row">
           <div>
-            <label>Tantárgy UID</label>
-            <input id="gradeTantargy" value="1,MATEK">
-            <label>Téma</label>
-            <input id="gradeTema" value="Teszt dolgozat">
+            <label>Diák (TanuloUid)</label>
+            <select id="gStudent"></select>
+          </div>
+          <div>
+            <label>Tantárgy</label>
+            <select id="gSubject"></select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
             <label>Érték (1–5)</label>
-            <input id="gradeErtek" type="number" min="1" max="5" value="5">
+            <input id="gValue" type="number" min="1" max="5" value="5">
+          </div>
+          <div>
             <label>Szöveges</label>
-            <input id="gradeSzoveg" value="Jeles">
+            <input id="gText" value="Jeles">
+          </div>
+          <div>
+            <label>Súly %</label>
+            <input id="gWeight" type="number" value="100">
+          </div>
+        </div>
+        <label>Téma</label>
+        <input id="gTema" value="Órai munka">
+        <label>Osztály csoport UID</label>
+        <input id="gClass" value="10,11.A">
+        <button id="btnGrade">Mentés</button>
+        <div id="gradeMsg"></div>
+      </div>
+
+      <!-- HÁZI -->
+      <div class="card tab hidden" id="tab-homework">
+        <h2>Házi feladat</h2>
+        <label>Tantárgy UID</label>
+        <select id="hSubject"></select>
+        <label>Szöveg</label>
+        <textarea id="hText" rows="3">Feladat a következő órára</textarea>
+        <div class="row">
+          <div>
+            <label>Határidő (YYYY-MM-DD)</label>
+            <input id="hDue" type="date">
           </div>
           <div>
             <label>Osztály UID</label>
-            <input id="gradeOsztaly" value="10,11.A">
-            <label>Diák UID</label>
-            <input id="gradeTanulo" value="100">
-            <label>Súly %</label>
-            <input id="gradeSuly" type="number" value="100">
-            <button id="gradeBtn" style="margin-top: 1.5rem;">Jegy mentése</button>
+            <input id="hClass" value="10,11.A">
           </div>
         </div>
-        <h2 style="margin-top: 1.5rem;">Meglévő jegyek</h2>
-        <div id="jegyekList"></div>
+        <button id="btnHomework">Mentés</button>
+        <div id="hwMsg"></div>
       </div>
 
-      <div id="tab-hazi" class="panel hidden">
-        <h2>Új házi feladat</h2>
-        <label>Tantárgy UID</label>
-        <input id="hwTantargy" value="1,MATEK">
-        <label>Szöveg</label>
-        <textarea id="hwSzoveg" rows="3">30. oldal 1–5. feladat</textarea>
-        <label>Határidő (ISO)</label>
-        <input id="hwHatarido" placeholder="2026-09-05T23:59:59">
+      <!-- MULASZTÁS -->
+      <div class="card tab hidden" id="tab-omission">
+        <h2>Mulasztás</h2>
+        <div class="row">
+          <div>
+            <label>Diák</label>
+            <select id="oStudent"></select>
+          </div>
+          <div>
+            <label>Dátum</label>
+            <input id="oDate" type="date">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Típus</label>
+            <select id="oType">
+              <option value="Hianyzas">Hiányzás</option>
+              <option value="Keses">Késés</option>
+            </select>
+          </div>
+          <div>
+            <label>Késés (perc)</label>
+            <input id="oMin" type="number" value="0">
+          </div>
+        </div>
         <label>Osztály UID</label>
-        <input id="hwOsztaly" value="10,11.A">
-        <button id="hwBtn">Házi mentése</button>
-        <h2 style="margin-top: 1.5rem;">Meglévő házik</h2>
-        <div id="haziList"></div>
+        <input id="oClass" value="10,11.A">
+        <button id="btnOmission">Mentés</button>
+        <div id="omMsg"></div>
       </div>
 
-      <div id="tab-mulasztas" class="panel hidden">
-        <h2>Új mulasztás</h2>
-        <label>Diák UID</label>
-        <input id="omTanulo" value="100">
-        <label>Dátum (ISO)</label>
-        <input id="omDatum" placeholder="2026-08-29T00:00:00">
-        <label>Osztály UID</label>
-        <input id="omOsztaly" value="10,11.A">
-        <button id="omBtn">Mulasztás rögzítése</button>
-        <h2 style="margin-top: 1.5rem;">Meglévő mulasztások</h2>
-        <div id="mulasztasList"></div>
+      <!-- TESZT -->
+      <div class="card tab hidden" id="tab-test">
+        <h2>Bejelentett számonkérés</h2>
+        <label>Tantárgy</label>
+        <select id="tSubject"></select>
+        <label>Téma</label>
+        <input id="tTema" value="Témazáró">
+        <div class="row">
+          <div>
+            <label>Dátum</label>
+            <input id="tDate" type="date">
+          </div>
+          <div>
+            <label>Osztály UID</label>
+            <input id="tClass" value="10,11.A">
+          </div>
+        </div>
+        <button id="btnTest">Mentés</button>
+        <div id="testMsg"></div>
       </div>
 
-      <div id="tab-orarend" class="panel hidden">
-        <h2>Órarend</h2>
-        <div id="orarendList"></div>
+      <!-- LISTA -->
+      <div class="card tab hidden" id="tab-list">
+        <h2>Jegyek (összes a store-ban)</h2>
+        <button class="secondary" id="btnRefreshList">Frissítés</button>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Uid</th><th>Diák</th><th>Tárgy</th><th>Érték</th><th>Téma</th></tr></thead>
+            <tbody id="gradeTable"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    const state = {
-      token: localStorage.getItem('ujkreta_teacher_token') || '',
-      base: localStorage.getItem('ujkreta_api_base') || location.origin,
-    };
+    const S = { base: '', token: '', students: [], subjects: [] };
+    const $ = id => document.getElementById(id);
 
-    const $ = (id) => document.getElementById(id);
+    function defaultBase() {
+      if (location.protocol.startsWith('http') && !location.pathname.endsWith('.html')) {
+        return location.origin;
+      }
+      return 'https://ujkreta.onrender.com';
+    }
 
-    function showMsg(text, ok = true) {
-      const el = $('msg');
+    function msg(el, text, ok) {
       el.className = 'msg ' + (ok ? 'ok' : 'err');
       el.textContent = text;
-      setTimeout(() => { el.className = 'hidden'; }, 4000);
     }
 
     async function api(path, opts = {}) {
-      const res = await fetch(state.base + path, {
-        ...opts,
-        headers: {
-          ...(opts.body ? { 'Content-Type': 'application/json' } : {}),
-          ...(state.token ? { Authorization: 'Bearer ' + state.token } : {}),
-          ...(opts.headers || {}),
-        },
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error_description || data.message || data.error || res.statusText);
+      const headers = { ...(opts.headers || {}) };
+      if (S.token) headers['Authorization'] = 'Bearer ' + S.token;
+      if (opts.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+      const res = await fetch(S.base + path, { ...opts, headers });
+      const text = await res.text();
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+      if (!res.ok) {
+        const err = (data && (data.error || data.error_description)) || res.status + ' ' + res.statusText;
+        throw new Error(typeof err === 'string' ? err : JSON.stringify(err));
+      }
       return data;
     }
 
     async function login() {
-      const base = $('apiBase').value.replace(/\/$/, '') || location.origin;
-      const username = $('username').value.trim();
-      const password = $('password').value;
-      state.base = base;
-      localStorage.setItem('ujkreta_api_base', base);
-
+      S.base = ($('base').value || defaultBase()).replace(/\/$/, '');
       const body = new URLSearchParams({
         grant_type: 'password',
-        username,
-        password,
+        username: $('username').value.trim(),
+        password: $('password').value,
+        client_id: 'kreta-ellenorzo-mobile-android',
       });
-
-      try {
-        const res = await fetch(base + '/connect/token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body,
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error_description || data.error || 'Login failed');
-        state.token = data.access_token;
-        localStorage.setItem('ujkreta_teacher_token', state.token);
-        await enterApp();
-      } catch (e) {
-        $('loginMsg').innerHTML = `<div class="msg err">${e.message}</div>`;
+      const res = await fetch(S.base + '/connect/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+      });
+      const data = await res.json();
+      if (!res.ok || !data.access_token) {
+        throw new Error(data.error_description || data.error || 'login failed');
       }
-    }
-
-    function logout() {
-      state.token = '';
-      localStorage.removeItem('ujkreta_teacher_token');
-      $('appView').classList.add('hidden');
-      $('loginView').classList.remove('hidden');
+      S.token = data.access_token;
+      localStorage.setItem('ujkreta_tanar', JSON.stringify({
+        base: S.base,
+        token: S.token,
+        username: $('username').value.trim(),
+      }));
+      await enterApp();
     }
 
     async function enterApp() {
-      $('loginView').classList.add('hidden');
-      $('appView').classList.remove('hidden');
-      $('apiBase').value = state.base;
-
+      $('loginCard').classList.add('hidden');
+      $('app').classList.remove('hidden');
+      $('baseLabel').textContent = S.base;
+      $('userBadge').classList.remove('hidden');
       try {
-        const t = await api('/naplo/v3/sajat/TanarAdatlap');
-        $('teacherName').textContent = t.Nev + ' · ' + (t.IntezmenyNev || '');
-        $('profilJson').textContent = JSON.stringify(t, null, 2);
-      } catch (e) {
-        showMsg('Profil hiba: ' + e.message, false);
+        const t = await api('/naplo/v3/sajat/TanarAdatlap').catch(() => null);
+        // fallback: student-style not available; use /naplo students
+        $('teacherName').textContent = (t && t.Nev) || 'Tanár bejelentkezve';
+      } catch (_) {
+        $('teacherName').textContent = 'Tanár bejelentkezve';
       }
-
-      loadTanulok();
-      loadJegyek();
-      loadHazi();
-      loadMulasztas();
-      loadOrarend();
+      await loadMeta();
     }
 
-    async function loadTanulok() {
+    async function loadMeta() {
       try {
-        const list = await api('/naplo/v3/sajat/Tanulok');
-        $('tanulokList').innerHTML = `
-          <table>
-            <thead><tr><th>Név</th><th>UID</th><th>Osztály</th><th>Email</th></tr></thead>
-            <tbody>
-              ${list.map(s => `<tr>
-                <td>${s.Nev}</td><td>${s.Uid}</td>
-                <td>${s.OsztalyCsoport?.Nev || ''}</td>
-                <td>${s.EmailCim || ''}</td>
-              </tr>`).join('')}
-            </tbody>
-          </table>`;
-      } catch (e) {
-        $('tanulokList').textContent = e.message;
+        const students = await api('/naplo/v3/sajat/Tanulok');
+        S.students = Array.isArray(students) ? students : [];
+      } catch {
+        S.students = [{ Uid: '100', Nev: 'Diák (100)' }];
       }
+      try {
+        // subjects from class groups / seed: hardcoded fallbacks
+        S.subjects = [
+          { Uid: '1,MATEK', Nev: 'Matematika' },
+          { Uid: '2,MAGYAR', Nev: 'Magyar nyelv és irodalom' },
+        ];
+      } catch (_) {}
+
+      for (const sel of ['gStudent', 'oStudent']) {
+        const el = $(sel);
+        el.innerHTML = S.students.map(s =>
+          `<option value="${s.Uid || s.uid}">${s.Nev || s.name || s.Uid}</option>`
+        ).join('') || '<option value="100">100</option>';
+      }
+      for (const sel of ['gSubject', 'hSubject', 'tSubject']) {
+        $(sel).innerHTML = S.subjects.map(s =>
+          `<option value="${s.Uid}">${s.Nev}</option>`
+        ).join('');
+      }
+      const today = new Date().toISOString().slice(0, 10);
+      $('hDue').value = today;
+      $('oDate').value = today;
+      $('tDate').value = today;
     }
 
-    async function loadJegyek() {
+    $('btnLogin').onclick = async () => {
       try {
-        const list = await api('/naplo/v3/sajat/Ertekelesek');
-        $('jegyekList').innerHTML = `
-          <table>
-            <thead><tr><th>Dátum</th><th>Tantárgy</th><th>Érték</th><th>Téma</th><th>Tanár</th></tr></thead>
-            <tbody>
-              ${list.map(g => `<tr>
-                <td>${(g.RogzitesDatuma || '').slice(0, 10)}</td>
-                <td>${g.Tantargy?.Nev || ''}</td>
-                <td><strong>${g.SzamErtek || g.SzovegesErtek}</strong></td>
-                <td>${g.Tema || ''}</td>
-                <td>${g.ErtekeloTanarNeve || ''}</td>
-              </tr>`).join('')}
-            </tbody>
-          </table>`;
+        await login();
+        msg($('loginMsg'), 'Sikeres belépés', true);
       } catch (e) {
-        $('jegyekList').textContent = e.message;
+        msg($('loginMsg'), e.message, false);
       }
-    }
+    };
 
-    async function loadHazi() {
-      try {
-        const list = await api('/naplo/v3/sajat/HaziFeladatok');
-        $('haziList').innerHTML = `
-          <table>
-            <thead><tr><th>Határidő</th><th>Tantárgy</th><th>Szöveg</th><th>Tanár</th></tr></thead>
-            <tbody>
-              ${list.map(h => `<tr>
-                <td>${(h.HataridoDatuma || '').slice(0, 10)}</td>
-                <td>${h.Tantargy?.Nev || h.TantargyNeve || ''}</td>
-                <td>${h.Szoveg || ''}</td>
-                <td>${h.RogzitoTanarNeve || ''}</td>
-              </tr>`).join('')}
-            </tbody>
-          </table>`;
-      } catch (e) {
-        $('haziList').textContent = e.message;
-      }
-    }
+    $('btnLogout').onclick = () => {
+      localStorage.removeItem('ujkreta_tanar');
+      S.token = '';
+      location.reload();
+    };
 
-    async function loadMulasztas() {
-      try {
-        const list = await api('/naplo/v3/sajat/Mulasztasok');
-        $('mulasztasList').innerHTML = `
-          <table>
-            <thead><tr><th>Dátum</th><th>Típus</th><th>Tanár</th><th>Igazolás</th></tr></thead>
-            <tbody>
-              ${list.map(o => `<tr>
-                <td>${(o.Datum || '').slice(0, 10)}</td>
-                <td>${o.Tipus?.Nev || ''}</td>
-                <td>${o.RogzitoTanarNeve || ''}</td>
-                <td>${o.IgazolasAllapota || ''}</td>
-              </tr>`).join('')}
-            </tbody>
-          </table>`;
-      } catch (e) {
-        $('mulasztasList').textContent = e.message;
-      }
-    }
-
-    async function loadOrarend() {
-      try {
-        const list = await api('/naplo/v3/sajat/OrarendElemek');
-        $('orarendList').innerHTML = `
-          <table>
-            <thead><tr><th>Dátum</th><th>Idő</th><th>Tantárgy</th><th>Osztály</th><th>Terem</th></tr></thead>
-            <tbody>
-              ${list.map(l => `<tr>
-                <td>${(l.Datum || '').slice(0, 10)}</td>
-                <td>${(l.KezdetIdopont || '').slice(11, 16)}–${(l.VegIdopont || '').slice(11, 16)}</td>
-                <td>${l.Nev || l.Tantargy?.Nev || ''}</td>
-                <td>${l.OsztalyCsoport?.Nev || ''}</td>
-                <td>${l.TeremNeve || ''}</td>
-              </tr>`).join('')}
-            </tbody>
-          </table>`;
-      } catch (e) {
-        $('orarendList').textContent = e.message;
-      }
-    }
-
-    // Tabs
-    document.querySelectorAll('.tab').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tabs button').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        ['profil', 'tanulok', 'jegyek', 'hazi', 'mulasztas', 'orarend'].forEach(id => {
-          $('tab-' + id).classList.toggle('hidden', id !== btn.dataset.tab);
-        });
-      });
+        document.querySelectorAll('.tab').forEach(t => t.classList.add('hidden'));
+        $('tab-' + btn.dataset.tab).classList.remove('hidden');
+      };
     });
 
-    $('loginBtn').addEventListener('click', login);
-    $('logoutBtn').addEventListener('click', logout);
-
-    $('gradeBtn').addEventListener('click', async () => {
+    $('btnGrade').onclick = async () => {
       try {
-        await api('/naplo/v3/sajat/Ertekelesek', {
-          method: 'POST',
-          body: JSON.stringify({
-            TantargyUid: $('gradeTantargy').value,
-            Tema: $('gradeTema').value,
-            SzamErtek: Number($('gradeErtek').value),
-            SzovegesErtek: $('gradeSzoveg').value,
-            SulySzazalekErteke: Number($('gradeSuly').value),
-            OsztalyCsoportUid: $('gradeOsztaly').value,
-            TanuloUid: $('gradeTanulo').value,
-          }),
-        });
-        showMsg('Jegy mentve');
-        loadJegyek();
+        const body = {
+          TantargyUid: $('gSubject').value,
+          Tema: $('gTema').value,
+          SzamErtek: Number($('gValue').value),
+          SzovegesErtek: $('gText').value,
+          SulySzazalekErteke: Number($('gWeight').value),
+          OsztalyCsoportUid: $('gClass').value,
+          TanuloUid: $('gStudent').value,
+        };
+        const g = await api('/naplo/v3/sajat/Ertekelesek', { method: 'POST', body: JSON.stringify(body) });
+        msg($('gradeMsg'), 'Beírva: ' + (g.Uid || 'ok'), true);
       } catch (e) {
-        showMsg(e.message, false);
+        msg($('gradeMsg'), e.message, false);
       }
-    });
+    };
 
-    $('hwBtn').addEventListener('click', async () => {
+    $('btnHomework').onclick = async () => {
       try {
-        await api('/naplo/v3/sajat/HaziFeladatok', {
-          method: 'POST',
-          body: JSON.stringify({
-            TantargyUid: $('hwTantargy').value,
-            Szoveg: $('hwSzoveg').value,
-            Hatarido: $('hwHatarido').value,
-            OsztalyCsoportUid: $('hwOsztaly').value,
-          }),
-        });
-        showMsg('Házi mentve');
-        loadHazi();
+        const body = {
+          TantargyUid: $('hSubject').value,
+          Szoveg: $('hText').value,
+          HataridoDatuma: $('hDue').value,
+          OsztalyCsoportUid: $('hClass').value,
+        };
+        const h = await api('/naplo/v3/sajat/HaziFeladatok', { method: 'POST', body: JSON.stringify(body) });
+        msg($('hwMsg'), 'Házi: ' + (h.Uid || 'ok'), true);
       } catch (e) {
-        showMsg(e.message, false);
+        msg($('hwMsg'), e.message, false);
       }
-    });
+    };
 
-    $('omBtn').addEventListener('click', async () => {
+    $('btnOmission').onclick = async () => {
       try {
-        await api('/naplo/v3/sajat/Mulasztasok', {
-          method: 'POST',
-          body: JSON.stringify({
-            TanuloUid: $('omTanulo').value,
-            Datum: $('omDatum').value,
-            OsztalyCsoportUid: $('omOsztaly').value,
-          }),
-        });
-        showMsg('Mulasztás rögzítve');
-        loadMulasztas();
+        const body = {
+          TanuloUid: $('oStudent').value,
+          Datum: $('oDate').value,
+          Tipus: $('oType').value,
+          KesesPercben: Number($('oMin').value),
+          OsztalyCsoportUid: $('oClass').value,
+        };
+        const o = await api('/naplo/v3/sajat/Mulasztasok', { method: 'POST', body: JSON.stringify(body) });
+        msg($('omMsg'), 'Mulasztás: ' + (o.Uid || 'ok'), true);
       } catch (e) {
-        showMsg(e.message, false);
+        msg($('omMsg'), e.message, false);
       }
-    });
+    };
 
-    // Auto-login if token exists
-    $('apiBase').value = state.base;
-    if (state.token) {
-      enterApp().catch(() => logout());
-    }
+    $('btnTest').onclick = async () => {
+      try {
+        const body = {
+          TantargyUid: $('tSubject').value,
+          Temaja: $('tTema').value,
+          Datum: $('tDate').value,
+          OsztalyCsoportUid: $('tClass').value,
+        };
+        const t = await api('/naplo/v3/sajat/BejelentettSzamonkeresek', { method: 'POST', body: JSON.stringify(body) });
+        msg($('testMsg'), 'Számonkérés: ' + (t.Uid || 'ok'), true);
+      } catch (e) {
+        msg($('testMsg'), e.message, false);
+      }
+    };
+
+    $('btnRefreshList').onclick = async () => {
+      try {
+        // Tanár GET grades – ha van list endpoint; fallback admin nincs
+        const grades = await api('/ellenorzo/v3/sajat/Ertekelesek').catch(() => []);
+        const rows = (Array.isArray(grades) ? grades : []).map(g =>
+          `<tr><td>${g.Uid || ''}</td><td>${g.TanuloUid || ''}</td><td>${(g.Tantargy && g.Tantargy.Nev) || ''}</td><td>${g.SzamErtek || g.SzovegesErtek || ''}</td><td>${g.Tema || ''}</td></tr>`
+        ).join('');
+        $('gradeTable').innerHTML = rows || '<tr><td colspan="5">Nincs jegy (vagy tanár tokennel nem látszik a diák lista)</td></tr>';
+      } catch (e) {
+        $('gradeTable').innerHTML = `<tr><td colspan="5">${e.message}</td></tr>`;
+      }
+    };
+
+    // restore session
+    $('base').value = defaultBase();
+    try {
+      const saved = JSON.parse(localStorage.getItem('ujkreta_tanar') || 'null');
+      if (saved && saved.token) {
+        S.base = saved.base;
+        S.token = saved.token;
+        $('base').value = saved.base;
+        $('username').value = saved.username || '';
+        enterApp().catch(() => localStorage.removeItem('ujkreta_tanar'));
+      }
+    } catch (_) {}
   </script>
 </body>
 </html>

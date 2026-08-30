@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ÚjKréta Admin</title>
+  <title>ÚjKréta – Admin</title>
   <style>
     :root {
       --bg: #0f1419; --card: #1a2332; --border: #2d3a4f;
@@ -12,8 +12,9 @@
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-    .wrap { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
-    h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 1.5rem; }
+    h1 { font-size: 1.4rem; margin-bottom: 0.2rem; }
+    h2 { font-size: 1rem; margin-bottom: 0.75rem; }
     .muted { color: var(--muted); font-size: 0.9rem; }
     .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin: 1rem 0; }
     label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.25rem; }
@@ -27,6 +28,7 @@
       padding: 0.55rem 1rem; font-weight: 500; cursor: pointer;
     }
     button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    button.danger { background: var(--err); }
     .row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
     .row > * { flex: 1; min-width: 140px; }
     .msg { padding: 0.75rem; border-radius: 8px; margin: 0.75rem 0; font-size: 0.9rem; }
@@ -36,17 +38,18 @@
     th, td { text-align: left; padding: 0.45rem; border-bottom: 1px solid var(--border); }
     th { color: var(--muted); }
     .hidden { display: none !important; }
+    code { background: #0003; padding: 0.1rem 0.35rem; border-radius: 4px; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1>ÚjKréta – Admin</h1>
-    <p class="muted">Diák / tanár felhasználók, reset. Basic Auth kell (ADMIN_USERNAME / ADMIN_PASSWORD).</p>
+    <p class="muted">Basic Auth: <code>ADMIN_USERNAME</code> / <code>ADMIN_PASSWORD</code> (Render env)</p>
 
     <div class="card" id="loginCard">
-      <h2 style="font-size:1rem;margin-bottom:0.75rem;">Bejelentkezés</h2>
+      <h2>Csatlakozás</h2>
       <label>API base</label>
-      <input id="base" value="https://ujkreta.onrender.com">
+      <input id="base" value="">
       <div class="row">
         <div>
           <label>Admin user</label>
@@ -68,13 +71,13 @@
             <strong id="healthLabel">–</strong>
             <div class="muted" id="baseLabel"></div>
           </div>
-          <button class="secondary" id="btnRefresh" style="flex:0">Frissítés</button>
-          <button class="secondary" id="btnLogout" style="flex:0">Kijelentkezés</button>
+          <button class="secondary" id="btnRefresh" style="flex:0">Health</button>
+          <button class="secondary" id="btnLogout" style="flex:0">Kilépés</button>
         </div>
       </div>
 
       <div class="card">
-        <h2 style="font-size:1rem;margin-bottom:0.75rem;">Új felhasználó</h2>
+        <h2>Új felhasználó (diák / tanár)</h2>
         <div class="row">
           <div>
             <label>Username</label>
@@ -87,7 +90,7 @@
         </div>
         <div class="row">
           <div>
-            <label>Kapcsolt UID (diák/tanár)</label>
+            <label>Kapcsolt UID (diák UID / tanár 300)</label>
             <input id="uUid" placeholder="100">
           </div>
           <div>
@@ -103,16 +106,54 @@
       </div>
 
       <div class="card">
-        <h2 style="font-size:1rem;margin-bottom:0.75rem;">Diák profil (GET/PUT /admin/student)</h2>
+        <h2>Új diák + login</h2>
+        <div class="row">
+          <div>
+            <label>Diák UID</label>
+            <input id="sUid" placeholder="101">
+          </div>
+          <div>
+            <label>Név</label>
+            <input id="sName" placeholder="Kovács Anna">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Username</label>
+            <input id="sUser" placeholder="anna">
+          </div>
+          <div>
+            <label>Jelszó</label>
+            <input id="sPass" type="password" placeholder="anna">
+          </div>
+        </div>
+        <label>Osztály UID</label>
+        <input id="sClass" value="10,11.A">
+        <button id="btnCreateStudent">Diák létrehozása</button>
+        <div id="studentCreateMsg"></div>
+      </div>
+
+      <div class="card">
+        <h2>Diákok listája</h2>
+        <button class="secondary" id="btnListStudents">Betöltés</button>
+        <table>
+          <thead><tr><th>UID</th><th>Név</th></tr></thead>
+          <tbody id="studentTable"></tbody>
+        </table>
+        <div id="listMsg"></div>
+      </div>
+
+      <div class="card">
+        <h2>Diák profil JSON (singleton seed)</h2>
         <button class="secondary" id="btnLoadStudent">Betöltés</button>
-        <textarea id="studentJson" rows="12" style="margin-top:0.75rem;font-family:monospace;font-size:0.8rem"></textarea>
-        <button id="btnSaveStudent" style="margin-top:0.5rem">Mentés</button>
+        <textarea id="studentJson" rows="10" style="font-family:monospace;font-size:0.8rem"></textarea>
+        <button id="btnSaveStudent">Mentés</button>
         <div id="studentMsg"></div>
       </div>
 
       <div class="card">
-        <h2 style="font-size:1rem;margin-bottom:0.75rem;">Veszélyes</h2>
-        <button id="btnReset" style="background:var(--err)">Mock / seed visszaállítás</button>
+        <h2>Veszélyes</h2>
+        <button class="danger" id="btnReset">Seed / mock visszaállítás</button>
         <div id="resetMsg"></div>
       </div>
     </div>
@@ -121,6 +162,11 @@
   <script>
     const S = { base: '', auth: '' };
     const $ = id => document.getElementById(id);
+
+    function defaultBase() {
+      if (location.protocol.startsWith('http')) return location.origin;
+      return 'https://ujkreta.onrender.com';
+    }
 
     function msg(el, text, ok) {
       el.className = 'msg ' + (ok ? 'ok' : 'err');
@@ -142,6 +188,8 @@
       if (!res.ok) throw new Error((data && data.error) || res.statusText || String(res.status));
       return data;
     }
+
+    $('base').value = defaultBase();
 
     $('btnConnect').onclick = async () => {
       S.base = $('base').value.replace(/\/$/, '');
@@ -183,9 +231,42 @@
           role: $('uRole').value,
         };
         const u = await api('/admin/users', { method: 'POST', body: JSON.stringify(body) });
-        msg($('userMsg'), 'Létrehozva: ' + (u.username || JSON.stringify(u)), true);
+        msg($('userMsg'), 'OK: ' + (u.username || JSON.stringify(u)), true);
       } catch (e) {
         msg($('userMsg'), e.message, false);
+      }
+    };
+
+    $('btnCreateStudent').onclick = async () => {
+      try {
+        const body = {
+          student: {
+            Uid: $('sUid').value.trim(),
+            Nev: $('sName').value.trim(),
+            TanevUid: '2025/2026',
+            IntezmenyAzonosito: 'mockschool',
+            IntezmenyNev: 'Mock Gimnázium',
+          },
+          classGroupUid: $('sClass').value.trim(),
+          username: $('sUser').value.trim(),
+          password: $('sPass').value,
+        };
+        const r = await api('/admin/students', { method: 'POST', body: JSON.stringify(body) });
+        msg($('studentCreateMsg'), 'Diák OK: ' + body.student.Uid, true);
+      } catch (e) {
+        msg($('studentCreateMsg'), e.message, false);
+      }
+    };
+
+    $('btnListStudents').onclick = async () => {
+      try {
+        const list = await api('/admin/students');
+        const rows = (Array.isArray(list) ? list : []).map(s =>
+          `<tr><td>${s.Uid || ''}</td><td>${s.Nev || ''}</td></tr>`
+        ).join('');
+        $('studentTable').innerHTML = rows || '<tr><td colspan="2">Üres</td></tr>';
+      } catch (e) {
+        msg($('listMsg'), e.message, false);
       }
     };
 
@@ -210,7 +291,7 @@
     };
 
     $('btnReset').onclick = async () => {
-      if (!confirm('Biztosan visszaállítod a seed adatokat?')) return;
+      if (!confirm('Biztosan reset? Éles adat elvész.')) return;
       try {
         await api('/admin/reset', { method: 'POST', body: '{}' });
         msg($('resetMsg'), 'Reset kész', true);
@@ -219,11 +300,10 @@
       }
     };
 
-    // Auto restore
     try {
       const saved = JSON.parse(localStorage.getItem('ujkreta_admin') || 'null');
       if (saved) {
-        $('base').value = saved.base || '';
+        $('base').value = saved.base || defaultBase();
         $('adminUser').value = saved.user || '';
         $('adminPass').value = saved.pass || '';
       }

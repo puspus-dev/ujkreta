@@ -1,10 +1,21 @@
+"use strict";
+
+/* ============================================================
+   CONFIG
+============================================================ */
 
 const API_BASE = "https://ujkreta.onrender.com";
 
+/*
+ * Ha később ugyanazon a domainen lesz a frontend és a backend,
+ * ezt átállíthatod:
+ *
+ * const API_BASE = "";
+ */
 
 /* ============================================================
    STATE
-   ============================================================ */
+============================================================ */
 
 const state = {
   student: null,
@@ -36,275 +47,11 @@ const state = {
   }
 };
 
-
 /* ============================================================
-   API
-   ============================================================ */
-
-async function apiFetch(path) {
-
-  const response = await fetch(API_BASE + path, {
-    method: "GET",
-
-    headers: {
-      "Accept": "application/json"
-    },
-
-    credentials: "include"
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      `API hiba: ${response.status} ${response.statusText}`
-    );
-  }
-
-  return response.json();
-}
-
-
-/* ============================================================
-   API LOADERS
-   ============================================================ */
-
-async function loadStudent() {
-  state.student = await apiFetch(
-    "/ellenorzo/v3/sajat/TanuloAdatlap"
-  );
-
-  state.loaded.student = true;
-}
-
-
-async function loadClassGroups() {
-  state.classGroups = await apiFetch(
-    "/ellenorzo/v3/sajat/OsztalyCsoportok"
-  );
-
-  state.loaded.classGroups = true;
-}
-
-
-async function loadGrades() {
-  state.grades = await apiFetch(
-    "/ellenorzo/v3/sajat/Ertekelesek"
-  );
-
-  state.loaded.grades = true;
-}
-
-
-async function loadAverages() {
-  state.averages = await apiFetch(
-    "/ellenorzo/v3/sajat/Ertekelesek/Atlagok/OsztalyAtlagok"
-  );
-
-  state.loaded.averages = true;
-}
-
-
-async function loadLessons() {
-  state.lessons = await apiFetch(
-    "/ellenorzo/v3/sajat/OrarendElemek"
-  );
-
-  state.loaded.lessons = true;
-}
-
-
-async function loadOmissions() {
-  state.omissions = await apiFetch(
-    "/ellenorzo/v3/sajat/Mulasztasok"
-  );
-
-  state.loaded.omissions = true;
-}
-
-
-async function loadHomework() {
-  state.homework = await apiFetch(
-    "/ellenorzo/v3/sajat/HaziFeladatok"
-  );
-
-  state.loaded.homework = true;
-}
-
-
-async function loadTests() {
-  state.tests = await apiFetch(
-    "/ellenorzo/v3/sajat/BejelentettSzamonkeresek"
-  );
-
-  state.loaded.tests = true;
-}
-
-
-async function loadNotices() {
-  state.notices = await apiFetch(
-    "/ellenorzo/v3/sajat/FaliujsagElemek"
-  );
-
-  state.loaded.notices = true;
-}
-
-
-async function loadInfoBoard() {
-  state.infoBoard = await apiFetch(
-    "/ellenorzo/v3/sajat/Feljegyzesek"
-  );
-
-  state.loaded.infoBoard = true;
-}
-
-
-async function loadDktSubjects() {
-  state.dktSubjects = await apiFetch(
-    "/dktapi/intezmenyek/munkaterek/tanulok"
-  );
-
-  state.loaded.dktSubjects = true;
-}
-
-
-/* ============================================================
-   HELPERS
-   ============================================================ */
-
-function escapeHTML(value) {
-
-  if (value === null || value === undefined) {
-    return "";
-  }
-
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-
-function safeDate(value) {
-
-  if (!value) {
-    return "";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleDateString("hu-HU");
-}
-
-
-function safeDateTime(value) {
-
-  if (!value) {
-    return "";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleString("hu-HU");
-}
-
-
-function initials(name) {
-
-  if (!name) {
-    return "?";
-  }
-
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map(x => x[0])
-    .join("")
-    .toUpperCase();
-}
-
-
-function gradeClass(value) {
-
-  const number = Number(value);
-
-  if (number >= 5) return "grade-5";
-  if (number >= 4) return "grade-4";
-  if (number >= 3) return "grade-3";
-
-  return "grade-1";
-}
-
-
-function subjectName(item) {
-
-  return (
-    item?.Tantargy?.Nev ||
-    item?.TantargyNeve ||
-    item?.Nev ||
-    "Ismeretlen tantárgy"
-  );
-}
-
-
-function sortByDateDescending(items, field) {
-
-  return [...items].sort((a, b) => {
-
-    const da = new Date(a?.[field] || 0).getTime();
-    const db = new Date(b?.[field] || 0).getTime();
-
-    return db - da;
-  });
-}
-
-
-function average(numbers) {
-
-  const values = numbers
-    .map(Number)
-    .filter(x => Number.isFinite(x));
-
-  if (!values.length) {
-    return null;
-  }
-
-  return (
-    values.reduce((a, b) => a + b, 0) /
-    values.length
-  );
-}
-
-
-function showToast(message) {
-
-  const toast = document.getElementById("toast");
-
-  toast.textContent = message;
-
-  toast.classList.add("show");
-
-  setTimeout(() => {
-    toast.classList.remove("show");
-  }, 2500);
-}
-
-
-/* ============================================================
-   PAGE METADATA
-   ============================================================ */
+   PAGE META
+============================================================ */
 
 const pageMeta = {
-
   home: {
     title: "Kezdőlap",
     subtitle: "Áttekintés"
@@ -361,138 +108,552 @@ const pageMeta = {
   }
 };
 
+/* ============================================================
+   DOM
+============================================================ */
+
+const $ = (selector) => document.querySelector(selector);
+
+const content = () => $("#content");
+
+/* ============================================================
+   API
+============================================================ */
+
+async function apiFetch(path, options = {}) {
+  const response = await fetch(API_BASE + path, {
+    credentials: "include",
+    ...options,
+
+    headers: {
+      Accept: "application/json",
+      ...(options.headers || {})
+    }
+  });
+
+  if (response.status === 401 || response.status === 403) {
+    handleUnauthorized();
+    throw new Error("Nincs jogosultság.");
+  }
+
+  if (!response.ok) {
+    let message = `API hiba: ${response.status} ${response.statusText}`;
+
+    try {
+      const data = await response.json();
+
+      if (data?.message) {
+        message = data.message;
+      }
+
+      if (data?.error) {
+        message = data.error;
+      }
+    } catch {
+      // Nem JSON válasz érkezett.
+    }
+
+    throw new Error(message);
+  }
+
+  const text = await response.text();
+
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function handleUnauthorized() {
+  /*
+   * A login frontend később elkészül.
+   * Addig a /login/ útvonalra küldjük a felhasználót.
+   */
+  if (!window.location.pathname.includes("/login")) {
+    window.location.href = "../login/";
+  }
+}
+
+/* ============================================================
+   DATA LOADERS
+============================================================ */
+
+async function loadStudent() {
+  const data = await apiFetch(
+    "/ellenorzo/v3/sajat/TanuloAdatlap"
+  );
+
+  state.student = normalizeArrayOrObject(data);
+  state.loaded.student = true;
+
+  return state.student;
+}
+
+async function loadClassGroups() {
+  const data = await apiFetch(
+    "/ellenorzo/v3/sajat/OsztalyCsoportok"
+  );
+
+  state.classGroups = normalizeArray(data);
+  state.loaded.classGroups = true;
+
+  return state.classGroups;
+}
+
+async function loadGrades() {
+  const data = await apiFetch(
+    "/ellenorzo/v3/sajat/Ertekelesek"
+  );
+
+  state.grades = normalizeArray(data);
+  state.loaded.grades = true;
+
+  return state.grades;
+}
+
+async function loadAverages() {
+  const data = await apiFetch(
+    "/ellenorzo/v3/sajat/Ertekelesek/Atlagok/OsztalyAtlagok"
+  );
+
+  state.averages = normalizeArray(data);
+  state.loaded.averages = true;
+
+  return state.averages;
+}
+
+async function loadLessons() {
+  const data = await apiFetch(
+    "/ellenorzo/v3/sajat/OrarendElemek"
+  );
+
+  state.lessons = normalizeArray(data);
+  state.loaded.lessons = true;
+
+  return state.lessons;
+}
+
+async function loadOmissions() {
+  const data = await apiFetch(
+    "/ellenorzo/v3/sajat/Mulasztasok"
+  );
+
+  state.omissions = normalizeArray(data);
+  state.loaded.omissions = true;
+
+  return state.omissions;
+}
+
+async function loadHomework() {
+  const data = await apiFetch(
+    "/ellenorzo/v3/sajat/HaziFeladatok"
+  );
+
+  state.homework = normalizeArray(data);
+  state.loaded.homework = true;
+
+  return state.homework;
+}
+
+async function loadTests() {
+  const data = await apiFetch(
+    "/ellenorzo/v3/sajat/BejelentettSzamonkeresek"
+  );
+
+  state.tests = normalizeArray(data);
+  state.loaded.tests = true;
+
+  return state.tests;
+}
+
+async function loadNotices() {
+  const data = await apiFetch(
+    "/ellenorzo/v3/sajat/FaliujsagElemek"
+  );
+
+  state.notices = normalizeArray(data);
+  state.loaded.notices = true;
+
+  return state.notices;
+}
+
+async function loadInfoBoard() {
+  const data = await apiFetch(
+    "/ellenorzo/v3/sajat/Feljegyzesek"
+  );
+
+  state.infoBoard = normalizeArray(data);
+  state.loaded.infoBoard = true;
+
+  return state.infoBoard;
+}
+
+async function loadDktSubjects() {
+  const data = await apiFetch(
+    "/dktapi/intezmenyek/munkaterek/tanulok"
+  );
+
+  state.dktSubjects = normalizeArray(data);
+  state.loaded.dktSubjects = true;
+
+  return state.dktSubjects;
+}
+
+/* ============================================================
+   NORMALIZATION
+============================================================ */
+
+function normalizeArray(value) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (Array.isArray(value?.Items)) {
+    return value.Items;
+  }
+
+  if (Array.isArray(value?.items)) {
+    return value.items;
+  }
+
+  if (Array.isArray(value?.Data)) {
+    return value.Data;
+  }
+
+  if (Array.isArray(value?.data)) {
+    return value.data;
+  }
+
+  if (value && typeof value === "object") {
+    return [];
+  }
+
+  return [];
+}
+
+function normalizeArrayOrObject(value) {
+  if (Array.isArray(value)) {
+    return value[0] || {};
+  }
+
+  if (value?.Data && typeof value.Data === "object") {
+    return value.Data;
+  }
+
+  return value || {};
+}
+
+/* ============================================================
+   HELPERS
+============================================================ */
+
+function escapeHTML(value) {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function stripHTML(value) {
+  if (!value) {
+    return "";
+  }
+
+  const element = document.createElement("div");
+  element.innerHTML = String(value);
+
+  return element.textContent || element.innerText || "";
+}
+
+function safeDate(value) {
+  if (!value) {
+    return "–";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return date.toLocaleDateString("hu-HU");
+}
+
+function safeDateTime(value) {
+  if (!value) {
+    return "–";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return date.toLocaleString("hu-HU");
+}
+
+function formatTime(value) {
+  if (!value) {
+    return "–";
+  }
+
+  const date = new Date(value);
+
+  if (!Number.isNaN(date.getTime())) {
+    return date.toLocaleTimeString("hu-HU", {
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
+
+  const match = String(value).match(/(\d{1,2}):(\d{2})/);
+
+  if (match) {
+    return `${match[1].padStart(2, "0")}:${match[2]}`;
+  }
+
+  return String(value);
+}
+
+function formatDay(value) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return date.toLocaleDateString("hu-HU", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  });
+}
+
+function isToday(value) {
+  if (!value) {
+    return false;
+  }
+
+  const date = new Date(value);
+  const now = new Date();
+
+  return (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  );
+}
+
+function initials(name) {
+  if (!name) {
+    return "?";
+  }
+
+  return String(name)
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0))
+    .join("")
+    .toUpperCase();
+}
+
+function average(numbers) {
+  const values = numbers
+    .map(Number)
+    .filter((value) => Number.isFinite(value));
+
+  if (!values.length) {
+    return null;
+  }
+
+  return (
+    values.reduce((sum, value) => sum + value, 0) /
+    values.length
+  );
+}
+
+function subjectName(item) {
+  return (
+    item?.Tantargy?.Nev ||
+    item?.Tantargy?.Megnevezes ||
+    item?.TantargyNeve ||
+    item?.TantargyNev ||
+    item?.Nev ||
+    "Ismeretlen tantárgy"
+  );
+}
+
+function sortByDateDescending(items, field) {
+  return [...items].sort((a, b) => {
+    const first = new Date(a?.[field] || 0).getTime();
+    const second = new Date(b?.[field] || 0).getTime();
+
+    return second - first;
+  });
+}
+
+function gradeClass(value) {
+  const number = Number(value);
+
+  if (number >= 5) {
+    return "grade-5";
+  }
+
+  if (number >= 4) {
+    return "grade-4";
+  }
+
+  if (number >= 3) {
+    return "grade-3";
+  }
+
+  return "grade-1";
+}
+
+function showToast(message, type = "default") {
+  const toast = $("#toast");
+
+  if (!toast) {
+    return;
+  }
+
+  toast.textContent = message;
+  toast.className = `toast show ${type}`;
+
+  window.clearTimeout(showToast.timeout);
+
+  showToast.timeout = window.setTimeout(() => {
+    toast.classList.remove("show");
+  }, 2800);
+}
 
 /* ============================================================
    NAVIGATION
-   ============================================================ */
+============================================================ */
 
 function setupNavigation() {
-
-  document.querySelectorAll(".nav-item[data-page]")
-    .forEach(button => {
-
+  document
+    .querySelectorAll(".nav-item[data-page]")
+    .forEach((button) => {
       button.addEventListener("click", () => {
-
-        const page = button.dataset.page;
-
-        navigate(page);
+        navigate(button.dataset.page);
       });
     });
 
+  $("#profileButton")?.addEventListener("click", () => {
+    navigate("profile");
+  });
 
-  document
-    .getElementById("profileButton")
-    .addEventListener("click", () => {
+  $("#logoutButton")?.addEventListener("click", logout);
 
-      navigate("profile");
-    });
+  $("#refreshButton")?.addEventListener(
+    "click",
+    refreshCurrentPage
+  );
 
+  $("#menuButton")?.addEventListener(
+    "click",
+    toggleSidebar
+  );
 
-  document
-    .getElementById("logoutButton")
-    .addEventListener("click", logout);
-
-
-  document
-    .getElementById("refreshButton")
-    .addEventListener("click", async () => {
-
-      await refreshCurrentPage();
-    });
-
-
-  document
-    .getElementById("menuButton")
-    .addEventListener("click", toggleSidebar);
-
-
-  document
-    .getElementById("sidebarOverlay")
-    .addEventListener("click", closeSidebar);
+  $("#sidebarOverlay")?.addEventListener(
+    "click",
+    closeSidebar
+  );
 }
 
-
 function navigate(page) {
+  if (!pageMeta[page]) {
+    page = "home";
+  }
 
   state.currentPage = page;
 
   updateNavigation();
-
   updatePageHeader();
-
   closeSidebar();
 
   renderPage();
 }
 
-
 function updateNavigation() {
-
-  document.querySelectorAll(
-    ".nav-item[data-page]"
-  ).forEach(button => {
-
-    button.classList.toggle(
-      "active",
-      button.dataset.page === state.currentPage
-    );
-  });
+  document
+    .querySelectorAll(".nav-item[data-page]")
+    .forEach((button) => {
+      button.classList.toggle(
+        "active",
+        button.dataset.page === state.currentPage
+      );
+    });
 }
-
 
 function updatePageHeader() {
-
   const meta =
-    pageMeta[state.currentPage] ||
-    pageMeta.home;
+    pageMeta[state.currentPage] || pageMeta.home;
 
-  document.getElementById("pageTitle").textContent =
-    meta.title;
+  const title = $("#pageTitle");
+  const subtitle = $("#pageSubtitle");
 
-  document.getElementById("pageSubtitle").textContent =
-    meta.subtitle;
+  if (title) {
+    title.textContent = meta.title;
+  }
+
+  if (subtitle) {
+    subtitle.textContent = meta.subtitle;
+  }
 }
-
 
 function toggleSidebar() {
-
-  document
-    .getElementById("sidebar")
-    .classList.toggle("open");
-
-  document
-    .getElementById("sidebarOverlay")
-    .classList.toggle("show");
+  $("#sidebar")?.classList.toggle("open");
+  $("#sidebarOverlay")?.classList.toggle("show");
 }
-
 
 function closeSidebar() {
-
-  document
-    .getElementById("sidebar")
-    .classList.remove("open");
-
-  document
-    .getElementById("sidebarOverlay")
-    .classList.remove("show");
+  $("#sidebar")?.classList.remove("open");
+  $("#sidebarOverlay")?.classList.remove("show");
 }
 
-
 /* ============================================================
-   LOAD PAGE DATA
-   ============================================================ */
+   PAGE DATA
+============================================================ */
 
 async function ensurePageData(page) {
-
   switch (page) {
-
     case "home":
       await Promise.allSettled([
-        loadStudent(),
-        loadLessons(),
-        loadGrades(),
-        loadHomework(),
-        loadTests()
+        state.loaded.student
+          ? Promise.resolve()
+          : loadStudent(),
+
+        state.loaded.lessons
+          ? Promise.resolve()
+          : loadLessons(),
+
+        state.loaded.grades
+          ? Promise.resolve()
+          : loadGrades(),
+
+        state.loaded.homework
+          ? Promise.resolve()
+          : loadHomework(),
+
+        state.loaded.tests
+          ? Promise.resolve()
+          : loadTests()
       ]);
       break;
 
@@ -509,7 +670,7 @@ async function ensurePageData(page) {
       break;
 
     case "averages":
-      await Promise.allSettled([
+      await Promise.all([
         state.loaded.grades
           ? Promise.resolve()
           : loadGrades(),
@@ -564,17 +725,12 @@ async function ensurePageData(page) {
   }
 }
 
-
 /* ============================================================
-   RENDER
-   ============================================================ */
+   RENDER PAGE
+============================================================ */
 
 async function renderPage() {
-
-  const content =
-    document.getElementById("content");
-
-  content.innerHTML = `
+  content().innerHTML = `
     <div class="loading-container">
       <div class="spinner"></div>
       <p>Adatok betöltése...</p>
@@ -582,13 +738,9 @@ async function renderPage() {
   `;
 
   try {
-
-    await ensurePageData(
-      state.currentPage
-    );
+    await ensurePageData(state.currentPage);
 
     switch (state.currentPage) {
-
       case "home":
         renderHome();
         break;
@@ -636,37 +788,47 @@ async function renderPage() {
       default:
         renderHome();
     }
-
   } catch (error) {
-
     console.error(error);
 
-    content.innerHTML = `
-      <div class="error-card">
-        <h2>Nem sikerült betölteni az adatokat</h2>
-        <p>
-          Ellenőrizd a kapcsolatot a backenddel,
-          majd próbáld újra.
-        </p>
-        <button
-          class="select"
-          style="margin-top:15px"
-          onclick="refreshCurrentPage()"
-        >
-          Újrapróbálás
-        </button>
-      </div>
-    `;
+    renderError(error);
   }
 }
 
+function renderError(error) {
+  content().innerHTML = `
+    <div class="error-card">
+      <div class="error-icon">!</div>
+
+      <h2>Nem sikerült betölteni az adatokat</h2>
+
+      <p>
+        ${escapeHTML(
+          error?.message ||
+          "Ismeretlen hiba történt."
+        )}
+      </p>
+
+      <button
+        class="primary-button"
+        id="retryButton"
+      >
+        Újrapróbálás
+      </button>
+    </div>
+  `;
+
+  $("#retryButton")?.addEventListener(
+    "click",
+    renderPage
+  );
+}
 
 /* ============================================================
    HOME
-   ============================================================ */
+============================================================ */
 
 function renderHome() {
-
   const student = state.student || {};
 
   const grades = state.grades || [];
@@ -675,124 +837,109 @@ function renderHome() {
   const lessons = state.lessons || [];
 
   const numericGrades = grades
-    .map(x => x.SzamErtek)
-    .filter(x => Number(x) > 0);
+    .map((item) => Number(item?.SzamErtek))
+    .filter((value) => value > 0);
 
   const avg = average(numericGrades);
 
-  const upcomingHomework =
-    sortByDateDescending(
-      homework,
-      "HataridoDatuma"
-    ).slice(0, 5);
+  const upcomingHomework = [...homework]
+    .sort((a, b) => {
+      const da = new Date(
+        a?.HataridoDatuma || "9999-12-31"
+      ).getTime();
 
-  const upcomingTests =
-    [...tests]
-      .sort((a, b) =>
-        new Date(a.Datum || 0) -
-        new Date(b.Datum || 0)
-      )
-      .slice(0, 5);
+      const db = new Date(
+        b?.HataridoDatuma || "9999-12-31"
+      ).getTime();
 
-  const todayLessons =
-    lessons.filter(x =>
-      isToday(x.Datum)
-    );
+      return da - db;
+    })
+    .slice(0, 5);
 
-  document.getElementById("avatar").textContent =
-    initials(student.Nev);
+  const upcomingTests = [...tests]
+    .sort((a, b) => {
+      return (
+        new Date(a?.Datum || "9999-12-31").getTime() -
+        new Date(b?.Datum || "9999-12-31").getTime()
+      );
+    })
+    .slice(0, 5);
 
+  const todayLessons = lessons.filter(
+    (lesson) => isToday(lesson?.Datum)
+  );
 
-  document.getElementById("content").innerHTML = `
+  updateAvatar(student);
 
-    <div class="card welcome-card">
-      <h2>
-        Szia, ${escapeHTML(student.Nev || "Diák")}!
-      </h2>
+  content().innerHTML = `
+    <div class="welcome-card">
+      <div class="welcome-content">
+        <span class="eyebrow">KRÁTA DIÁK</span>
 
-      <p>
-        Itt láthatod a legfontosabb iskolai információidat.
-      </p>
+        <h2>
+          Szia, ${escapeHTML(student.Nev || "Diák")}!
+        </h2>
+
+        <p>
+          Itt láthatod a legfontosabb iskolai
+          információidat egy helyen.
+        </p>
+      </div>
+
+      <div class="welcome-symbol">
+        K
+      </div>
     </div>
 
-    <div style="height:18px"></div>
+    <div class="stats-grid">
+      ${statCard(
+        "✓",
+        "Jegyek",
+        grades.length
+      )}
 
-    <div class="grid grid-4">
+      ${statCard(
+        "◉",
+        "Átlag",
+        avg === null ? "–" : avg.toFixed(2)
+      )}
 
-      <div class="card stat-card">
-        <div class="stat-icon">✓</div>
+      ${statCard(
+        "▤",
+        "Aktív házik",
+        homework.filter(
+          (item) => !Boolean(item?.IsMegoldva)
+        ).length
+      )}
 
-        <div>
-          <div class="stat-label">Jegyek</div>
-          <div class="stat-value">
-            ${grades.length}
-          </div>
-        </div>
-      </div>
-
-      <div class="card stat-card">
-        <div class="stat-icon">◉</div>
-
-        <div>
-          <div class="stat-label">Átlag</div>
-          <div class="stat-value">
-            ${avg === null ? "–" : avg.toFixed(2)}
-          </div>
-        </div>
-      </div>
-
-      <div class="card stat-card">
-        <div class="stat-icon">▤</div>
-
-        <div>
-          <div class="stat-label">Házi feladat</div>
-          <div class="stat-value">
-            ${homework.filter(x => !x.IsMegoldva).length}
-          </div>
-        </div>
-      </div>
-
-      <div class="card stat-card">
-        <div class="stat-icon">✎</div>
-
-        <div>
-          <div class="stat-label">Dolgozat</div>
-          <div class="stat-value">
-            ${upcomingTests.length}
-          </div>
-        </div>
-      </div>
-
+      ${statCard(
+        "✎",
+        "Dolgozatok",
+        upcomingTests.length
+      )}
     </div>
 
-    <div style="height:18px"></div>
-
-    <div class="grid grid-2">
-
-      <div class="card">
-
-        <div class="page-header">
+    <div class="dashboard-grid">
+      <section class="card">
+        <div class="section-heading">
           <div>
             <h2>Mai órák</h2>
             <p>${todayLessons.length} óra</p>
           </div>
 
           <button
-            class="select"
-            onclick="navigate('timetable')"
+            class="ghost-button"
+            data-go="timetable"
           >
             Teljes órarend
           </button>
         </div>
 
         ${renderLessonList(todayLessons.slice(0, 5))}
+      </section>
 
-      </div>
-
-
-      <div class="card">
-
-        <div class="page-header">
+      <section class="card">
+        <div class="section-heading">
           <div>
             <h2>Közelgő dolgozatok</h2>
             <p>Bejelentett számonkérések</p>
@@ -800,56 +947,73 @@ function renderHome() {
         </div>
 
         ${renderTestList(upcomingTests)}
-
-      </div>
-
+      </section>
     </div>
 
-    <div style="height:18px"></div>
-
-    <div class="card">
-
-      <div class="page-header">
+    <section class="card">
+      <div class="section-heading">
         <div>
           <h2>Házi feladatok</h2>
           <p>Aktuális feladatok</p>
         </div>
 
         <button
-          class="select"
-          onclick="navigate('homework')"
+          class="ghost-button"
+          data-go="homework"
         >
           Összes
         </button>
       </div>
 
       ${renderHomeworkList(upcomingHomework)}
+    </section>
+  `;
 
+  bindGoButtons();
+}
+
+/* ============================================================
+   STAT CARD
+============================================================ */
+
+function statCard(icon, label, value) {
+  return `
+    <div class="stat-card">
+      <div class="stat-icon">${icon}</div>
+
+      <div>
+        <div class="stat-label">
+          ${escapeHTML(label)}
+        </div>
+
+        <div class="stat-value">
+          ${escapeHTML(value)}
+        </div>
+      </div>
     </div>
   `;
 }
 
-
 /* ============================================================
    TIMETABLE
-   ============================================================ */
+============================================================ */
 
 function renderTimetable() {
-
-  const lessons =
-    [...state.lessons]
-      .sort((a, b) =>
-        new Date(a.Datum || 0) -
-        new Date(b.Datum || 0)
+  const lessons = [...state.lessons].sort(
+    (a, b) => {
+      return (
+        new Date(a?.Datum || 0).getTime() -
+        new Date(b?.Datum || 0).getTime()
       );
+    }
+  );
 
   const grouped = {};
 
-  lessons.forEach(lesson => {
-
-    const date =
-      lesson.Datum?.slice(0, 10) ||
-      "Ismeretlen";
+  lessons.forEach((lesson) => {
+    const date = lesson?.Datum
+      ? String(lesson.Datum).slice(0, 10)
+      : "Ismeretlen";
 
     if (!grouped[date]) {
       grouped[date] = [];
@@ -858,69 +1022,46 @@ function renderTimetable() {
     grouped[date].push(lesson);
   });
 
-
-  let html = "";
-
-  Object.entries(grouped)
-    .forEach(([date, dayLessons]) => {
-
-      html += `
-        <div class="card" style="margin-bottom:18px">
-
-          <div class="page-header">
-
+  const sections = Object.entries(grouped)
+    .map(([date, dayLessons]) => {
+      return `
+        <section class="card timetable-day">
+          <div class="section-heading">
             <div>
-              <h2>
-                ${formatDay(date)}
-              </h2>
-
-              <p>
-                ${dayLessons.length} óra
-              </p>
+              <h2>${escapeHTML(formatDay(date))}</h2>
+              <p>${dayLessons.length} óra</p>
             </div>
-
           </div>
 
-          <div class="timetable">
-            ${renderLessonList(dayLessons)}
-          </div>
-
-        </div>
+          ${renderLessonList(dayLessons)}
+        </section>
       `;
-    });
+    })
+    .join("");
 
-
-  if (!html) {
-    html = emptyState(
+  content().innerHTML =
+    sections ||
+    emptyState(
       "▦",
       "Nincs órarendi adat",
-      "Jelenleg nem található megjeleníthető óra."
+      "Jelenleg nincs megjeleníthető óra."
     );
-  }
-
-  document.getElementById("content").innerHTML = html;
 }
-
 
 /* ============================================================
    GRADES
-   ============================================================ */
+============================================================ */
 
 function renderGrades() {
-
-  const grades =
-    sortByDateDescending(
-      state.grades,
-      "RogzitesDatuma"
-    );
-
+  const grades = sortByDateDescending(
+    state.grades,
+    "RogzitesDatuma"
+  );
 
   const grouped = {};
 
-  grades.forEach(grade => {
-
-    const subject =
-      subjectName(grade);
+  grades.forEach((grade) => {
+    const subject = subjectName(grade);
 
     if (!grouped[subject]) {
       grouped[subject] = [];
@@ -929,80 +1070,77 @@ function renderGrades() {
     grouped[subject].push(grade);
   });
 
-
-  let rows = "";
-
-  Object.entries(grouped)
-    .forEach(([subject, items]) => {
-
-      const values =
-        items
-          .map(x => Number(x.SzamErtek))
-          .filter(x => x > 0);
+  const rows = Object.entries(grouped)
+    .map(([subject, items]) => {
+      const values = items
+        .map((item) => Number(item?.SzamErtek))
+        .filter((value) => value > 0);
 
       const avg = average(values);
 
-      rows += `
+      return `
         <tr>
+          <td>
+            <strong>${escapeHTML(subject)}</strong>
+          </td>
+
+          <td>
+            <div class="grade-list">
+              ${items
+                .map((item) => {
+                  const value =
+                    item?.SzamErtek ||
+                    item?.SzovegesErtek ||
+                    "–";
+
+                  return `
+                    <span
+                      class="grade ${gradeClass(
+                        item?.SzamErtek
+                      )}"
+                      title="${escapeHTML(
+                        item?.ErtekelesTipus?.Nev ||
+                        item?.Tipus?.Nev ||
+                        ""
+                      )}"
+                    >
+                      ${escapeHTML(value)}
+                    </span>
+                  `;
+                })
+                .join("")}
+            </div>
+          </td>
 
           <td>
             <strong>
-              ${escapeHTML(subject)}
+              ${
+                avg === null
+                  ? "–"
+                  : avg.toFixed(2)
+              }
             </strong>
           </td>
-
-          <td>
-            ${items.map(item => `
-              <span
-                class="grade ${gradeClass(item.SzamErtek)}"
-                style="
-                  display:inline-flex;
-                  width:34px;
-                  height:34px;
-                  margin-right:5px;
-                "
-              >
-                ${escapeHTML(
-                  item.SzamErtek ||
-                  item.SzovegesErtek ||
-                  "–"
-                )}
-              </span>
-            `).join("")}
-          </td>
-
-          <td>
-            ${
-              avg === null
-                ? "–"
-                : avg.toFixed(2)
-            }
-          </td>
-
         </tr>
       `;
-    });
+    })
+    .join("");
 
-
-  document.getElementById("content").innerHTML = `
-
-    <div class="page-header">
+  content().innerHTML = `
+    <div class="page-heading">
       <div>
+        <span class="eyebrow">ÉRTÉKELÉSEK</span>
         <h2>Jegyek</h2>
-        <p>
-          ${grades.length} értékelés
-        </p>
+        <p>${grades.length} értékelés</p>
       </div>
     </div>
 
-    <div class="card">
-
+    <section class="card">
       ${
         rows
           ? `
-            <div class="table-wrapper">
-              <table class="table">
-
+            <div class="table-container">
+              <table class="data-table">
                 <thead>
                   <tr>
                     <th>Tantárgy</th>
@@ -1014,7 +1152,6 @@ function renderGrades() {
                 <tbody>
                   ${rows}
                 </tbody>
-
               </table>
             </div>
           `
@@ -1024,82 +1161,70 @@ function renderGrades() {
               "Még nincs megjeleníthető értékelés."
             )
       }
-
-    </div>
+    </section>
   `;
 }
 
-
 /* ============================================================
    AVERAGES
-   ============================================================ */
+============================================================ */
 
 function renderAverages() {
-
   const items = state.averages || [];
 
-  const rows = items.map(item => {
+  const rows = items
+    .map((item) => {
+      const studentAverage =
+        Number(item?.TanuloAtlag);
 
-    const studentAverage =
-      Number(item.TanuloAtlag);
+      const classAverage =
+        Number(item?.OsztalyCsoportAtlag);
 
-    const classAverage =
-      Number(item.OsztalyCsoportAtlag);
+      return `
+        <tr>
+          <td>
+            <strong>
+              ${escapeHTML(subjectName(item))}
+            </strong>
+          </td>
 
-    return `
-      <tr>
+          <td>
+            ${
+              Number.isFinite(studentAverage) &&
+              studentAverage > 0
+                ? studentAverage.toFixed(2)
+                : "–"
+            }
+          </td>
 
-        <td>
-          <strong>
-            ${escapeHTML(
-              subjectName(item)
-            )}
-          </strong>
-        </td>
+          <td>
+            ${
+              Number.isFinite(classAverage) &&
+              classAverage > 0
+                ? classAverage.toFixed(2)
+                : "–"
+            }
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
 
-        <td>
-          ${
-            Number.isFinite(studentAverage) &&
-            studentAverage > 0
-              ? studentAverage.toFixed(2)
-              : "–"
-          }
-        </td>
-
-        <td>
-          ${
-            Number.isFinite(classAverage) &&
-            classAverage > 0
-              ? classAverage.toFixed(2)
-              : "–"
-          }
-        </td>
-
-      </tr>
-    `;
-  }).join("");
-
-
-  document.getElementById("content").innerHTML = `
-
-    <div class="page-header">
+  content().innerHTML = `
+    <div class="page-heading">
       <div>
+        <span class="eyebrow">STATISZTIKA</span>
         <h2>Átlagok</h2>
-        <p>
-          Tantárgyi és osztályátlagok
-        </p>
+        <p>Tantárgyi és osztályátlagok</p>
       </div>
     </div>
 
-    <div class="card">
-
+    <section class="card">
       ${
         rows
           ? `
-            <div class="table-wrapper">
-
-              <table class="table">
-
+            <div class="table-container">
+              <table class="data-table">
                 <thead>
                   <tr>
                     <th>Tantárgy</th>
@@ -1111,9 +1236,7 @@ function renderAverages() {
                 <tbody>
                   ${rows}
                 </tbody>
-
               </table>
-
             </div>
           `
           : emptyState(
@@ -1122,146 +1245,101 @@ function renderAverages() {
               "Az átlagok jelenleg nem érhetők el."
             )
       }
-
-    </div>
+    </section>
   `;
 }
 
-
 /* ============================================================
    OMISSIONS
-   ============================================================ */
+============================================================ */
 
 function renderOmissions() {
-
   const items = state.omissions || [];
 
-  const justified =
-    items.filter(
-      x =>
-        String(x.IgazolasAllapota || "")
-          .toLowerCase()
-          .includes("igazol")
-    ).length;
+  const justified = items.filter(
+    (item) =>
+      String(item?.IgazolasAllapota || "")
+        .toLowerCase()
+        .includes("igazol")
+  ).length;
 
-  const late =
-    items.filter(
-      x => Number(x.KesesPercben) > 0
-    ).length;
+  const late = items.filter(
+    (item) => Number(item?.KesesPercben) > 0
+  ).length;
 
+  const rows = items
+    .map((item) => {
+      const type =
+        item?.Tipus?.Nev ||
+        item?.Mod?.Nev ||
+        "Mulasztás";
 
-  const rows = items.map(item => {
+      return `
+        <tr>
+          <td>${safeDate(item?.Datum)}</td>
 
-    const type =
-      item.Tipus?.Nev ||
-      item.Mod?.Nev ||
-      "Mulasztás";
+          <td>
+            <strong>
+              ${escapeHTML(subjectName(item))}
+            </strong>
+          </td>
 
-    return `
-      <tr>
+          <td>${escapeHTML(type)}</td>
 
-        <td>
-          ${safeDate(item.Datum)}
-        </td>
+          <td>
+            ${
+              Number(item?.KesesPercben) > 0
+                ? `${escapeHTML(
+                    item.KesesPercben
+                  )} perc`
+                : "–"
+            }
+          </td>
 
-        <td>
-          <strong>
+          <td>
             ${escapeHTML(
-              subjectName(item)
+              item?.IgazolasAllapota || "–"
             )}
-          </strong>
-        </td>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
 
-        <td>
-          ${escapeHTML(type)}
-        </td>
+  content().innerHTML = `
+    <div class="stats-grid three">
+      ${statCard(
+        "!",
+        "Összes mulasztás",
+        items.length
+      )}
 
-        <td>
-          ${
-            item.KesesPercben
-              ? `${item.KesesPercben} perc`
-              : "–"
-          }
-        </td>
+      ${statCard(
+        "✓",
+        "Igazoltnak jelölt",
+        justified
+      )}
 
-        <td>
-          ${escapeHTML(
-            item.IgazolasAllapota || "–"
-          )}
-        </td>
-
-      </tr>
-    `;
-  }).join("");
-
-
-  document.getElementById("content").innerHTML = `
-
-    <div class="grid grid-3">
-
-      <div class="card stat-card">
-        <div class="stat-icon">!</div>
-
-        <div>
-          <div class="stat-label">
-            Összes mulasztás
-          </div>
-
-          <div class="stat-value">
-            ${items.length}
-          </div>
-        </div>
-      </div>
-
-      <div class="card stat-card">
-        <div class="stat-icon">✓</div>
-
-        <div>
-          <div class="stat-label">
-            Igazoltnak jelölt
-          </div>
-
-          <div class="stat-value">
-            ${justified}
-          </div>
-        </div>
-      </div>
-
-      <div class="card stat-card">
-        <div class="stat-icon">◷</div>
-
-        <div>
-          <div class="stat-label">
-            Késések
-          </div>
-
-          <div class="stat-value">
-            ${late}
-          </div>
-        </div>
-      </div>
-
+      ${statCard(
+        "◷",
+        "Késések",
+        late
+      )}
     </div>
 
-    <div style="height:18px"></div>
-
-    <div class="card">
-
-      <div class="page-header">
+    <section class="card">
+      <div class="section-heading">
         <div>
           <h2>Mulasztások</h2>
-          <p>
-            ${items.length} rekord
-          </p>
+          <p>${items.length} rekord</p>
         </div>
       </div>
 
       ${
         rows
           ? `
-            <div class="table-wrapper">
-              <table class="table">
-
+            <div class="table-container">
+              <table class="data-table">
                 <thead>
                   <tr>
                     <th>Dátum</th>
@@ -1275,7 +1353,6 @@ function renderOmissions() {
                 <tbody>
                   ${rows}
                 </tbody>
-
               </table>
             </div>
           `
@@ -1285,38 +1362,30 @@ function renderOmissions() {
               "Nem található mulasztási adat."
             )
       }
-
-    </div>
+    </section>
   `;
 }
 
-
 /* ============================================================
    HOMEWORK
-   ============================================================ */
+============================================================ */
 
 function renderHomework() {
+  const items = sortByDateDescending(
+    state.homework,
+    "HataridoDatuma"
+  );
 
-  const items =
-    sortByDateDescending(
-      state.homework,
-      "HataridoDatuma"
-    );
-
-
-  document.getElementById("content").innerHTML = `
-
-    <div class="page-header">
+  content().innerHTML = `
+    <div class="page-heading">
       <div>
+        <span class="eyebrow">FELADATOK</span>
         <h2>Házi feladatok</h2>
-        <p>
-          ${items.length} feladat
-        </p>
+        <p>${items.length} feladat</p>
       </div>
     </div>
 
-    <div class="card">
-
+    <section class="card">
       ${
         items.length
           ? renderHomeworkList(items)
@@ -1326,338 +1395,283 @@ function renderHomework() {
               "Jelenleg nincs megjeleníthető feladat."
             )
       }
-
-    </div>
+    </section>
   `;
 }
 
-
 /* ============================================================
    TESTS
-   ============================================================ */
+============================================================ */
 
 function renderTests() {
-
-  const items =
-    [...state.tests]
-      .sort((a, b) =>
-        new Date(a.Datum || 0) -
-        new Date(b.Datum || 0)
+  const items = [...state.tests].sort(
+    (a, b) => {
+      return (
+        new Date(a?.Datum || "9999-12-31").getTime() -
+        new Date(b?.Datum || "9999-12-31").getTime()
       );
+    }
+  );
 
-
-  const html = items.map(test => {
-
-    const subject =
-      subjectName(test);
-
-    return `
-      <div class="list-item">
-
-        <div class="stat-icon">
-          ✎
-        </div>
-
-        <div class="list-main">
-
-          <div class="list-title">
-            ${escapeHTML(subject)}
-          </div>
-
-          <div class="list-meta">
-
-            ${
-              test.Temaja
-                ? escapeHTML(test.Temaja)
-                : "Nincs megadott téma"
-            }
-
-            ·
-
-            ${
-              test.RogzitoTanarNeve
-                ? escapeHTML(
-                    test.RogzitoTanarNeve
-                  )
-                : "Ismeretlen tanár"
-            }
-
-          </div>
-
-        </div>
-
-        <div>
-          <span class="badge badge-warning">
-            ${safeDate(test.Datum)}
-          </span>
-        </div>
-
-      </div>
-    `;
-  }).join("");
-
-
-  document.getElementById("content").innerHTML = `
-
-    <div class="page-header">
+  content().innerHTML = `
+    <div class="page-heading">
       <div>
+        <span class="eyebrow">SZÁMONKÉRÉSEK</span>
         <h2>Dolgozatok</h2>
-        <p>
-          Bejelentett számonkérések
-        </p>
+        <p>Bejelentett számonkérések</p>
       </div>
     </div>
 
-    <div class="card">
-
+    <section class="card">
       ${
-        html
-          ? `<div class="list">${html}</div>`
+        items.length
+          ? `
+            <div class="list">
+              ${items
+                .map(renderTestItem)
+                .join("")}
+            </div>
+          `
           : emptyState(
               "✎",
               "Nincs dolgozat",
               "Jelenleg nincs bejelentett számonkérés."
             )
       }
-
-    </div>
+    </section>
   `;
 }
 
+function renderTestItem(test) {
+  return `
+    <div class="list-item">
+      <div class="list-icon">✎</div>
+
+      <div class="list-main">
+        <div class="list-title">
+          ${escapeHTML(subjectName(test))}
+        </div>
+
+        <div class="list-meta">
+          ${
+            test?.Temaja
+              ? escapeHTML(test.Temaja)
+              : "Nincs megadott téma"
+          }
+
+          ${
+            test?.RogzitoTanarNeve
+              ? ` · ${escapeHTML(
+                  test.RogzitoTanarNeve
+                )}`
+              : ""
+          }
+        </div>
+      </div>
+
+      <span class="badge warning">
+        ${safeDate(test?.Datum)}
+      </span>
+    </div>
+  `;
+}
 
 /* ============================================================
    NOTICE BOARD
-   ============================================================ */
+============================================================ */
 
 function renderNotices() {
+  const items = sortByDateDescending(
+    state.notices,
+    "ErvenyessegKezdete"
+  );
 
-  const items =
-    sortByDateDescending(
-      state.notices,
-      "ErvenyessegKezdete"
-    );
+  const html = items
+    .map((item) => {
+      const text =
+        item?.TartalomText ||
+        stripHTML(item?.Tartalom);
 
+      return `
+        <article class="notice">
+          <h3>
+            ${escapeHTML(
+              item?.Cim || "Közlemény"
+            )}
+          </h3>
 
-  const html = items.map(item => {
+          <div class="notice-meta">
+            ${
+              item?.RogzitoNeve
+                ? escapeHTML(item.RogzitoNeve)
+                : "Ismeretlen"
+            }
 
-    const content =
-      item.TartalomText ||
-      stripHTML(item.Tartalom);
+            ·
 
+            ${safeDate(
+              item?.ErvenyessegKezdete
+            )}
+          </div>
 
-    return `
-      <article class="notice">
+          <div class="notice-content">
+            ${escapeHTML(text)}
+          </div>
+        </article>
+      `;
+    })
+    .join("");
 
-        <h3>
-          ${escapeHTML(item.Cim || "Közlemény")}
-        </h3>
-
-        <div class="notice-meta">
-
-          ${
-            item.RogzitoNeve
-              ? escapeHTML(item.RogzitoNeve)
-              : "Ismeretlen"
-          }
-
-          ·
-
-          ${safeDate(
-            item.ErvenyessegKezdete
-          )}
-
-        </div>
-
-        <div class="notice-content">
-          ${escapeHTML(content)}
-        </div>
-
-      </article>
-    `;
-  }).join("");
-
-
-  document.getElementById("content").innerHTML = `
-
-    <div class="page-header">
+  content().innerHTML = `
+    <div class="page-heading">
       <div>
+        <span class="eyebrow">KÖZLEMÉNYEK</span>
         <h2>Faliújság</h2>
-        <p>
-          Iskolai közlemények
-        </p>
+        <p>Iskolai közlemények</p>
       </div>
     </div>
 
-    <div class="card">
-
+    <section class="card">
       ${
-        html
-          ? html
-          : emptyState(
-              "▣",
-              "Nincs közlemény",
-              "Jelenleg nincs megjeleníthető faliújság-bejegyzés."
-            )
+        html ||
+        emptyState(
+          "▣",
+          "Nincs közlemény",
+          "Jelenleg nincs megjeleníthető faliújság-bejegyzés."
+        )
       }
-
-    </div>
+    </section>
   `;
 }
-
 
 /* ============================================================
    INFO BOARD
-   ============================================================ */
+============================================================ */
 
 function renderInfoBoard() {
+  const items = sortByDateDescending(
+    state.infoBoard,
+    "KeszitesDatuma"
+  );
 
-  const items =
-    sortByDateDescending(
-      state.infoBoard,
-      "KeszitesDatuma"
-    );
+  const html = items
+    .map((item) => {
+      const text = stripHTML(
+        item?.TartalomFormazott ||
+        item?.Tartalom ||
+        ""
+      );
 
+      return `
+        <article class="notice">
+          <h3>
+            ${escapeHTML(
+              item?.Cim || "Feljegyzés"
+            )}
+          </h3>
 
-  const html = items.map(item => {
+          <div class="notice-meta">
+            ${
+              item?.KeszitoTanarNeve
+                ? escapeHTML(
+                    item.KeszitoTanarNeve
+                  )
+                : "Ismeretlen tanár"
+            }
 
-    const content =
-      item.TartalomFormazott ||
-      item.Tartalom ||
-      "";
+            ·
 
+            ${safeDate(
+              item?.KeszitesDatuma
+            )}
+          </div>
 
-    return `
-      <article class="notice">
+          <div class="notice-content">
+            ${escapeHTML(text)}
+          </div>
+        </article>
+      `;
+    })
+    .join("");
 
-        <h3>
-          ${escapeHTML(
-            item.Cim || "Feljegyzés"
-          )}
-        </h3>
-
-        <div class="notice-meta">
-
-          ${
-            item.KeszitoTanarNeve
-              ? escapeHTML(
-                  item.KeszitoTanarNeve
-                )
-              : "Ismeretlen tanár"
-          }
-
-          ·
-
-          ${safeDate(
-            item.KeszitesDatuma
-          )}
-
-        </div>
-
-        <div class="notice-content">
-          ${escapeHTML(
-            stripHTML(content)
-          )}
-        </div>
-
-      </article>
-    `;
-  }).join("");
-
-
-  document.getElementById("content").innerHTML = `
-
-    <div class="page-header">
+  content().innerHTML = `
+    <div class="page-heading">
       <div>
+        <span class="eyebrow">FELJEGYZÉSEK</span>
         <h2>Feljegyzések</h2>
-        <p>
-          Tanári feljegyzések
-        </p>
+        <p>Tanári feljegyzések</p>
       </div>
     </div>
 
-    <div class="card">
-
+    <section class="card">
       ${
-        html
-          ? html
-          : emptyState(
-              "ⓘ",
-              "Nincs feljegyzés",
-              "Jelenleg nincs megjeleníthető feljegyzés."
-            )
+        html ||
+        emptyState(
+          "ⓘ",
+          "Nincs feljegyzés",
+          "Jelenleg nincs megjeleníthető feljegyzés."
+        )
       }
-
-    </div>
+    </section>
   `;
 }
 
-
 /* ============================================================
    DKT
-   ============================================================ */
+============================================================ */
 
 function renderDKT() {
+  const items = state.dktSubjects || [];
 
-  const items =
-    state.dktSubjects || [];
+  const rows = items
+    .map((item) => {
+      return `
+        <tr>
+          <td>
+            <strong>
+              ${escapeHTML(
+                item?.TantargyNev || "–"
+              )}
+            </strong>
+          </td>
 
-
-  const rows = items.map(item => {
-
-    return `
-      <tr>
-
-        <td>
-          <strong>
+          <td>
             ${escapeHTML(
-              item.TantargyNev || "–"
+              item?.AlkalmazottNev || "–"
             )}
-          </strong>
-        </td>
+          </td>
 
-        <td>
-          ${escapeHTML(
-            item.AlkalmazottNev || "–"
-          )}
-        </td>
+          <td>
+            ${escapeHTML(
+              item?.OsztalyCsoportNev || "–"
+            )}
+          </td>
 
-        <td>
-          ${escapeHTML(
-            item.OsztalyCsoportNev || "–"
-          )}
-        </td>
+          <td>
+            ${escapeHTML(
+              item?.TipusId ?? "–"
+            )}
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
 
-        <td>
-          ${escapeHTML(
-            item.TipusId ?? "–"
-          )}
-        </td>
-
-      </tr>
-    `;
-  }).join("");
-
-
-  document.getElementById("content").innerHTML = `
-
-    <div class="page-header">
+  content().innerHTML = `
+    <div class="page-heading">
       <div>
+        <span class="eyebrow">DIGITÁLIS TANANYAG</span>
         <h2>DKT</h2>
-        <p>
-          Digitális tananyagok és munkaterek
-        </p>
+        <p>Digitális tananyagok és munkaterek</p>
       </div>
     </div>
 
-    <div class="card">
-
+    <section class="card">
       ${
         rows
           ? `
-            <div class="table-wrapper">
-
-              <table class="table">
-
+            <div class="table-container">
+              <table class="data-table">
                 <thead>
                   <tr>
                     <th>Tantárgy</th>
@@ -1670,9 +1684,7 @@ function renderDKT() {
                 <tbody>
                   ${rows}
                 </tbody>
-
               </table>
-
             </div>
           `
           : emptyState(
@@ -1681,38 +1693,35 @@ function renderDKT() {
               "Jelenleg nincs megjeleníthető digitális tananyag."
             )
       }
-
-    </div>
+    </section>
   `;
 }
 
-
 /* ============================================================
    PROFILE
-   ============================================================ */
+============================================================ */
 
 function renderProfile() {
+  const student = state.student || {};
 
-  const student =
-    state.student || {};
+  updateAvatar(student);
 
+  content().innerHTML = `
+    <div class="page-heading">
+      <div>
+        <span class="eyebrow">FIÓK</span>
+        <h2>Profil</h2>
+        <p>Tanulói adatok</p>
+      </div>
+    </div>
 
-  document.getElementById("avatar").textContent =
-    initials(student.Nev);
-
-
-  document.getElementById("content").innerHTML = `
-
-    <div class="card">
-
+    <section class="card profile-card">
       <div class="profile-header">
-
         <div class="profile-avatar">
-          ${initials(student.Nev)}
+          ${escapeHTML(initials(student.Nev))}
         </div>
 
         <div>
-
           <h2 class="profile-name">
             ${escapeHTML(
               student.Nev || "Ismeretlen diák"
@@ -1720,98 +1729,66 @@ function renderProfile() {
           </h2>
 
           <div class="profile-school">
-
             ${escapeHTML(
-              student.IntezmenyNev || "Ismeretlen intézmény"
+              student.IntezmenyNev ||
+              "Ismeretlen intézmény"
             )}
-
           </div>
-
         </div>
-
       </div>
 
-      <div class="info-row">
-        <span class="info-label">
-          Tanuló azonosító
-        </span>
+      ${profileRow(
+        "Tanuló azonosító",
+        student.Uid
+      )}
 
-        <span class="info-value">
-          ${escapeHTML(student.Uid || "–")}
-        </span>
-      </div>
+      ${profileRow(
+        "Intézmény",
+        student.IntezmenyNev
+      )}
 
-      <div class="info-row">
-        <span class="info-label">
-          Intézmény
-        </span>
+      ${profileRow(
+        "Intézményi azonosító",
+        student.IntezmenyAzonosito
+      )}
 
-        <span class="info-value">
-          ${escapeHTML(
-            student.IntezmenyNev || "–"
-          )}
-        </span>
-      </div>
+      ${profileRow(
+        "E-mail",
+        student.EmailCim
+      )}
 
-      <div class="info-row">
-        <span class="info-label">
-          Intézményi azonosító
-        </span>
+      ${profileRow(
+        "Telefonszám",
+        student.Telefonszam
+      )}
 
-        <span class="info-value">
-          ${escapeHTML(
-            student.IntezmenyAzonosito || "–"
-          )}
-        </span>
-      </div>
+      ${profileRow(
+        "Tanév",
+        student.TanevUid
+      )}
+    </section>
+  `;
+}
 
-      <div class="info-row">
-        <span class="info-label">
-          E-mail
-        </span>
+function profileRow(label, value) {
+  return `
+    <div class="info-row">
+      <span class="info-label">
+        ${escapeHTML(label)}
+      </span>
 
-        <span class="info-value">
-          ${escapeHTML(
-            student.EmailCim || "–"
-          )}
-        </span>
-      </div>
-
-      <div class="info-row">
-        <span class="info-label">
-          Telefonszám
-        </span>
-
-        <span class="info-value">
-          ${escapeHTML(
-            student.Telefonszam || "–"
-          )}
-        </span>
-      </div>
-
-      <div class="info-row">
-        <span class="info-label">
-          Tanév
-        </span>
-
-        <span class="info-value">
-          ${escapeHTML(
-            student.TanevUid || "–"
-          )}
-        </span>
-      </div>
-
+      <span class="info-value">
+        ${escapeHTML(value || "–")}
+      </span>
     </div>
   `;
 }
 
-
 /* ============================================================
-   COMPONENT RENDERERS
-   ============================================================ */
+   COMPONENTS
+============================================================ */
 
 function renderLessonList(lessons) {
-
   if (!lessons.length) {
     return emptyState(
       "▦",
@@ -1820,95 +1797,81 @@ function renderLessonList(lessons) {
     );
   }
 
-
   return `
-    <div class="timetable">
+    <div class="lessons">
+      ${lessons
+        .map((lesson) => {
+          return `
+            <div class="lesson">
+              <div class="lesson-number">
+                ${
+                  lesson?.Oraszam
+                    ? `${escapeHTML(
+                        lesson.Oraszam
+                      )}.`
+                    : "–"
+                }
+              </div>
 
-      ${lessons.map(lesson => `
+              <div class="lesson-time">
+                <strong>
+                  ${formatTime(
+                    lesson?.KezdetIdopont
+                  )}
+                </strong>
 
-        <div class="lesson">
+                <span>
+                  ${formatTime(
+                    lesson?.VegIdopont
+                  )}
+                </span>
+              </div>
 
-          <div class="lesson-number">
-            ${
-              lesson.Oraszam
-                ? `${lesson.Oraszam}.`
-                : "–"
-            }
-          </div>
+              <div class="lesson-info">
+                <div class="lesson-subject">
+                  ${escapeHTML(
+                    subjectName(lesson)
+                  )}
+                </div>
 
-          <div class="lesson-time">
+                <div class="lesson-teacher">
+                  ${
+                    lesson?.TanarNeve
+                      ? escapeHTML(
+                          lesson.TanarNeve
+                        )
+                      : "Tanár nincs megadva"
+                  }
 
-            ${
-              formatTime(
-                lesson.KezdetIdopont
-              )
-            }
+                  ${
+                    lesson?.Tema
+                      ? ` · ${escapeHTML(
+                          lesson.Tema
+                        )}`
+                      : ""
+                  }
+                </div>
+              </div>
 
-            <br>
-
-            ${
-              formatTime(
-                lesson.VegIdopont
-              )
-            }
-
-          </div>
-
-          <div>
-
-            <div class="lesson-subject">
-              ${escapeHTML(
-                subjectName(lesson)
-              )}
+              <div class="lesson-room">
+                ${
+                  lesson?.TeremNeve
+                    ? escapeHTML(
+                        lesson.TeremNeve
+                      )
+                    : "–"
+                }
+              </div>
             </div>
-
-            <div class="lesson-teacher">
-
-              ${
-                lesson.TanarNeve
-                  ? escapeHTML(
-                      lesson.TanarNeve
-                    )
-                  : ""
-              }
-
-              ${
-                lesson.Tema
-                  ? ` · ${escapeHTML(
-                      lesson.Tema
-                    )}`
-                  : ""
-              }
-
-            </div>
-
-          </div>
-
-          <div class="lesson-room">
-
-            ${
-              lesson.TeremNeve
-                ? escapeHTML(
-                    lesson.TeremNeve
-                  )
-                : "–"
-            }
-
-          </div>
-
-        </div>
-
-      `).join("")}
-
+          `;
+        })
+        .join("")}
     </div>
   `;
 }
 
-
 function renderTestList(items) {
-
   if (!items.length) {
-
     return emptyState(
       "✎",
       "Nincs közelgő dolgozat",
@@ -1916,55 +1879,17 @@ function renderTestList(items) {
     );
   }
 
-
   return `
     <div class="list">
-
-      ${items.map(test => `
-
-        <div class="list-item">
-
-          <div class="stat-icon">
-            ✎
-          </div>
-
-          <div class="list-main">
-
-            <div class="list-title">
-              ${escapeHTML(
-                subjectName(test)
-              )}
-            </div>
-
-            <div class="list-meta">
-              ${
-                test.Temaja
-                  ? escapeHTML(
-                      test.Temaja
-                    )
-                  : "Nincs megadott téma"
-              }
-            </div>
-
-          </div>
-
-          <span class="badge badge-warning">
-            ${safeDate(test.Datum)}
-          </span>
-
-        </div>
-
-      `).join("")}
-
+      ${items
+        .map(renderTestItem)
+        .join("")}
     </div>
   `;
 }
 
-
 function renderHomeworkList(items) {
-
   if (!items.length) {
-
     return emptyState(
       "▤",
       "Nincs házi feladat",
@@ -1972,101 +1897,87 @@ function renderHomeworkList(items) {
     );
   }
 
-
   return `
     <div class="list">
+      ${items
+        .map((item) => {
+          const done =
+            Boolean(item?.IsMegoldva);
 
-      ${items.map(item => {
+          const deadline =
+            item?.HataridoDatuma;
 
-        const done =
-          Boolean(item.IsMegoldva);
+          const overdue =
+            deadline &&
+            new Date(deadline).getTime() <
+              Date.now() &&
+            !done;
 
-        const deadline =
-          item.HataridoDatuma;
-
-
-        return `
-          <div class="list-item">
-
-            <div class="stat-icon">
-              ▤
-            </div>
-
-            <div class="list-main">
-
-              <div class="list-title">
-                ${escapeHTML(
-                  item.TantargyNeve ||
-                  subjectName(item)
-                )}
+          return `
+            <div class="list-item">
+              <div class="list-icon">
+                ▤
               </div>
 
-              <div class="list-meta">
+              <div class="list-main">
+                <div class="list-title">
+                  ${escapeHTML(
+                    item?.TantargyNeve ||
+                    subjectName(item)
+                  )}
+                </div>
 
-                ${
-                  item.Szoveg
-                    ? escapeHTML(
-                        stripHTML(item.Szoveg)
-                      ).slice(0, 180)
-                    : "Nincs leírás"
-                }
+                <div class="list-meta">
+                  ${
+                    item?.Szoveg
+                      ? escapeHTML(
+                          stripHTML(
+                            item.Szoveg
+                          )
+                        ).slice(0, 180)
+                      : "Nincs leírás"
+                  }
 
-                ${
-                  item.RogzitoTanarNeve
-                    ? ` · ${escapeHTML(
-                        item.RogzitoTanarNeve
-                      )}`
-                    : ""
-                }
-
+                  ${
+                    item?.RogzitoTanarNeve
+                      ? ` · ${escapeHTML(
+                          item.RogzitoTanarNeve
+                        )}`
+                      : ""
+                  }
+                </div>
               </div>
-
-            </div>
-
-            <div>
 
               <span class="badge ${
                 done
-                  ? "badge-success"
-                  : deadline &&
-                    new Date(deadline) < new Date()
-                    ? "badge-danger"
-                    : "badge-warning"
+                  ? "success"
+                  : overdue
+                    ? "danger"
+                    : "warning"
               }">
-
                 ${
                   done
                     ? "Megoldva"
-                    : deadline
-                      ? safeDate(deadline)
-                      : "Nincs határidő"
+                    : overdue
+                      ? "Lejárt"
+                      : deadline
+                        ? safeDate(deadline)
+                        : "Nincs határidő"
                 }
-
               </span>
-
             </div>
-
-          </div>
-        `;
-
-      }).join("")}
-
+          `;
+        })
+        .join("")}
     </div>
   `;
 }
 
-
-function emptyState(
-  icon,
-  title,
-  text
-) {
-
+function emptyState(icon, title, text) {
   return `
-    <div class="empty">
-
+    <div class="empty-state">
       <div class="empty-icon">
-        ${icon}
+        ${escapeHTML(icon)}
       </div>
 
       <div class="empty-title">
@@ -2076,195 +1987,118 @@ function emptyState(
       <div class="empty-text">
         ${escapeHTML(text)}
       </div>
-
     </div>
   `;
 }
 
-
 /* ============================================================
-   DATE HELPERS
-   ============================================================ */
+   UI HELPERS
+============================================================ */
 
-function isToday(value) {
+function updateAvatar(student) {
+  const avatar = $("#avatar");
 
-  if (!value) {
-    return false;
+  if (!avatar) {
+    return;
   }
 
-  const date = new Date(value);
-
-  const now = new Date();
-
-  return (
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate()
+  avatar.textContent = initials(
+    student?.Nev
   );
 }
 
-
-function formatTime(value) {
-
-  if (!value) {
-    return "–";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-
-    const match =
-      String(value).match(
-        /(\d{1,2}):(\d{2})/
-      );
-
-    return match
-      ? `${match[1].padStart(2, "0")}:${match[2]}`
-      : value;
-  }
-
-  return date.toLocaleTimeString(
-    "hu-HU",
-    {
-      hour: "2-digit",
-      minute: "2-digit"
-    }
-  );
+function bindGoButtons() {
+  document
+    .querySelectorAll("[data-go]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        navigate(button.dataset.go);
+      });
+    });
 }
-
-
-function formatDay(value) {
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleDateString(
-    "hu-HU",
-    {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric"
-    }
-  );
-}
-
-
-function stripHTML(value) {
-
-  if (!value) {
-    return "";
-  }
-
-  const element =
-    document.createElement("div");
-
-  element.innerHTML = value;
-
-  return element.textContent ||
-    element.innerText ||
-    "";
-}
-
 
 /* ============================================================
    REFRESH
-   ============================================================ */
+============================================================ */
 
 async function refreshCurrentPage() {
+  const button = $("#refreshButton");
 
-  const page =
-    state.currentPage;
+  if (button) {
+    button.disabled = true;
+    button.classList.add("spinning");
+  }
 
-  Object.keys(state.loaded)
-    .forEach(key => {
-      state.loaded[key] = false;
-    });
-
-
-  const button =
-    document.getElementById("refreshButton");
-
-  button.disabled = true;
-
-  button.style.transform =
-    "rotate(180deg)";
-
+  Object.keys(state.loaded).forEach((key) => {
+    state.loaded[key] = false;
+  });
 
   try {
-
     await renderPage();
 
     showToast(
-      "Az adatok frissítve."
+      "Az adatok frissítve.",
+      "success"
     );
+  } catch (error) {
+    console.error(error);
 
+    showToast(
+      "A frissítés sikertelen.",
+      "error"
+    );
   } finally {
-
-    button.disabled = false;
-
-    setTimeout(() => {
-
-      button.style.transform =
-        "";
-
-    }, 250);
-
+    if (button) {
+      button.disabled = false;
+      button.classList.remove("spinning");
+    }
   }
 }
 
-
 /* ============================================================
    LOGOUT
-   ============================================================ */
+============================================================ */
 
 function logout() {
-
   /*
-   * A backend jelenlegi API-jában nincs külön
-   * logout végpont.
-   *
-   * A meglévő login rendszer által használt tokeneket
-   * és helyi adatokat töröljük.
+   * A jelenlegi backendből nem látszik külön logout endpoint.
+   * A böngészőben tárolt lehetséges tokeneket eltávolítjuk.
    */
 
-  localStorage.removeItem("access_token");
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("token");
+  const keys = [
+    "access_token",
+    "accessToken",
+    "token",
+    "refresh_token",
+    "refreshToken"
+  ];
 
-  sessionStorage.removeItem("access_token");
-  sessionStorage.removeItem("accessToken");
-  sessionStorage.removeItem("token");
+  keys.forEach((key) => {
+    localStorage.removeItem(key);
+    sessionStorage.removeItem(key);
+  });
 
   window.location.href = "../login/";
 }
 
-
 /* ============================================================
    INITIALIZATION
-   ============================================================ */
+============================================================ */
 
 async function initialize() {
-
   setupNavigation();
-
   updateNavigation();
-
   updatePageHeader();
 
+  /*
+   * Elsőként lekérjük a tanulói adatokat.
+   * Ha nincs bejelentkezés, a 401 kezelő a login oldalra küld.
+   */
   try {
-
     await loadStudent();
 
-    document.getElementById("avatar").textContent =
-      initials(state.student?.Nev);
-
+    updateAvatar(state.student);
   } catch (error) {
-
     console.warn(
       "A tanulói adatok első betöltése sikertelen:",
       error
@@ -2274,9 +2108,7 @@ async function initialize() {
   await renderPage();
 }
 
-
 document.addEventListener(
   "DOMContentLoaded",
   initialize
 );
-

@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="hu">
 <head>
@@ -13,18 +12,18 @@
 
 <body>
 
-  <!-- =========================================================
-       APP
-  ========================================================== -->
-
   <div id="app">
 
-    <!-- SIDEBAR -->
+    <!-- =====================================================
+         SIDEBAR
+    ====================================================== -->
+
     <aside class="sidebar" id="sidebar">
 
       <div class="brand">
         <div class="brand-logo">K</div>
-        <div>
+
+        <div class="brand-text">
           <strong>KRÁTA</strong>
           <span>Diák</span>
         </div>
@@ -85,6 +84,7 @@
       </nav>
 
       <div class="sidebar-bottom">
+
         <button class="nav-item" id="profileButton">
           <span class="nav-icon">●</span>
           <span>Profil</span>
@@ -94,47 +94,82 @@
           <span class="nav-icon">↪</span>
           <span>Kijelentkezés</span>
         </button>
+
       </div>
 
     </aside>
 
 
-    <!-- MAIN -->
+    <!-- =====================================================
+         MAIN
+    ====================================================== -->
+
     <main class="main">
 
       <!-- TOPBAR -->
+
       <header class="topbar">
 
-        <button class="menu-button" id="menuButton" aria-label="Menü">
+        <button
+          class="menu-button"
+          id="menuButton"
+          type="button"
+          aria-label="Menü"
+        >
           ☰
         </button>
 
         <div class="page-title">
           <h1 id="pageTitle">Kezdőlap</h1>
-          <span id="pageSubtitle">Üdvözöllek!</span>
+          <span id="pageSubtitle">Áttekintés</span>
         </div>
 
         <div class="topbar-right">
 
-          <button class="icon-button" id="refreshButton" title="Frissítés">
+          <button
+            class="icon-button"
+            id="refreshButton"
+            type="button"
+            title="Frissítés"
+            aria-label="Frissítés"
+          >
             ↻
           </button>
 
-          <div class="avatar" id="avatar">
+          <button
+            class="avatar"
+            id="avatar"
+            type="button"
+            title="Profil"
+            aria-label="Profil"
+          >
             ?
-          </div>
+          </button>
 
         </div>
 
       </header>
 
 
-      <!-- CONTENT -->
-      <section class="content" id="content">
+      <!-- ===================================================
+           CONTENT
+      ==================================================== -->
 
-        <div class="loading-container" id="initialLoading">
+      <section
+        class="content"
+        id="content"
+        aria-live="polite"
+      >
+
+        <div
+          class="loading-container"
+          id="initialLoading"
+        >
           <div class="spinner"></div>
-          <p>Adatok betöltése...</p>
+
+          <p>
+            Adatok betöltése...
+          </p>
         </div>
 
       </section>
@@ -144,16 +179,33 @@
   </div>
 
 
-  <!-- TOAST -->
-  <div class="toast" id="toast"></div>
+  <!-- =====================================================
+       TOAST
+  ====================================================== -->
+
+  <div
+    class="toast"
+    id="toast"
+    role="status"
+    aria-live="polite"
+  ></div>
 
 
-  <!-- MOBILE OVERLAY -->
-  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <!-- =====================================================
+       MOBILE SIDEBAR OVERLAY
+  ====================================================== -->
 
+  <div
+    class="sidebar-overlay"
+    id="sidebarOverlay"
+  ></div>
+
+
+  <!-- =====================================================
+       JAVASCRIPT
+  ====================================================== -->
 
   <script src="./app.js"></script>
 
 </body>
 </html>
-

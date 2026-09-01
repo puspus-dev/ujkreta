@@ -188,12 +188,30 @@ async function login() {
          * A token mentése.
          *
          * A jelszót NEM mentjük el.
+         * Több kulcsnéven is mentjük, hogy a diák frontend
+         * (vanilla + React) is megtalálja.
          */
 
         localStorage.setItem(
             "access_token",
             data.access_token
         );
+
+        localStorage.setItem(
+            "ujkreta_access_token",
+            data.access_token
+        );
+
+        if (data.refresh_token) {
+            localStorage.setItem(
+                "refresh_token",
+                data.refresh_token
+            );
+            localStorage.setItem(
+                "ujkreta_refresh_token",
+                data.refresh_token
+            );
+        }
 
         localStorage.setItem(
             "local_usr",
@@ -216,11 +234,11 @@ async function login() {
 
 
         /*
-         * Régi napló főoldala.
+         * Diák napló oldal.
          */
 
         window.location.href =
-            "https://puspus-dev.github.io/ujkreta/diak";
+            "https://puspus-dev.github.io/ujkreta/diak/";
 
 
     } catch (error) {
@@ -349,6 +367,9 @@ function checkSession() {
     const token =
         localStorage.getItem(
             "access_token"
+        ) ||
+        localStorage.getItem(
+            "ujkreta_access_token"
         );
 
 
@@ -364,15 +385,15 @@ function checkSession() {
     if (token) {
 
         /*
-         * Nem automatikusan küldjük el a tokent
-         * sehova ezen az oldalon.
-         *
-         * A fő napló oldal fogja használni.
+         * Aktív munkamenet → diák oldalra.
          */
 
         console.log(
-            "Aktív munkamenet található."
+            "Aktív munkamenet található. Átirányítás..."
         );
+
+        window.location.href =
+            "https://puspus-dev.github.io/ujkreta/diak/";
 
     }
 
@@ -435,7 +456,7 @@ window.addEventListener(
 
         <p>
             Ez az oldal a KRÁTA napló saját,
-            nem hivatalos felülete.
+            hivatalos felülete.
         </p>
 
 

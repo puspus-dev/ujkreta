@@ -1,4 +1,4 @@
-const API_BASE = "http://ujkreta.onrender.com";
+const API_BASE = "https://ujkreta.onrender.com";
 let accessToken = null;
 
 // ----------------------

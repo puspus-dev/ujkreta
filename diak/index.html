@@ -1,211 +1,54 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#1976d2">
-
-  <title>KRÁTA – Diák</title>
-
-  <link rel="stylesheet" href="./style.css">
+  <meta charset="UTF-8" />
+  <title>KRÁTA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
 
-  <div id="app">
+  <header>
+    <h1>KRÁTA - DIÁK</h1>
+    <div class="login-box">
+      <input id="username" type="text" placeholder="Felhasználónév">
+      <input id="password" type="password" placeholder="Jelszó">
+      <button id="loginBtn">Bejelentkezés</button>
+    </div>
+  </header>
 
-    <!-- =====================================================
-         SIDEBAR
-    ====================================================== -->
+  <main>
+    <section class="card">
+      <h2>Diák adatlap</h2>
+      <div id="studentInfo">Nincs bejelentkezve.</div>
+    </section>
 
-    <aside class="sidebar" id="sidebar">
+    <section class="card">
+      <h2>Értékelések</h2>
+      <ul id="grades"></ul>
+    </section>
 
-      <div class="brand">
-        <div class="brand-logo">K</div>
+    <section class="card">
+      <h2>Órarend</h2>
+      <ul id="timetable"></ul>
+    </section>
 
-        <div class="brand-text">
-          <strong>KRÁTA</strong>
-          <span>Diák</span>
-        </div>
-      </div>
+    <section class="card">
+      <h2>Házi feladatok</h2>
+      <ul id="homework"></ul>
+    </section>
 
-      <nav class="navigation">
+    <section class="card">
+      <h2>Feljegyzések</h2>
+      <ul id="notes"></ul>
+    </section>
 
-        <button class="nav-item active" data-page="home">
-          <span class="nav-icon">⌂</span>
-          <span>Kezdőlap</span>
-        </button>
+    <section class="card">
+      <h2>Mulasztások</h2>
+      <ul id="absences"></ul>
+    </section>
+  </main>
 
-        <button class="nav-item" data-page="timetable">
-          <span class="nav-icon">▦</span>
-          <span>Órarend</span>
-        </button>
-
-        <button class="nav-item" data-page="grades">
-          <span class="nav-icon">✓</span>
-          <span>Jegyek</span>
-        </button>
-
-        <button class="nav-item" data-page="averages">
-          <span class="nav-icon">◉</span>
-          <span>Átlagok</span>
-        </button>
-
-        <button class="nav-item" data-page="omissions">
-          <span class="nav-icon">!</span>
-          <span>Mulasztások</span>
-        </button>
-
-        <button class="nav-item" data-page="homework">
-          <span class="nav-icon">▤</span>
-          <span>Házi feladatok</span>
-        </button>
-
-        <button class="nav-item" data-page="tests">
-          <span class="nav-icon">✎</span>
-          <span>Dolgozatok</span>
-        </button>
-
-        <button class="nav-item" data-page="notices">
-          <span class="nav-icon">▣</span>
-          <span>Faliújság</span>
-        </button>
-
-        <button class="nav-item" data-page="info">
-          <span class="nav-icon">ⓘ</span>
-          <span>Feljegyzések</span>
-        </button>
-
-        <button class="nav-item" data-page="dkt">
-          <span class="nav-icon">◈</span>
-          <span>DKT</span>
-        </button>
-
-      </nav>
-
-      <div class="sidebar-bottom">
-
-        <button class="nav-item" id="profileButton">
-          <span class="nav-icon">●</span>
-          <span>Profil</span>
-        </button>
-
-        <button class="nav-item logout-button" id="logoutButton">
-          <span class="nav-icon">↪</span>
-          <span>Kijelentkezés</span>
-        </button>
-
-      </div>
-
-    </aside>
-
-
-    <!-- =====================================================
-         MAIN
-    ====================================================== -->
-
-    <main class="main">
-
-      <!-- TOPBAR -->
-
-      <header class="topbar">
-
-        <button
-          class="menu-button"
-          id="menuButton"
-          type="button"
-          aria-label="Menü"
-        >
-          ☰
-        </button>
-
-        <div class="page-title">
-          <h1 id="pageTitle">Kezdőlap</h1>
-          <span id="pageSubtitle">Áttekintés</span>
-        </div>
-
-        <div class="topbar-right">
-
-          <button
-            class="icon-button"
-            id="refreshButton"
-            type="button"
-            title="Frissítés"
-            aria-label="Frissítés"
-          >
-            ↻
-          </button>
-
-          <button
-            class="avatar"
-            id="avatar"
-            type="button"
-            title="Profil"
-            aria-label="Profil"
-          >
-            ?
-          </button>
-
-        </div>
-
-      </header>
-
-
-      <!-- ===================================================
-           CONTENT
-      ==================================================== -->
-
-      <section
-        class="content"
-        id="content"
-        aria-live="polite"
-      >
-
-        <div
-          class="loading-container"
-          id="initialLoading"
-        >
-          <div class="spinner"></div>
-
-          <p>
-            Adatok betöltése...
-          </p>
-        </div>
-
-      </section>
-
-    </main>
-
-  </div>
-
-
-  <!-- =====================================================
-       TOAST
-  ====================================================== -->
-
-  <div
-    class="toast"
-    id="toast"
-    role="status"
-    aria-live="polite"
-  ></div>
-
-
-  <!-- =====================================================
-       MOBILE SIDEBAR OVERLAY
-  ====================================================== -->
-
-  <div
-    class="sidebar-overlay"
-    id="sidebarOverlay"
-  ></div>
-
-
-  <!-- =====================================================
-       JAVASCRIPT
-  ====================================================== -->
-
-  <script src="./app.js"></script>
-
+  <script src="app.js"></script>
 </body>
 </html>

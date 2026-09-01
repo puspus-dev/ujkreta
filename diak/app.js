@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:3000"; // <-- IDE tedd az ujkreta backend URL-jét
+const API_BASE = "http://ujkreta.onrender.com";
 let accessToken = null;
 
 // ----------------------

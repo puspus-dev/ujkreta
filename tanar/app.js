@@ -1,6 +1,5 @@
 /* ============================================================
-   KRÁTA Oktatói Web (Neptun-szerű)
-   Login a főoldalon. Token nélkül → fő login.
+   KRÁTA Oktatói Web
    ============================================================ */
 
 const API_BASE = "https://ujkreta.onrender.com";

@@ -5,4 +5,6 @@ A szerver a firka mock-ján alapul, megtalálod itt: [firka/mock](https://git.fi
 
 A frontendet innen kapartuk össze: [E-Kretén](https://github.com/e-kreten/e-kreten.github.com/)
 
-Hivatalos Napló app(Filc Naplóra alapul): [e-krata/naplo](https://github.com/e-krata/naplo/)
+Hivatalos Ellenőzrő app (Filc Naplóra alapul): [e-krata/naplo](https://github.com/e-krata/naplo/)
+
+Hivatalos Tanári Napló app: [e-krata/vonalzo+](https://github.com/e-krata/vonalzo/)

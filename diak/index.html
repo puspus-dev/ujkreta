@@ -2,53 +2,64 @@
 <html lang="hu">
 <head>
   <meta charset="UTF-8" />
-  <title>KRÁTA</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="/diak/style.css" />
+  <title>KRÁTA – Hallgatói Web</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div id="app">
+    <div id="bootMsg" class="boot-msg">Betöltés...</div>
 
-  <header>
-    <h1>KRÁTA - DIÁK</h1>
-    <div class="login-box">
-      <input id="username" type="text" placeholder="Felhasználónév">
-      <input id="password" type="password" placeholder="Jelszó">
-      <button id="loginBtn">Bejelentkezés</button>
+    <div id="appShell" style="display:none;">
+      <!-- NEPTUN-szerű felső sáv -->
+      <header class="n-header">
+        <div class="n-header-left">
+          <button type="button" class="n-menu-toggle" id="menuBtn" aria-label="Menü">☰</button>
+          <div class="n-logo">KRÁTA</div>
+          <div class="n-header-title">
+            <span class="n-system">Hallgatói Web</span>
+            <span class="n-inst" id="instName">—</span>
+          </div>
+        </div>
+        <div class="n-header-right">
+          <div class="n-user">
+            <span class="n-user-name" id="userName">—</span>
+            <span class="n-user-code" id="userCode"></span>
+          </div>
+          <button type="button" class="n-logout" id="logoutBtn">Kijelentkezés</button>
+        </div>
+      </header>
+
+      <div class="n-body">
+        <aside class="n-sidebar" id="sidebar">
+          <div class="n-sidebar-label">Főmenü</div>
+          <nav class="n-nav">
+            <button class="n-nav-item active" data-page="dashboard">Kezdőlap</button>
+            <button class="n-nav-item" data-page="grades">Értékelések</button>
+            <button class="n-nav-item" data-page="timetable">Órarend</button>
+            <button class="n-nav-item" data-page="homework">Házi feladatok</button>
+            <button class="n-nav-item" data-page="tests">Számonkérések</button>
+            <button class="n-nav-item" data-page="absences">Mulasztások</button>
+            <button class="n-nav-item" data-page="notices">Faliújság</button>
+            <button class="n-nav-item" data-page="notes">Feljegyzések</button>
+            <button class="n-nav-item" data-page="profile">Személyes adatok</button>
+          </nav>
+        </aside>
+
+        <main class="n-main">
+          <div class="n-breadcrumb">
+            <span>KRÁTA</span>
+            <span class="n-bc-sep">›</span>
+            <span id="bcPage">Kezdőlap</span>
+          </div>
+          <h1 class="n-page-title" id="pageTitle">Kezdőlap</h1>
+          <div id="pageContent"></div>
+        </main>
+      </div>
     </div>
-  </header>
 
-  <main>
-    <section class="card">
-      <h2>Diák adatlap</h2>
-      <div id="studentInfo">Nincs bejelentkezve.</div>
-    </section>
-
-    <section class="card">
-      <h2>Értékelések</h2>
-      <ul id="grades"></ul>
-    </section>
-
-    <section class="card">
-      <h2>Órarend</h2>
-      <ul id="timetable"></ul>
-    </section>
-
-    <section class="card">
-      <h2>Házi feladatok</h2>
-      <ul id="homework"></ul>
-    </section>
-
-    <section class="card">
-      <h2>Feljegyzések</h2>
-      <ul id="notes"></ul>
-    </section>
-
-    <section class="card">
-      <h2>Mulasztások</h2>
-      <ul id="absences"></ul>
-    </section>
-  </main>
-
+    <div id="overlay" class="n-overlay" style="display:none;"></div>
+  </div>
   <script src="app.js"></script>
 </body>
 </html>

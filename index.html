@@ -217,6 +217,21 @@ async function login() {
             username
         );
 
+        /*
+         * Szerepkör az id_token-ből (Tanar / Tanulo).
+         */
+        let role = "Tanulo";
+        try {
+            if (data.id_token) {
+                const payload = data.id_token.split(".")[1];
+                const b64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+                const padded = b64 + "=".repeat((4 - b64.length % 4) % 4);
+                const claims = JSON.parse(atob(padded));
+                if (claims.role) role = claims.role;
+            }
+        } catch (_) {}
+
+        localStorage.setItem("ujkreta_role", role);
 
         /*
          * Régi, korábbi verzióból esetlegesen megmaradt
@@ -233,11 +248,15 @@ async function login() {
 
 
         /*
-         * Diák napló oldal.
+         * Tanár → /tanar, diák → /diak
          */
+        const isTeacher =
+            String(role).toLowerCase().indexOf("tanar") !== -1 ||
+            String(role).toLowerCase() === "teacher";
 
-        window.location.href =
-            "https://puspus-dev.github.io/ujkreta/diak/";
+        window.location.href = isTeacher
+            ? "https://puspus-dev.github.io/ujkreta/tanar/"
+            : "https://puspus-dev.github.io/ujkreta/diak/";
 
 
     } catch (error) {
@@ -384,15 +403,23 @@ function checkSession() {
     if (token) {
 
         /*
-         * Aktív munkamenet → diák oldalra.
+         * Aktív munkamenet → szerepkör szerint.
          */
 
         console.log(
             "Aktív munkamenet található. Átirányítás..."
         );
 
-        window.location.href =
-            "https://puspus-dev.github.io/ujkreta/diak/";
+        const role =
+            localStorage.getItem("ujkreta_role") || "";
+
+        const isTeacher =
+            String(role).toLowerCase().indexOf("tanar") !== -1 ||
+            String(role).toLowerCase() === "teacher";
+
+        window.location.href = isTeacher
+            ? "https://puspus-dev.github.io/ujkreta/tanar/"
+            : "https://puspus-dev.github.io/ujkreta/diak/";
 
     }
 
@@ -455,7 +482,7 @@ window.addEventListener(
 
         <p>
             Ez az oldal a KRÁTA napló saját,
-            nem hivatalos felülete.
+            hivatalos felülete.
         </p>
 
 

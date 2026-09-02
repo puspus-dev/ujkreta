@@ -1,313 +1,75 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ÚjKréta – Admin</title>
-  <style>
-    :root {
-      --bg: #0f1419; --card: #1a2332; --border: #2d3a4f;
-      --text: #e7ecf3; --muted: #8b9bb4; --accent: #3b82f6;
-      --ok: #22c55e; --err: #ef4444;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-    .wrap { max-width: 920px; margin: 0 auto; padding: 1.5rem; }
-    h1 { font-size: 1.4rem; margin-bottom: 0.2rem; }
-    h2 { font-size: 1rem; margin-bottom: 0.75rem; }
-    .muted { color: var(--muted); font-size: 0.9rem; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin: 1rem 0; }
-    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.25rem; }
-    input, select, textarea {
-      width: 100%; padding: 0.55rem 0.75rem; margin-bottom: 0.75rem;
-      border: 1px solid var(--border); border-radius: 8px;
-      background: var(--bg); color: var(--text); font-size: 0.95rem;
-    }
-    button {
-      background: var(--accent); color: #fff; border: none; border-radius: 8px;
-      padding: 0.55rem 1rem; font-weight: 500; cursor: pointer;
-    }
-    button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
-    button.danger { background: var(--err); }
-    .row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
-    .row > * { flex: 1; min-width: 140px; }
-    .msg { padding: 0.75rem; border-radius: 8px; margin: 0.75rem 0; font-size: 0.9rem; }
-    .msg.ok { background: #14532d33; color: var(--ok); border: 1px solid #166534; }
-    .msg.err { background: #7f1d1d33; color: var(--err); border: 1px solid #991b1b; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th, td { text-align: left; padding: 0.45rem; border-bottom: 1px solid var(--border); }
-    th { color: var(--muted); }
-    .hidden { display: none !important; }
-    code { background: #0003; padding: 0.1rem 0.35rem; border-radius: 4px; }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KRÁTA – Admin</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="wrap">
-    <h1>ÚjKréta – Admin</h1>
-    <p class="muted">Basic Auth: <code>ADMIN_USERNAME</code> / <code>ADMIN_PASSWORD</code> (Render env)</p>
-
-    <div class="card" id="loginCard">
-      <h2>Csatlakozás</h2>
-      <label>API base</label>
-      <input id="base" value="">
-      <div class="row">
-        <div>
-          <label>Admin user</label>
-          <input id="adminUser" autocomplete="username">
-        </div>
-        <div>
-          <label>Admin jelszó</label>
-          <input id="adminPass" type="password" autocomplete="current-password">
-        </div>
-      </div>
-      <button id="btnConnect">Csatlakozás</button>
-      <div id="loginMsg"></div>
-    </div>
-
-    <div id="app" class="hidden">
-      <div class="card">
-        <div class="row" style="align-items:center">
-          <div>
-            <strong id="healthLabel">–</strong>
-            <div class="muted" id="baseLabel"></div>
-          </div>
-          <button class="secondary" id="btnRefresh" style="flex:0">Health</button>
-          <button class="secondary" id="btnLogout" style="flex:0">Kilépés</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>Új felhasználó (diák / tanár)</h2>
-        <div class="row">
-          <div>
-            <label>Username</label>
-            <input id="uName">
-          </div>
-          <div>
-            <label>Jelszó</label>
-            <input id="uPass" type="password">
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Kapcsolt UID (diák UID / tanár 300)</label>
-            <input id="uUid" placeholder="100">
-          </div>
-          <div>
-            <label>Role</label>
-            <select id="uRole">
-              <option value="Tanulo">Tanulo</option>
-              <option value="Tanar">Tanar</option>
-            </select>
-          </div>
-        </div>
-        <button id="btnCreateUser">Létrehozás</button>
-        <div id="userMsg"></div>
-      </div>
-
-      <div class="card">
-        <h2>Új diák + login</h2>
-        <div class="row">
-          <div>
-            <label>Diák UID</label>
-            <input id="sUid" placeholder="101">
-          </div>
-          <div>
-            <label>Név</label>
-            <input id="sName" placeholder="Kovács Anna">
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Username</label>
-            <input id="sUser" placeholder="anna">
-          </div>
-          <div>
-            <label>Jelszó</label>
-            <input id="sPass" type="password" placeholder="anna">
-          </div>
-        </div>
-        <label>Osztály UID</label>
-        <input id="sClass" value="10,11.A">
-        <button id="btnCreateStudent">Diák létrehozása</button>
-        <div id="studentCreateMsg"></div>
-      </div>
-
-      <div class="card">
-        <h2>Diákok listája</h2>
-        <button class="secondary" id="btnListStudents">Betöltés</button>
-        <table>
-          <thead><tr><th>UID</th><th>Név</th></tr></thead>
-          <tbody id="studentTable"></tbody>
-        </table>
-        <div id="listMsg"></div>
-      </div>
-
-      <div class="card">
-        <h2>Diák profil JSON (singleton seed)</h2>
-        <button class="secondary" id="btnLoadStudent">Betöltés</button>
-        <textarea id="studentJson" rows="10" style="font-family:monospace;font-size:0.8rem"></textarea>
-        <button id="btnSaveStudent">Mentés</button>
-        <div id="studentMsg"></div>
-      </div>
-
-      <div class="card">
-        <h2>Veszélyes</h2>
-        <button class="danger" id="btnReset">Seed / mock visszaállítás</button>
-        <div id="resetMsg"></div>
+  <div id="app">
+    <!-- Admin Basic Auth login -->
+    <div id="loginScreen" class="login-screen" style="display:none;">
+      <div class="login-card" style="max-width:420px;margin:40px auto;background:#fff;border:1px solid #c5d0dc;padding:28px;border-radius:4px;">
+        <div style="font-weight:800;font-size:18px;color:#004578;margin-bottom:4px;">KRÁTA Admin</div>
+        <div style="color:#5a6a7a;font-size:13px;margin-bottom:16px;">HTTP Basic – ADMIN_USERNAME / ADMIN_PASSWORD</div>
+        <label style="display:block;font-weight:650;margin-bottom:4px;">Felhasználónév</label>
+        <input id="adminUser" type="text" autocomplete="username" style="width:100%;padding:8px;margin-bottom:10px;border:1px solid #c5d0dc;" />
+        <label style="display:block;font-weight:650;margin-bottom:4px;">Jelszó</label>
+        <input id="adminPass" type="password" autocomplete="current-password" style="width:100%;padding:8px;margin-bottom:10px;border:1px solid #c5d0dc;" />
+        <div id="loginError" class="n-msg n-msg-err" style="display:none;"></div>
+        <button type="button" class="n-btn" id="adminLoginBtn" style="width:100%;">Belépés</button>
       </div>
     </div>
+
+    <div id="appShell" style="display:none;">
+      <header class="n-header">
+        <div class="n-header-left">
+          <button type="button" class="n-menu-toggle" id="menuBtn">☰</button>
+          <div class="n-logo">KRÁTA</div>
+          <div class="n-header-title">
+            <span class="n-system">Adminisztráció</span>
+            <span class="n-inst">Rendszerkezelés</span>
+          </div>
+        </div>
+        <div class="n-header-right">
+          <div class="n-user">
+            <span class="n-user-name" id="adminLabel">admin</span>
+            <span class="n-user-code">Basic Auth</span>
+          </div>
+          <button type="button" class="n-logout" id="logoutBtn">Kijelentkezés</button>
+        </div>
+      </header>
+
+      <div class="n-body">
+        <aside class="n-sidebar" id="sidebar">
+          <div class="n-sidebar-label">Admin menü</div>
+          <nav class="n-nav">
+            <button class="n-nav-item active" data-page="dashboard">Áttekintés</button>
+            <button class="n-nav-item" data-page="schools">Iskolák</button>
+            <button class="n-nav-item" data-page="students">Tanulók</button>
+            <button class="n-nav-item" data-page="studentForm">Új / szerkeszt diák</button>
+            <button class="n-nav-item" data-page="teachers">Tanárok</button>
+            <button class="n-nav-item" data-page="users">Felhasználók</button>
+            <button class="n-nav-item" data-page="config">Konfig</button>
+            <button class="n-nav-item" data-page="tools">Eszközök</button>
+          </nav>
+        </aside>
+
+        <main class="n-main">
+          <div class="n-breadcrumb">
+            <span>KRÁTA Admin</span>
+            <span class="n-bc-sep">›</span>
+            <span id="bcPage">Áttekintés</span>
+          </div>
+          <h1 class="n-page-title" id="pageTitle">Áttekintés</h1>
+          <div id="pageContent"></div>
+        </main>
+      </div>
+    </div>
+
+    <div id="overlay" class="n-overlay" style="display:none;"></div>
   </div>
-
-  <script>
-    const S = { base: '', auth: '' };
-    const $ = id => document.getElementById(id);
-
-    function defaultBase() {
-      if (location.protocol.startsWith('http')) return location.origin;
-      return 'https://ujkreta.onrender.com';
-    }
-
-    function msg(el, text, ok) {
-      el.className = 'msg ' + (ok ? 'ok' : 'err');
-      el.textContent = text;
-    }
-
-    async function api(path, opts = {}) {
-      const res = await fetch(S.base + path, {
-        ...opts,
-        headers: {
-          Authorization: 'Basic ' + S.auth,
-          ...(opts.body ? { 'Content-Type': 'application/json' } : {}),
-          ...(opts.headers || {}),
-        },
-      });
-      const text = await res.text();
-      let data = null;
-      try { data = text ? JSON.parse(text) : null; } catch { data = text; }
-      if (!res.ok) throw new Error((data && data.error) || res.statusText || String(res.status));
-      return data;
-    }
-
-    $('base').value = defaultBase();
-
-    $('btnConnect').onclick = async () => {
-      S.base = $('base').value.replace(/\/$/, '');
-      S.auth = btoa($('adminUser').value + ':' + $('adminPass').value);
-      try {
-        const h = await api('/admin/health');
-        $('loginCard').classList.add('hidden');
-        $('app').classList.remove('hidden');
-        $('baseLabel').textContent = S.base;
-        $('healthLabel').textContent = 'OK · ' + JSON.stringify(h);
-        localStorage.setItem('ujkreta_admin', JSON.stringify({
-          base: S.base, user: $('adminUser').value, pass: $('adminPass').value
-        }));
-      } catch (e) {
-        msg($('loginMsg'), e.message, false);
-      }
-    };
-
-    $('btnLogout').onclick = () => {
-      localStorage.removeItem('ujkreta_admin');
-      location.reload();
-    };
-
-    $('btnRefresh').onclick = async () => {
-      try {
-        const h = await api('/admin/health');
-        $('healthLabel').textContent = 'OK · ' + JSON.stringify(h);
-      } catch (e) {
-        $('healthLabel').textContent = 'Hiba: ' + e.message;
-      }
-    };
-
-    $('btnCreateUser').onclick = async () => {
-      try {
-        const body = {
-          username: $('uName').value.trim(),
-          password: $('uPass').value,
-          studentUid: $('uUid').value.trim() || undefined,
-          role: $('uRole').value,
-        };
-        const u = await api('/admin/users', { method: 'POST', body: JSON.stringify(body) });
-        msg($('userMsg'), 'OK: ' + (u.username || JSON.stringify(u)), true);
-      } catch (e) {
-        msg($('userMsg'), e.message, false);
-      }
-    };
-
-    $('btnCreateStudent').onclick = async () => {
-      try {
-        const body = {
-          student: {
-            Uid: $('sUid').value.trim(),
-            Nev: $('sName').value.trim(),
-            TanevUid: '2025/2026',
-            IntezmenyAzonosito: 'mockschool',
-            IntezmenyNev: 'Mock Gimnázium',
-          },
-          classGroupUid: $('sClass').value.trim(),
-          username: $('sUser').value.trim(),
-          password: $('sPass').value,
-        };
-        const r = await api('/admin/students', { method: 'POST', body: JSON.stringify(body) });
-        msg($('studentCreateMsg'), 'Diák OK: ' + body.student.Uid, true);
-      } catch (e) {
-        msg($('studentCreateMsg'), e.message, false);
-      }
-    };
-
-    $('btnListStudents').onclick = async () => {
-      try {
-        const list = await api('/admin/students');
-        const rows = (Array.isArray(list) ? list : []).map(s =>
-          `<tr><td>${s.Uid || ''}</td><td>${s.Nev || ''}</td></tr>`
-        ).join('');
-        $('studentTable').innerHTML = rows || '<tr><td colspan="2">Üres</td></tr>';
-      } catch (e) {
-        msg($('listMsg'), e.message, false);
-      }
-    };
-
-    $('btnLoadStudent').onclick = async () => {
-      try {
-        const s = await api('/admin/student');
-        $('studentJson').value = JSON.stringify(s, null, 2);
-        msg($('studentMsg'), 'Betöltve', true);
-      } catch (e) {
-        msg($('studentMsg'), e.message, false);
-      }
-    };
-
-    $('btnSaveStudent').onclick = async () => {
-      try {
-        const body = JSON.parse($('studentJson').value);
-        await api('/admin/student', { method: 'PUT', body: JSON.stringify(body) });
-        msg($('studentMsg'), 'Mentve', true);
-      } catch (e) {
-        msg($('studentMsg'), e.message, false);
-      }
-    };
-
-    $('btnReset').onclick = async () => {
-      if (!confirm('Biztosan reset? Éles adat elvész.')) return;
-      try {
-        await api('/admin/reset', { method: 'POST', body: '{}' });
-        msg($('resetMsg'), 'Reset kész', true);
-      } catch (e) {
-        msg($('resetMsg'), e.message, false);
-      }
-    };
-
-    try {
-      const saved = JSON.parse(localStorage.getItem('ujkreta_admin') || 'null');
-      if (saved) {
-        $('base').value = saved.base || defaultBase();
-        $('adminUser').value = saved.user || '';
-        $('adminPass').value = saved.pass || '';
-      }
-    } catch (_) {}
-  </script>
+  <script src="app.js"></script>
 </body>
 </html>

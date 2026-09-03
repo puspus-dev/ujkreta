@@ -578,6 +578,8 @@ func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 // Új user esetén CreateUserWithRole.
 func (s *Store) UpsertUserWithRole(username, password, linkedUID, role string) (User, error) {
 	username = strings.TrimSpace(username)
+	password = strings.TrimSpace(password)
+	linkedUID = strings.TrimSpace(linkedUID)
 	if username == "" {
 		return User{}, fmt.Errorf("username nem lehet üres")
 	}
@@ -591,27 +593,21 @@ func (s *Store) UpsertUserWithRole(username, password, linkedUID, role string) (
 		return User{}, fmt.Errorf("role csak Tanulo vagy Tanar lehet")
 	}
 
-	existing, err := s.GetUserByUsername(username)
-	if err != nil {
-		// nincs ilyen user → create
-		return s.CreateUserWithRole(username, password, linkedUID, role)
-	}
-
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return User{}, err
 	}
-
 	ctx := context.Background()
+
+	// 1) próbáljuk frissíteni (ha létezik)
 	var user User
 	var roleOut string
-
 	err = s.db.QueryRow(
 		ctx,
 		`
 		UPDATE users
 		SET password_hash = $2,
-		    student_uid = $3,
+		    student_uid = COALESCE(NULLIF($3, ''), student_uid),
 		    role = $4,
 		    active = TRUE
 		WHERE username = $1
@@ -630,11 +626,45 @@ func (s *Store) UpsertUserWithRole(username, password, linkedUID, role string) (
 		&user.Active,
 		&user.CreatedAt,
 	)
-	if err != nil {
-		return User{}, err
+	if err == nil {
+		user.Role = roleOut
+		return user, nil
 	}
-	user.Role = roleOut
-	_ = existing // kept for clarity
+
+	// 2) nincs ilyen sor → insert
+	user, err = s.CreateUserWithRole(username, password, linkedUID, role)
+	if err != nil {
+		// 3) race / unique: még egyszer update
+		err2 := s.db.QueryRow(
+			ctx,
+			`
+			UPDATE users
+			SET password_hash = $2,
+			    student_uid = COALESCE(NULLIF($3, ''), student_uid),
+			    role = $4,
+			    active = TRUE
+			WHERE username = $1
+			RETURNING id::text, username, password_hash, student_uid, role, active, created_at
+			`,
+			username,
+			string(hash),
+			linkedUID,
+			role,
+		).Scan(
+			&user.ID,
+			&user.Username,
+			&user.PasswordHash,
+			&user.StudentUID,
+			&roleOut,
+			&user.Active,
+			&user.CreatedAt,
+		)
+		if err2 != nil {
+			return User{}, fmt.Errorf("user mentés sikertelen: %v", err)
+		}
+		user.Role = roleOut
+		return user, nil
+	}
 	return user, nil
 }
 
@@ -659,28 +689,38 @@ func (s *Store) SoftDeleteUserByUsername(username string) error {
 	if username == "" {
 		return fmt.Errorf("username_required")
 	}
-
+	// Végleges törlés – így újra létrehozható ugyanaz a username
 	ctx := context.Background()
+	_, err := s.db.Exec(ctx, `DELETE FROM users WHERE username = $1`, username)
+	return err
+}
 
-	tag, err := s.db.Exec(
-		ctx,
-		`UPDATE users SET active = FALSE WHERE username = $1`,
-		username,
-	)
+func (s *Store) HardDeleteUserByUsername(username string) error {
+	return s.SoftDeleteUserByUsername(username)
+}
+
+func (s *Store) HardDeleteStudent(uid string) error {
+	uid = strings.TrimSpace(uid)
+	if uid == "" {
+		return fmt.Errorf("uid_required")
+	}
+	ctx := context.Background()
+	_, err := s.db.Exec(ctx, `DELETE FROM students WHERE uid = $1`, uid)
 	if err != nil {
 		return err
 	}
-
-	if tag.RowsAffected() == 0 {
-		_, err = s.db.Exec(
-			ctx,
-			`DELETE FROM users WHERE username = $1`,
-			username,
-		)
-		return err
-	}
-
+	_, _ = s.db.Exec(ctx, `DELETE FROM users WHERE student_uid = $1`, uid)
 	return nil
+}
+
+func (s *Store) HardDeleteUserByLinkedUID(uid string) error {
+	uid = strings.TrimSpace(uid)
+	if uid == "" {
+		return nil
+	}
+	ctx := context.Background()
+	_, err := s.db.Exec(ctx, `DELETE FROM users WHERE student_uid = $1`, uid)
+	return err
 }
 
 func (s *Store) SoftDeleteUsersByLinkedUID(uid string) error {

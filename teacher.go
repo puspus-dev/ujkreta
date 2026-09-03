@@ -176,8 +176,27 @@ func (s *Server) handleTeacherGrades(w http.ResponseWriter, r *http.Request) {
 
 		writeJSON(w, http.StatusCreated, grade)
 
+	case http.MethodDelete:
+		uid := strings.TrimSpace(r.URL.Query().Get("uid"))
+		if uid == "" {
+			var body struct {
+				Uid string `json:"uid"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			uid = strings.TrimSpace(body.Uid)
+		}
+		if uid == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "uid_required"})
+			return
+		}
+		if err := s.store.DeleteGrade(uid); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"success": true, "deleted": uid})
+
 	default:
-		methodNotAllowed(w, "GET, POST")
+		methodNotAllowed(w, "GET, POST, DELETE")
 	}
 }
 
@@ -246,8 +265,27 @@ func (s *Server) handleTeacherOmissions(w http.ResponseWriter, r *http.Request) 
 
 		writeJSON(w, http.StatusCreated, om)
 
+	case http.MethodDelete:
+		uid := strings.TrimSpace(r.URL.Query().Get("uid"))
+		if uid == "" {
+			var body struct {
+				Uid string `json:"uid"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			uid = strings.TrimSpace(body.Uid)
+		}
+		if uid == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "uid_required"})
+			return
+		}
+		if err := s.store.DeleteOmission(uid); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"success": true, "deleted": uid})
+
 	default:
-		methodNotAllowed(w, "GET, POST")
+		methodNotAllowed(w, "GET, POST, DELETE")
 	}
 }
 

@@ -42,7 +42,17 @@ async function api(path, opts = {}) {
     throw new Error("401");
   }
   if (!res.ok) {
-    const msg = (data && (data.message || data.error_description || data.error)) || ("HTTP " + res.status);
+    let msg = "HTTP " + res.status;
+    if (data) {
+      if (typeof data === "string") msg = data;
+      else msg = data.message || data.error_description || data.error || msg;
+      if (data.message && data.error && data.message !== data.error) {
+        msg = data.error + ": " + data.message;
+      }
+    }
+    if (res.status === 405) {
+      msg = "method_not_allowed – a szerveren nincs meg ez a művelet (deploy/old handler).";
+    }
     throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
   }
   return data;
@@ -708,7 +718,7 @@ function bindTeachers() {
 
 function renderUsers() {
   const users = Array.isArray(cache.users) ? cache.users : [];
-  const activeUsers = users.filter((u) => u.active !== false);
+  const activeUsers = users; // aktív + inaktív is – törléshez kell
 
   const rows = activeUsers.length === 0
     ? `<tr><td colspan="5">${empty("Nincs user, vagy a GET /admin/users még nincs a szerveren.")}</td></tr>`
@@ -734,6 +744,23 @@ function renderUsers() {
           <thead><tr><th>Username</th><th>Role</th><th>Kapcsolt UID</th><th>Állapot</th><th></th></tr></thead>
           <tbody>${rows}</tbody>
         </table></div>
+      </div>
+    </div>
+
+    <div class="n-panel">
+      <div class="n-panel-head">User törlése username alapján (ha nincs a listában)</div>
+      <div class="n-panel-body">
+        <div id="manualDelMsg" style="display:none;"></div>
+        <form id="manualDelForm" class="n-form-grid">
+          <label for="delUserManual">Username</label>
+          <input id="delUserManual" required placeholder="pl. diak2" />
+          <div class="n-form-actions">
+            <button type="submit" class="n-btn" style="background:#c62828;border-color:#c62828;">Végleges törlés</button>
+          </div>
+        </form>
+        <p style="margin-top:8px;color:var(--n-muted);font-size:12px;">
+          A <code>DELETE /admin/users?username=…</code> a sort ténylegesen törli az adatbázisból.
+        </p>
       </div>
     </div>
 
@@ -778,6 +805,27 @@ function renderUsers() {
 }
 
 function bindUsers() {
+  document.getElementById("manualDelForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const username = document.getElementById("delUserManual").value.trim();
+    const msg = document.getElementById("manualDelMsg");
+    if (!username) return;
+    if (!confirm("Véglegesen törlöd: " + username + " ?")) return;
+    try {
+      await api("/admin/users?username=" + encodeURIComponent(username), { method: "DELETE" });
+      msg.className = "n-msg n-msg-ok";
+      msg.style.display = "block";
+      msg.textContent = "Törölve: " + username;
+      document.getElementById("delUserManual").value = "";
+      await refreshData();
+      navigate("users");
+    } catch (err) {
+      msg.className = "n-msg n-msg-err";
+      msg.style.display = "block";
+      msg.textContent = err.message || String(err);
+    }
+  });
+
   document.getElementById("userForm")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const msg = document.getElementById("userMsg");

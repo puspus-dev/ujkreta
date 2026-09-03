@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -311,10 +312,37 @@ func (s *Server) handleAdminTeacher(w http.ResponseWriter, r *http.Request) {
 			"teacher": s.store.GetTeacher(),
 		})
 
+	case http.MethodDelete:
+		uid := strings.TrimSpace(r.URL.Query().Get("uid"))
+		t := s.store.GetTeacher()
+
+		if uid != "" && t.Uid != "" && t.Uid != uid {
+			_ = s.store.SoftDeleteUsersByLinkedUID(uid)
+			writeJSON(w, http.StatusOK, map[string]any{
+				"success": true,
+				"message": "linked users deactivated; server teacher profile is singleton",
+				"uid":     uid,
+			})
+			return
+		}
+
+		s.store.SetTeacher(Teacher{})
+		if uid != "" {
+			_ = s.store.SoftDeleteUsersByLinkedUID(uid)
+		} else if t.Uid != "" {
+			_ = s.store.SoftDeleteUsersByLinkedUID(t.Uid)
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"success": true,
+			"deleted": uid,
+		})
+
 	default:
-		methodNotAllowed(w, "GET, PUT, POST")
+		methodNotAllowed(w, "GET, PUT, POST, DELETE")
 	}
 }
+
 
 // ============================================================
 // HELPERS

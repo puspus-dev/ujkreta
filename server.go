@@ -452,63 +452,6 @@ func (s *Server) handleAdminStudents(w http.ResponseWriter, r *http.Request) {
 }
 
 // ============================================================
-// ADMIN TEACHER – GET / PUT / POST / DELETE
-// ============================================================
-
-func (s *Server) handleAdminTeacher(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		writeJSON(w, http.StatusOK, s.store.GetTeacher())
-
-	case http.MethodPut, http.MethodPost:
-		var teacher Teacher
-
-		if err := json.NewDecoder(r.Body).Decode(&teacher); err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{
-				"error": "invalid_json",
-			})
-			return
-		}
-
-		s.store.SetTeacher(teacher)
-
-		writeJSON(w, http.StatusOK, map[string]any{
-			"success": true,
-			"teacher": s.store.GetTeacher(),
-		})
-
-	case http.MethodDelete:
-		uid := strings.TrimSpace(r.URL.Query().Get("uid"))
-		t := s.store.GetTeacher()
-
-		if uid != "" && t.Uid != "" && t.Uid != uid {
-			_ = s.store.SoftDeleteUsersByLinkedUID(uid)
-			writeJSON(w, http.StatusOK, map[string]any{
-				"success": true,
-				"message": "linked users deactivated; server teacher profile is singleton",
-				"uid":     uid,
-			})
-			return
-		}
-
-		s.store.SetTeacher(Teacher{})
-		if uid != "" {
-			_ = s.store.SoftDeleteUsersByLinkedUID(uid)
-		} else if t.Uid != "" {
-			_ = s.store.SoftDeleteUsersByLinkedUID(t.Uid)
-		}
-
-		writeJSON(w, http.StatusOK, map[string]any{
-			"success": true,
-			"deleted": uid,
-		})
-
-	default:
-		methodNotAllowed(w, "GET, PUT, POST, DELETE")
-	}
-}
-
-// ============================================================
 // ADMIN RESET
 // ============================================================
 

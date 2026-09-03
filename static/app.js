@@ -19,7 +19,7 @@ const PAGE_META = {
 
 let basicUser = sessionStorage.getItem("admin_user") || "";
 let basicPass = sessionStorage.getItem("admin_pass") || "";
-let cache = { students: [], teacher: null, config: null, health: null };
+let cache = { students: [], teacher: null, config: null, health: null, users: [] };
 let editStudentUid = null;
 let currentPage = "dashboard";
 
@@ -109,11 +109,12 @@ function empty(t) {
 }
 
 async function refreshData() {
-  const [students, teacher, config, health] = await Promise.all([
+  const [students, teacher, config, health, users] = await Promise.all([
     api("/admin/students").catch(() => api("/admin/student").then((s) => (s ? [s] : [])).catch(() => [])),
     api("/admin/teacher").catch(() => null),
     api("/admin/config").catch(() => null),
-    api("/admin/health").catch(() => null)
+    api("/admin/health").catch(() => null),
+    api("/admin/users").catch(() => [])
   ]);
   let stuList = Array.isArray(students) ? students : students ? [students] : [];
   try {
@@ -126,6 +127,7 @@ async function refreshData() {
   cache.teacher = teacher;
   cache.config = config;
   cache.health = health;
+  cache.users = Array.isArray(users) ? users : [];
   ensureDefaultSchools(cache.students);
   if (teacher && teacher.Uid) {
     try { syncTeacherToLocal(teacher); } catch (_) {}
@@ -705,7 +707,36 @@ function bindTeachers() {
 }
 
 function renderUsers() {
+  const users = Array.isArray(cache.users) ? cache.users : [];
+  const activeUsers = users.filter((u) => u.active !== false);
+
+  const rows = activeUsers.length === 0
+    ? `<tr><td colspan="5">${empty("Nincs user, vagy a GET /admin/users még nincs a szerveren.")}</td></tr>`
+    : activeUsers.map((u) => `
+      <tr>
+        <td>${esc(u.username)}</td>
+        <td>${esc(u.role || "—")}</td>
+        <td>${esc(u.studentUid || "—")}</td>
+        <td>${u.active === false ? "inaktív" : "aktív"}</td>
+        <td>
+          <button type="button" class="n-btn n-btn-secondary del-user"
+            data-username="${esc(u.username)}"
+            style="color:#c62828;border-color:#ef9a9a;">Törlés</button>
+        </td>
+      </tr>`).join("");
+
   return `
+    <div class="n-panel">
+      <div class="n-panel-head">Bejelentkezési felhasználók (${activeUsers.length})</div>
+      <div class="n-panel-body" style="padding:0;">
+        <div id="userListMsg" style="display:none;margin:10px;"></div>
+        <div class="n-table-wrap"><table class="n-table">
+          <thead><tr><th>Username</th><th>Role</th><th>Kapcsolt UID</th><th>Állapot</th><th></th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>
+      </div>
+    </div>
+
     <div class="n-panel">
       <div class="n-panel-head">Új bejelentkezési felhasználó</div>
       <div class="n-panel-body">
@@ -727,10 +758,12 @@ function renderUsers() {
           </div>
         </form>
         <p style="margin-top:12px;color:var(--n-muted);font-size:12px;">
-          A létrehozott user a fő login oldalon használható. Diák → /diak, tanár → /tanar.
+          A törléshez a szerveren kell a <code>admin_delete_handlers.go</code> (Render deploy).
+          Soft-delete: <code>users.active = false</code>.
         </p>
       </div>
     </div>
+
     <div class="n-panel">
       <div class="n-panel-head">Diák UID-k (segédlet)</div>
       <div class="n-panel-body" style="padding:0;">
@@ -763,11 +796,40 @@ function bindUsers() {
       msg.style.display = "block";
       msg.textContent = "Felhasználó létrehozva.";
       e.target.reset();
+      await refreshData();
+      navigate("users");
     } catch (err) {
       msg.className = "n-msg n-msg-err";
       msg.style.display = "block";
       msg.textContent = err.message;
     }
+  });
+
+  document.querySelectorAll(".del-user").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const username = btn.dataset.username;
+      if (!confirm("Törlöd a felhasználót?\n" + username)) return;
+      const msg = document.getElementById("userListMsg");
+      try {
+        await api("/admin/users?username=" + encodeURIComponent(username), { method: "DELETE" });
+        if (msg) {
+          msg.className = "n-msg n-msg-ok";
+          msg.style.display = "block";
+          msg.textContent = "Törölve: " + username;
+        }
+        await refreshData();
+        navigate("users");
+      } catch (err) {
+        if (msg) {
+          msg.className = "n-msg n-msg-err";
+          msg.style.display = "block";
+          msg.textContent = "Törlés sikertelen: " + (err.message || err) +
+            " — telepítsd az admin_delete_handlers.go-t a Renderre.";
+        } else {
+          alert("Törlés sikertelen: " + (err.message || err));
+        }
+      }
+    });
   });
 }
 

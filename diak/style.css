@@ -467,3 +467,305 @@ a { color: var(--n-link); }
   .n-lesson-time { grid-column: 2; }
   .n-kv { grid-template-columns: 120px 1fr; }
 }
+
+
+/* ============================================================
+   MOBIL – felhasználóbarát nézet
+   ============================================================ */
+
+.m-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 800px) {
+  :root {
+    --header-h: 48px;
+    --bottom-nav-h: 58px;
+  }
+
+  .m-bottom-nav {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 210;
+    height: var(--bottom-nav-h);
+    background: #fff;
+    border-top: 1px solid var(--n-border);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+    padding: 0 env(safe-area-inset-bottom, 0);
+  }
+
+  .m-tab {
+    flex: 1;
+    border: 0;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    color: var(--n-muted);
+    font-size: 10px;
+    font-weight: 650;
+    min-width: 0;
+    padding: 6px 2px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .m-tab .m-ico {
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .m-tab .m-lbl {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .m-tab.active {
+    color: var(--n-header);
+  }
+
+  .m-tab:active {
+    background: var(--n-nav-hover);
+  }
+
+  /* header kompakt */
+  .n-header {
+    padding-right: 8px;
+  }
+
+  .n-logo {
+    padding: 0 10px;
+    font-size: 14px;
+  }
+
+  .n-system {
+    font-size: 12px;
+  }
+
+  .n-inst {
+    max-width: 110px;
+    font-size: 10px;
+  }
+
+  .n-user-name {
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .n-logout {
+    padding: 8px 10px;
+    font-size: 12px;
+    min-height: 36px;
+  }
+
+  /* tartalom hely az alsó navnak */
+  .n-main {
+    margin-left: 0;
+    padding: 10px 12px calc(var(--bottom-nav-h) + 16px);
+  }
+
+  .n-breadcrumb {
+    display: none;
+  }
+
+  .n-page-title {
+    font-size: 17px;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+  }
+
+  /* kártyák / statok */
+  .n-grid-2,
+  .n-grid-3,
+  .n-grid-4 {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .n-stat {
+    padding: 12px;
+  }
+
+  .n-stat-value {
+    font-size: 20px;
+  }
+
+  .n-welcome {
+    padding: 14px;
+  }
+
+  .n-welcome h2 {
+    font-size: 15px;
+  }
+
+  .n-panel {
+    margin-bottom: 10px;
+    border-radius: 0;
+  }
+
+  .n-panel-head {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .n-panel-body {
+    padding: 10px 12px;
+  }
+
+  /* táblák: nagyobb érintés, vízszintes scroll jelzés */
+  .n-table-wrap,
+  .k-book {
+    margin: 0 -12px;
+    padding: 0 0 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .n-table,
+  .k-table {
+    font-size: 13px;
+  }
+
+  .n-table th,
+  .n-table td,
+  .k-table th,
+  .k-table td {
+    padding: 10px 8px;
+  }
+
+  /* gombok érintésbarát */
+  .n-btn,
+  .k-btn,
+  .k-q {
+    min-height: 40px;
+    min-width: 40px;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .k-q {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+
+  .k-quick {
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  /* jegybeíró mobil */
+  .k-filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .k-filters > div {
+    width: 100%;
+  }
+
+  .k-filters select,
+  .k-filters input {
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    font-size: 16px; /* iOS zoom elkerülés */
+  }
+
+  .k-toolbar {
+    position: sticky;
+    top: var(--header-h);
+    z-index: 20;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .k-toolbar .k-title {
+    margin-left: 0;
+    width: 100%;
+    font-size: 12px;
+  }
+
+  .k-table {
+    min-width: 640px;
+  }
+
+  /* sidebar full sheet mobil */
+  .n-sidebar {
+    width: min(300px, 88vw);
+    top: var(--header-h);
+    bottom: var(--bottom-nav-h);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+  }
+
+  .n-nav-item {
+    padding: 14px 16px;
+    font-size: 15px;
+    min-height: 48px;
+  }
+
+  .n-overlay {
+    bottom: var(--bottom-nav-h);
+  }
+
+  /* form mezők */
+  .n-form-grid {
+    grid-template-columns: 1fr;
+    gap: 4px 0;
+  }
+
+  .n-form-grid label {
+    margin-top: 8px;
+  }
+
+  .n-form-grid input,
+  .n-form-grid select,
+  .n-form-grid textarea {
+    min-height: 42px;
+    font-size: 16px;
+  }
+
+  .n-lesson {
+    grid-template-columns: 32px 1fr;
+    gap: 6px 10px;
+    padding: 12px 8px;
+  }
+
+  .n-lesson-time {
+    grid-column: 2;
+  }
+
+  .n-kv {
+    grid-template-columns: 1fr;
+  }
+
+  .n-kv .k {
+    border-bottom: 0;
+    padding-bottom: 2px;
+  }
+}
+
+@media (max-width: 420px) {
+  .n-grid-2,
+  .n-grid-4 {
+    grid-template-columns: 1fr;
+  }
+
+  .n-user-code {
+    display: none;
+  }
+
+  .n-logout {
+    padding: 8px;
+  }
+}

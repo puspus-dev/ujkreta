@@ -695,6 +695,9 @@ function navigate(page, opts = {}) {
   document.querySelectorAll(".n-nav-item").forEach((b) => {
     b.classList.toggle("active", b.dataset.page === page);
   });
+  document.querySelectorAll(".m-tab[data-page]").forEach((b) => {
+    b.classList.toggle("active", b.dataset.page === page);
+  });
   const el = document.getElementById("pageContent");
   try {
     el.innerHTML = RENDERERS[page]();
@@ -754,6 +757,14 @@ async function boot() {
   document.getElementById("overlay").addEventListener("click", closeSidebar);
   document.querySelectorAll(".n-nav-item").forEach((btn) => {
     btn.addEventListener("click", () => navigate(btn.dataset.page));
+  });
+
+  document.querySelectorAll(".m-tab[data-page]").forEach((btn) => {
+    btn.addEventListener("click", () => navigate(btn.dataset.page));
+  });
+  document.getElementById("moreBtn")?.addEventListener("click", () => {
+    document.getElementById("sidebar").classList.add("open");
+    document.getElementById("overlay").style.display = "block";
   });
 
   try {

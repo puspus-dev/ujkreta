@@ -115,7 +115,14 @@ async function refreshData() {
     api("/admin/config").catch(() => null),
     api("/admin/health").catch(() => null)
   ]);
-  cache.students = Array.isArray(students) ? students : students ? [students] : [];
+  let stuList = Array.isArray(students) ? students : students ? [students] : [];
+  try {
+    const deleted = JSON.parse(localStorage.getItem("ujkreta_admin_deleted_students") || "[]");
+    if (Array.isArray(deleted) && deleted.length) {
+      stuList = stuList.filter((s) => !deleted.includes(String(s.Uid)));
+    }
+  } catch (_) {}
+  cache.students = stuList;
   cache.teacher = teacher;
   cache.config = config;
   cache.health = health;
@@ -210,7 +217,10 @@ function renderSchools() {
               <td><code>${esc(s.code)}</code></td>
               <td>${esc(s.name)}</td>
               <td>${counts[s.code] || 0}</td>
-              <td><button type="button" class="n-btn n-btn-secondary del-school" data-code="${esc(s.code)}">Törlés</button></td>
+              <td style="white-space:nowrap;">
+                <button type="button" class="n-btn n-btn-secondary edit-school" data-code="${esc(s.code)}" data-name="${esc(s.name)}">Szerkeszt</button>
+                <button type="button" class="n-btn n-btn-secondary del-school" data-code="${esc(s.code)}" style="color:#c62828;border-color:#ef9a9a;">Törlés</button>
+              </td>
             </tr>`).join("")}</tbody>
         </table></div>`}
       </div>
@@ -223,6 +233,12 @@ function bindSchools() {
     const code = document.getElementById("schCode").value.trim();
     const name = document.getElementById("schName").value.trim();
     const msg = document.getElementById("schoolMsg");
+    if (!code || !name) {
+      msg.className = "n-msg n-msg-err";
+      msg.style.display = "block";
+      msg.textContent = "Kód és név kötelező.";
+      return;
+    }
     let schools = getSchools();
     const i = schools.findIndex((s) => s.code === code);
     if (i >= 0) schools[i].name = name;
@@ -230,13 +246,25 @@ function bindSchools() {
     saveSchools(schools);
     msg.className = "n-msg n-msg-ok";
     msg.style.display = "block";
-    msg.textContent = "Iskola elmentve.";
+    msg.textContent = i >= 0 ? "Iskola frissítve." : "Iskola hozzáadva.";
     navigate("schools");
+  });
+  document.querySelectorAll(".edit-school").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.getElementById("schCode").value = btn.dataset.code || "";
+      document.getElementById("schName").value = btn.dataset.name || "";
+      document.getElementById("schCode").focus();
+    });
   });
   document.querySelectorAll(".del-school").forEach((btn) => {
     btn.addEventListener("click", () => {
-      if (!confirm("Törlöd ezt az iskolát a listából?")) return;
-      saveSchools(getSchools().filter((s) => s.code !== btn.dataset.code));
+      const code = btn.dataset.code;
+      const used = (cache.students || []).filter((s) => s.IntezmenyAzonosito === code).length;
+      const msg = used
+        ? "Ez az iskola " + used + " diákhoz van rendelve. Így is törlöd a listából?"
+        : "Törlöd ezt az iskolát a listából?";
+      if (!confirm(msg)) return;
+      saveSchools(getSchools().filter((s) => s.code !== code));
       navigate("schools");
     });
   });
@@ -265,8 +293,9 @@ function renderStudents() {
               <td>${esc(s.IntezmenyNev || "—")}<div style="color:var(--n-muted);font-size:11px;">${esc(s.IntezmenyAzonosito || "")}</div></td>
               <td>${esc(s.TanevUid || "—")}</td>
               <td>${esc(s.EmailCim || "—")}</td>
-              <td>
-                <button type="button" class="n-btn n-btn-secondary edit-student" data-uid="${esc(s.Uid)}">Profil</button>
+              <td style="white-space:nowrap;">
+                <button type="button" class="n-btn n-btn-secondary edit-student" data-uid="${esc(s.Uid)}">Szerkeszt</button>
+                <button type="button" class="n-btn n-btn-secondary del-student" data-uid="${esc(s.Uid)}" data-name="${esc(s.Nev)}" style="color:#c62828;border-color:#ef9a9a;">Törlés</button>
               </td>
             </tr>`).join("")}</tbody>
         </table></div>`}
@@ -332,6 +361,7 @@ function studentFormValues(s) {
       <div class="n-form-actions">
         <button type="submit" class="n-btn">${s.Uid ? "Profil mentése" : "Diák létrehozása"}</button>
         <button type="button" class="n-btn n-btn-secondary" data-go="students">Vissza</button>
+        ${s && s.Uid ? `<button type="button" class="n-btn n-btn-secondary" id="stuDeleteBtn" style="color:#c62828;border-color:#ef9a9a;margin-left:auto;">Diák törlése</button>` : ""}
       </div>
     </form>`;
 }
@@ -351,6 +381,11 @@ function renderStudentForm() {
 }
 
 function bindStudentForm() {
+  document.getElementById("stuDeleteBtn")?.addEventListener("click", () => {
+    const uid = document.getElementById("stUid").value.trim();
+    const name = document.getElementById("stNev").value.trim();
+    deleteStudent(uid, name);
+  });
   const schoolSel = document.getElementById("stSchool");
   schoolSel?.addEventListener("change", () => {
     const code = schoolSel.value;
@@ -482,7 +517,10 @@ function renderTeachers() {
         <td>${esc(t.IntezmenyNev || "—")}<div style="color:var(--n-muted);font-size:11px;">${esc(t.IntezmenyAzonosito || "")}</div></td>
         <td>${esc(t.EmailCim || "—")}</td>
         <td>${esc(t.Telefonszam || "—")}</td>
-        <td><button type="button" class="n-btn n-btn-secondary edit-teacher" data-uid="${esc(t.Uid)}">Szerkeszt</button></td>
+        <td style="white-space:nowrap;">
+          <button type="button" class="n-btn n-btn-secondary edit-teacher" data-uid="${esc(t.Uid)}">Szerkeszt</button>
+          <button type="button" class="n-btn n-btn-secondary del-teacher" data-uid="${esc(t.Uid)}" data-name="${esc(t.Nev)}" style="color:#c62828;border-color:#ef9a9a;">Törlés</button>
+        </td>
       </tr>`).join("");
 
   const schoolOpts = schools.map((sc) =>
@@ -569,6 +607,10 @@ function bindTeachers() {
     const opt = [...schoolSel.options].find((o) => o.value === code);
     if (opt) schoolSel.value = code;
   }
+
+  document.querySelectorAll(".del-teacher").forEach((btn) => {
+    btn.addEventListener("click", () => deleteTeacher(btn.dataset.uid, btn.dataset.name));
+  });
 
   document.querySelectorAll(".edit-teacher").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -854,7 +896,56 @@ function navigate(page) {
       navigate("studentForm");
     });
   });
+  el.querySelectorAll(".del-student").forEach((btn) => {
+    btn.addEventListener("click", () => deleteStudent(btn.dataset.uid, btn.dataset.name));
+  });
   closeSidebar();
+}
+
+async function deleteStudent(uid, name) {
+  if (!uid) return;
+  if (!confirm("Biztosan törlöd a diákot?\n" + (name || uid) + " (" + uid + ")")) return;
+  try {
+    await api("/admin/students?uid=" + encodeURIComponent(uid), { method: "DELETE" });
+  } catch (e) {
+    // fallback: local hide list
+    const key = "ujkreta_admin_deleted_students";
+    let arr = [];
+    try { arr = JSON.parse(localStorage.getItem(key) || "[]"); } catch (_) {}
+    if (!arr.includes(uid)) arr.push(uid);
+    localStorage.setItem(key, JSON.stringify(arr));
+    alert("API törlés nem elérhető (" + (e.message || e) + ").\nHelyben elrejtve. Telepítsd az admin_crud_patch.go-t a szerverre a végleges törléshez.");
+  }
+  try { await refreshData(); } catch (_) {}
+  navigate("students");
+}
+
+async function deleteTeacher(uid, name) {
+  if (!uid) return;
+  if (!confirm("Biztosan törlöd a tanárt?\n" + (name || uid) + " (" + uid + ")")) return;
+  // local always
+  saveTeachersLocal(getTeachersLocal().filter((t) => String(t.Uid) !== String(uid)));
+  try {
+    await api("/admin/teacher/delete?uid=" + encodeURIComponent(uid), { method: "DELETE" });
+  } catch (_) {
+    try {
+      await api("/admin/teacher?uid=" + encodeURIComponent(uid), { method: "DELETE" });
+    } catch (e2) {
+      // ignore – local already removed
+    }
+  }
+  // if was active API teacher, try clear
+  if (cache.teacher && String(cache.teacher.Uid) === String(uid)) {
+    try {
+      await api("/admin/teacher", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ Uid: "", Nev: "" })
+      });
+    } catch (_) {}
+  }
+  try { await refreshData(); } catch (_) {}
+  navigate("teachers");
 }
 
 function showLogin(err) {

@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 // ============================================================
@@ -399,7 +401,7 @@ func (s *Server) handleAdminStudents(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if body.Username != "" && body.Password != "" {
-			if _, err := s.store.CreateUserWithRole(
+			if _, err := s.store.UpsertUserWithRole(
 				body.Username,
 				body.Password,
 				body.Student.Uid,
@@ -514,7 +516,7 @@ func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 			role = "Tanulo"
 		}
 
-		user, err := s.store.CreateUserWithRole(
+		user, err := s.store.UpsertUserWithRole(
 			req.Username,
 			req.Password,
 			studentUID,
@@ -567,6 +569,72 @@ func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 // STORE HELPERS – soft delete + user lista
 // (ha ezek máshol is definiálva vannak, töröld a másik példányt)
 // ============================================================
+
+
+// UpsertUserWithRole – ha a username már létezik: jelszó/role/uid frissítés + active=true.
+// Új user esetén CreateUserWithRole.
+func (s *Store) UpsertUserWithRole(username, password, linkedUID, role string) (User, error) {
+	username = strings.TrimSpace(username)
+	if username == "" {
+		return User{}, fmt.Errorf("username nem lehet üres")
+	}
+	if password == "" {
+		return User{}, fmt.Errorf("password nem lehet üres")
+	}
+	if role == "" {
+		role = RoleStudent
+	}
+	if role != RoleStudent && role != RoleTeacher {
+		return User{}, fmt.Errorf("role csak Tanulo vagy Tanar lehet")
+	}
+
+	existing, err := s.GetUserByUsername(username)
+	if err != nil {
+		// nincs ilyen user → create
+		return s.CreateUserWithRole(username, password, linkedUID, role)
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return User{}, err
+	}
+
+	ctx := context.Background()
+	var user User
+	var roleOut string
+
+	err = s.db.QueryRow(
+		ctx,
+		`
+		UPDATE users
+		SET password_hash = $2,
+		    student_uid = $3,
+		    role = $4,
+		    active = TRUE
+		WHERE username = $1
+		RETURNING id::text, username, password_hash, student_uid, role, active, created_at
+		`,
+		username,
+		string(hash),
+		linkedUID,
+		role,
+	).Scan(
+		&user.ID,
+		&user.Username,
+		&user.PasswordHash,
+		&user.StudentUID,
+		&roleOut,
+		&user.Active,
+		&user.CreatedAt,
+	)
+	if err != nil {
+		return User{}, err
+	}
+	user.Role = roleOut
+	_ = existing // kept for clarity
+	return user, nil
+}
+
 
 func (s *Store) SoftDeleteStudent(uid string) error {
 	uid = strings.TrimSpace(uid)

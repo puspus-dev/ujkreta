@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -248,15 +250,25 @@ func (s *Server) handleAdminIndex(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"name":    "mock-kreta-server admin API",
-		"version": 1,
+		"version": 2,
 		"status":  "ok",
 		"routes": []string{
 			"/admin",
 			"/admin/health",
 			"/admin/config",
 			"/admin/student",
+			"/admin/students",
+			"/admin/teacher",
 			"/admin/reset",
 			"/admin/users",
+		},
+		"methods": map[string]string{
+			"/admin/students": "GET, POST, PUT, DELETE",
+			"/admin/users":    "GET, POST, DELETE",
+			"/admin/teacher":  "GET, PUT, POST, DELETE",
+			"/admin/student":  "GET, PUT, POST",
+			"/admin/config":   "GET, PUT, POST",
+			"/admin/reset":    "POST",
 		},
 	})
 }
@@ -313,7 +325,7 @@ func (s *Server) handleAdminConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 // ============================================================
-// ADMIN STUDENT
+// ADMIN STUDENT (singleton – backward compat)
 // ============================================================
 
 func (s *Server) handleAdminStudent(w http.ResponseWriter, r *http.Request) {
@@ -349,6 +361,154 @@ func (s *Server) handleAdminStudent(w http.ResponseWriter, r *http.Request) {
 }
 
 // ============================================================
+// ADMIN STUDENTS (multi) – GET / POST / PUT / DELETE
+// ============================================================
+
+func (s *Server) handleAdminStudents(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		writeJSON(w, http.StatusOK, s.store.ListStudents())
+
+	case http.MethodPost, http.MethodPut:
+		var body struct {
+			Student       Student `json:"student"`
+			ClassGroupUID string  `json:"classGroupUid"`
+			Username      string  `json:"username"`
+			Password      string  `json:"password"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error": "invalid_json",
+			})
+			return
+		}
+
+		if body.Student.Uid == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error": "student.uid_required",
+			})
+			return
+		}
+
+		if err := s.store.UpsertStudent(body.Student, body.ClassGroupUID); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		if body.Username != "" && body.Password != "" {
+			if _, err := s.store.CreateUserWithRole(
+				body.Username,
+				body.Password,
+				body.Student.Uid,
+				"Tanulo",
+			); err != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]string{
+					"error": "user_create: " + err.Error(),
+				})
+				return
+			}
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"success": true,
+			"student": body.Student,
+		})
+
+	case http.MethodDelete:
+		uid := strings.TrimSpace(r.URL.Query().Get("uid"))
+		if uid == "" {
+			var body struct {
+				Uid string `json:"uid"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			uid = strings.TrimSpace(body.Uid)
+		}
+		if uid == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error": "uid_required",
+			})
+			return
+		}
+
+		if err := s.store.SoftDeleteStudent(uid); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error": err.Error(),
+			})
+			return
+		}
+		_ = s.store.SoftDeleteUsersByLinkedUID(uid)
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"success": true,
+			"deleted": uid,
+		})
+
+	default:
+		methodNotAllowed(w, "GET, POST, PUT, DELETE")
+	}
+}
+
+// ============================================================
+// ADMIN TEACHER – GET / PUT / POST / DELETE
+// ============================================================
+
+func (s *Server) handleAdminTeacher(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		writeJSON(w, http.StatusOK, s.store.GetTeacher())
+
+	case http.MethodPut, http.MethodPost:
+		var teacher Teacher
+
+		if err := json.NewDecoder(r.Body).Decode(&teacher); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error": "invalid_json",
+			})
+			return
+		}
+
+		s.store.SetTeacher(teacher)
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"success": true,
+			"teacher": s.store.GetTeacher(),
+		})
+
+	case http.MethodDelete:
+		uid := strings.TrimSpace(r.URL.Query().Get("uid"))
+		t := s.store.GetTeacher()
+
+		if uid != "" && t.Uid != "" && t.Uid != uid {
+			_ = s.store.SoftDeleteUsersByLinkedUID(uid)
+			writeJSON(w, http.StatusOK, map[string]any{
+				"success": true,
+				"message": "linked users deactivated; server teacher profile is singleton",
+				"uid":     uid,
+			})
+			return
+		}
+
+		s.store.SetTeacher(Teacher{})
+		if uid != "" {
+			_ = s.store.SoftDeleteUsersByLinkedUID(uid)
+		} else if t.Uid != "" {
+			_ = s.store.SoftDeleteUsersByLinkedUID(t.Uid)
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"success": true,
+			"deleted": uid,
+		})
+
+	default:
+		methodNotAllowed(w, "GET, PUT, POST, DELETE")
+	}
+}
+
+// ============================================================
 // ADMIN RESET
 // ============================================================
 
@@ -367,7 +527,7 @@ func (s *Server) handleAdminReset(w http.ResponseWriter, r *http.Request) {
 }
 
 // ============================================================
-// ADMIN USERS
+// ADMIN USERS – GET lista / POST létrehozás / DELETE
 // ============================================================
 
 type createUserRequest struct {
@@ -377,47 +537,191 @@ type createUserRequest struct {
 	Role       string `json:"role"`
 }
 
+type adminUserView struct {
+	ID         string `json:"id"`
+	Username   string `json:"username"`
+	StudentUID string `json:"studentUid"`
+	Role       string `json:"role"`
+	Active     bool   `json:"active"`
+	CreatedAt  string `json:"createdAt,omitempty"`
+}
+
 func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		methodNotAllowed(w, "POST")
-		return
-	}
+	switch r.Method {
+	case http.MethodGet:
+		writeJSON(w, http.StatusOK, s.store.ListUsersAdmin())
 
-	var req createUserRequest
+	case http.MethodPost:
+		var req createUserRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{
-			"error": "invalid_json",
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error": "invalid_json",
+			})
+			return
+		}
+
+		studentUID := strings.TrimSpace(req.StudentUID)
+		if studentUID == "" {
+			studentUID = s.store.GetStudent().Uid
+		}
+
+		role := req.Role
+		if role == "" {
+			role = "Tanulo"
+		}
+
+		user, err := s.store.CreateUserWithRole(
+			req.Username,
+			req.Password,
+			studentUID,
+			role,
+		)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error":   "user_creation_failed",
+				"message": err.Error(),
+			})
+			return
+		}
+
+		writeJSON(w, http.StatusCreated, user)
+
+	case http.MethodDelete:
+		username := strings.TrimSpace(r.URL.Query().Get("username"))
+		if username == "" {
+			var body struct {
+				Username string `json:"username"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			username = strings.TrimSpace(body.Username)
+		}
+		if username == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error": "username_required",
+			})
+			return
+		}
+
+		if err := s.store.SoftDeleteUserByUsername(username); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"success": true,
+			"deleted": username,
 		})
 
-		return
+	default:
+		methodNotAllowed(w, "GET, POST, DELETE")
+	}
+}
+
+// ============================================================
+// STORE HELPERS – soft delete + user lista
+// (ha ezek máshol is definiálva vannak, töröld a másik példányt)
+// ============================================================
+
+func (s *Store) SoftDeleteStudent(uid string) error {
+	uid = strings.TrimSpace(uid)
+	if uid == "" {
+		return fmt.Errorf("uid_required")
 	}
 
-	studentUID := strings.TrimSpace(req.StudentUID)
-
-	if studentUID == "" {
-		studentUID = s.store.GetStudent().Uid
-	}
-
-	role := req.Role
-	if role == "" {
-		role = "Tanulo"
-	}
-	user, err := s.store.CreateUserWithRole(
-		req.Username,
-		req.Password,
-		studentUID,
-		role,
+	ctx := context.Background()
+	_, err := s.db.Exec(
+		ctx,
+		`UPDATE students SET active = FALSE, updated_at = NOW() WHERE uid = $1`,
+		uid,
 	)
+	return err
+}
 
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{
-			"error":   "user_creation_failed",
-			"message": err.Error(),
-		})
-
-		return
+func (s *Store) SoftDeleteUserByUsername(username string) error {
+	username = strings.TrimSpace(username)
+	if username == "" {
+		return fmt.Errorf("username_required")
 	}
 
-	writeJSON(w, http.StatusCreated, user)
+	ctx := context.Background()
+
+	tag, err := s.db.Exec(
+		ctx,
+		`UPDATE users SET active = FALSE WHERE username = $1`,
+		username,
+	)
+	if err != nil {
+		return err
+	}
+
+	if tag.RowsAffected() == 0 {
+		_, err = s.db.Exec(
+			ctx,
+			`DELETE FROM users WHERE username = $1`,
+			username,
+		)
+		return err
+	}
+
+	return nil
+}
+
+func (s *Store) SoftDeleteUsersByLinkedUID(uid string) error {
+	uid = strings.TrimSpace(uid)
+	if uid == "" {
+		return nil
+	}
+
+	ctx := context.Background()
+	_, err := s.db.Exec(
+		ctx,
+		`UPDATE users SET active = FALSE WHERE student_uid = $1`,
+		uid,
+	)
+	return err
+}
+
+func (s *Store) ListUsersAdmin() []adminUserView {
+	ctx := context.Background()
+
+	rows, err := s.db.Query(
+		ctx,
+		`
+		SELECT
+			id::text,
+			username,
+			COALESCE(student_uid, ''),
+			COALESCE(role, 'Tanulo'),
+			active,
+			COALESCE(to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), '')
+		FROM users
+		ORDER BY username
+		`,
+	)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+
+	out := make([]adminUserView, 0)
+
+	for rows.Next() {
+		var u adminUserView
+		if err := rows.Scan(
+			&u.ID,
+			&u.Username,
+			&u.StudentUID,
+			&u.Role,
+			&u.Active,
+			&u.CreatedAt,
+		); err != nil {
+			continue
+		}
+		out = append(out, u)
+	}
+
+	return out
 }

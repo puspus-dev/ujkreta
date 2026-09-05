@@ -437,9 +437,12 @@ func (s *Server) handleAdminStudents(w http.ResponseWriter, r *http.Request) {
 
 		// Végleges törlés – soft után hard, hogy újra létrehozható legyen
 		_ = s.store.SoftDeleteStudent(uid)
-		
+		if err := s.store.HardDeleteStudent(uid); err != nil {
+			// ha HardDeleteStudent még nincs a store-ban, soft elég
+			_ = err
+		}
 		_ = s.store.SoftDeleteUsersByLinkedUID(uid)
-		
+		_ = s.store.HardDeleteUserByLinkedUID(uid)
 
 		writeJSON(w, http.StatusOK, map[string]any{
 			"success": true,
@@ -547,13 +550,13 @@ func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 		}
 
 		_ = s.store.SoftDeleteUserByUsername(username)
-		
+		if err := s.store.HardDeleteUserByUsername(username); err != nil {
 			// SoftDeleteUserByUsername már DELETE-re eshet vissza
 			if err2 := s.store.SoftDeleteUserByUsername(username); err2 != nil {
 				writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 				return
 			}
-		
+		}
 
 		writeJSON(w, http.StatusOK, map[string]any{
 			"success": true,

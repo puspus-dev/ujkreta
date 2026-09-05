@@ -6,13 +6,9 @@ import (
 	"strings"
 )
 
-// ============================================================
-// ÚJ metódusok – NEM ütközik a meglévő handlerekkel.
-//
-// PLUSZ kézi szerkesztés kötelező (lásd TEACHER_FIX_INSTALL.md):
-// 1) teacher_store.go → GetTeacherStudents body cseréje
-// 2) teacher.go → handleTeacherGrades / Omissions: DELETE ág
-// ============================================================
+// Csak jegy / mulasztás törlés.
+// NINCS itt HardDelete* (az a server.go-ban van).
+// NINCS itt GetTeacherStudents (az a teacher_store.go-ban van).
 
 func (s *Store) DeleteGrade(uid string) error {
 	uid = strings.TrimSpace(uid)
@@ -50,38 +46,4 @@ func (s *Store) DeleteOmission(uid string) error {
 	ctx := context.Background()
 	_, _ = s.db.Exec(ctx, `DELETE FROM omissions WHERE uid = $1 OR data->>'Uid' = $1`, uid)
 	return nil
-}
-
-func (s *Store) HardDeleteStudent(uid string) error {
-	uid = strings.TrimSpace(uid)
-	if uid == "" {
-		return fmt.Errorf("uid_required")
-	}
-	ctx := context.Background()
-	_, err := s.db.Exec(ctx, `DELETE FROM students WHERE uid = $1`, uid)
-	if err != nil {
-		return err
-	}
-	_, _ = s.db.Exec(ctx, `DELETE FROM users WHERE student_uid = $1`, uid)
-	return nil
-}
-
-func (s *Store) HardDeleteUserByUsername(username string) error {
-	username = strings.TrimSpace(username)
-	if username == "" {
-		return fmt.Errorf("username_required")
-	}
-	ctx := context.Background()
-	_, err := s.db.Exec(ctx, `DELETE FROM users WHERE username = $1`, username)
-	return err
-}
-
-func (s *Store) HardDeleteUserByLinkedUID(uid string) error {
-	uid = strings.TrimSpace(uid)
-	if uid == "" {
-		return nil
-	}
-	ctx := context.Background()
-	_, err := s.db.Exec(ctx, `DELETE FROM users WHERE student_uid = $1`, uid)
-	return err
 }

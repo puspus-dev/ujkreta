@@ -1,10 +1,21 @@
-# KRÁTA/ÚjKréta
-I think we need a new system
+# ujkreta – diák multi-user javítások
 
-A szerver a firka mock-ján alapul, megtalálod itt: [firka/mock](https://git.firka.app/firka/mock)
+## Kötelező csere a repóban
 
-A frontendet innen kapartuk össze: [E-Kretén](https://github.com/e-kreten/e-kreten.github.com/)
+1. **student_api.go** – nincs singleton fallback (nem Csenge-be dob)
+2. **static/admin/app.js** (és admin/app.js) – mentéskor NEM hívja a PUT /admin/student-et
 
-Hivatalos Ellenőzrő app (Filc Naplóra alapul): [e-krata/naplo](https://github.com/e-krata/naplo/)
+## Opcionális / ha még nincs kint
 
-Hivatalos Tanári Napló app: [e-krata/vonalzo+](https://github.com/e-krata/vonalzo/)
+- teacher_store.go – összes diák a tanár listában
+- teacher_students_fix.go – jegy/mulasztás törlés
+- teacher.go – DELETE grades/omissions
+- server.go – admin users/students hard delete + upsert
+
+## Deploy
+
+git add student_api.go static/admin/
+git commit -m "fix: multi student without singleton overwrite"
+git push
+
+Admin UI: GitHub Pages static/admin frissítése.

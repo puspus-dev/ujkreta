@@ -36,8 +36,13 @@ func (s *Server) handleGetStudentScoped(w http.ResponseWriter, r *http.Request) 
 
 	st, err := s.store.GetStudentByUID(sess.UserID)
 	if err != nil {
-		// fallback singleton
-		st = s.store.GetStudent()
+		// NINCS singleton fallback – különben minden "ismeretlen" UID Csenge/seed profilt kap
+		writeJSON(w, http.StatusNotFound, map[string]string{
+			"error":   "student_not_found",
+			"message": "Nincs diák profil ehhez a fiókhoz. Adminban hozd létre a diákot ugyanezzel az UID-val.",
+			"uid":     sess.UserID,
+		})
+		return
 	}
 
 	writeJSON(w, http.StatusOK, st)

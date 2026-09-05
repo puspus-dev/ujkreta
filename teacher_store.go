@@ -65,28 +65,36 @@ func (s *Store) SetTeacher(v Teacher) {
 }
 
 func (s *Store) GetTeacherStudents() []TeacherStudent {
-	student := s.GetStudent()
+	// Összes aktív diák a students táblából (nem csak a seed singleton)
+	students := s.ListStudents()
 	groups := s.GetClassGroups()
-
-	groupName := "11.A"
-	groupUID := "10,11.A"
-
-	if len(groups) > 0 {
-		groupName = groups[0].Nev
-		groupUID = groups[0].Uid
+	groupByUID := map[string]string{}
+	for _, g := range groups {
+		groupByUID[g.Uid] = g.Nev
 	}
 
-	return []TeacherStudent{
-		{
-			Uid:      student.Uid,
-			Nev:      student.Nev,
-			EmailCim: student.EmailCim,
+	out := make([]TeacherStudent, 0, len(students))
+	for _, st := range students {
+		classUID := s.GetStudentClassGroupUID(st.Uid)
+		className := groupByUID[classUID]
+		if className == "" {
+			className = classUID
+		}
+		if classUID == "" && len(groups) > 0 {
+			classUID = groups[0].Uid
+			className = groups[0].Nev
+		}
+		out = append(out, TeacherStudent{
+			Uid:      st.Uid,
+			Nev:      st.Nev,
+			EmailCim: st.EmailCim,
 			OsztalyCsoport: NameUid{
-				Uid: groupUID,
-				Nev: groupName,
+				Uid: classUID,
+				Nev: className,
 			},
-		},
+		})
 	}
+	return out
 }
 
 // ============================================================

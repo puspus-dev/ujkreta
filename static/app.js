@@ -439,7 +439,8 @@ function bindStudentForm() {
     btn.disabled = true;
     msg.style.display = "none";
     try {
-      // Prefer multi-student endpoint
+      // Csak multi-student endpoint – NEM írjuk felül a singleton-t minden mentéskor
+      // (a régi /admin/student PUT mindig az utolsó diákra cserélte a seed profilt)
       await api("/admin/students", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -450,15 +451,8 @@ function bindStudentForm() {
           password: password || undefined
         })
       });
-      // Also push singleton for compatibility if first student
-      try {
-        await api("/admin/student", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(student)
-        });
-      } catch (_) {}
 
+      // Login user külön is, ha a students POST nem csinálta meg
       if (username && password) {
         try {
           await api("/admin/users", {

@@ -36,6 +36,7 @@ func (s *Store) UpsertStudent(st Student, classGroupUID string) error {
 		ON CONFLICT (uid) DO UPDATE SET
 			data = EXCLUDED.data,
 			class_group_uid = EXCLUDED.class_group_uid,
+			active = TRUE,
 			updated_at = NOW()
 		`,
 		st.Uid,

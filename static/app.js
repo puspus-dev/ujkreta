@@ -315,18 +315,24 @@ function renderStudents() {
     </div>`;
 }
 
+function genStudentUid() {
+  return "OA" + String(Date.now()).slice(-6) + String(Math.floor(Math.random() * 900 + 100));
+}
+
 function studentFormValues(s) {
   s = s || {};
   const schools = getSchools();
   const schoolOpts = schools.map((sc) =>
     `<option value="${esc(sc.code)}" ${s.IntezmenyAzonosito === sc.code ? "selected" : ""}>${esc(sc.name)} (${esc(sc.code)})</option>`
   ).join("");
+  // Új diáknál mindig egyedi UID – ne lehessen véletlenül felülírni a régit
+  const uidVal = s.Uid || genStudentUid();
 
   return `
     <div id="stuMsg" style="display:none;"></div>
     <form id="stuForm" class="n-form-grid">
-      <label for="stUid">UID *</label>
-      <input id="stUid" required value="${esc(s.Uid || "")}" ${s.Uid ? "readonly" : ""} placeholder="pl. 101" />
+      <label for="stUid">UID * <span style="font-weight:400;color:var(--n-muted);">(új diáknál automatikus – ne írd át meglévőre)</span></label>
+      <input id="stUid" required value="${esc(uidVal)}" ${s.Uid ? "readonly" : ""} placeholder="automatikus egyedi UID" />
 
       <label for="stNev">Név *</label>
       <input id="stNev" required value="${esc(s.Nev || "")}" />
@@ -473,8 +479,9 @@ function bindStudentForm() {
       await refreshData();
       msg.className = "n-msg n-msg-ok";
       msg.style.display = "block";
-      msg.textContent = "Diák profil elmentve" + (username ? " + login user." : ".");
-      editStudentUid = student.Uid;
+      msg.textContent = "Diák profil elmentve" + (username ? " + login user." : ".") + " UID: " + student.Uid;
+      editStudentUid = null;
+      setTimeout(() => navigate("students"), 600);
     } catch (err) {
       msg.className = "n-msg n-msg-err";
       msg.style.display = "block";

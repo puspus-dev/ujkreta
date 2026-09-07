@@ -4,7 +4,7 @@ import (
 	"net/http"
 )
 
-// requireTeacher – bejelentkezett user, Role == Tanar (vagy legacy token).
+// requireTeacher – Tanar VAGY Osztalyfonok (napló API).
 func (s *Server) requireTeacher(next http.HandlerFunc) http.HandlerFunc {
 	return s.requireAuthSession(func(w http.ResponseWriter, r *http.Request) {
 		info, ok := sessionFromContext(r.Context())
@@ -16,11 +16,11 @@ func (s *Server) requireTeacher(next http.HandlerFunc) http.HandlerFunc {
 		if role == "" {
 			role = "Tanulo"
 		}
-		// Tanár UI + napló API
-		if role != RoleTeacher && role != "Tanar" {
+		// Tanár + osztályfőnök
+		if role != RoleTeacher && role != "Tanar" && role != RoleOsztalyfonok && role != "Osztalyfonok" {
 			writeJSON(w, http.StatusForbidden, map[string]string{
-				"error": "teacher_only",
-				"hint":  "TEACHER_USERNAME / TEACHER_PASSWORD userrel lépj be",
+				"error": "teacher_or_of_only",
+				"hint":  "Tanar vagy Osztalyfonok szerepkör kell",
 			})
 			return
 		}

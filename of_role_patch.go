@@ -1,47 +1,20 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
-	"context"
 )
 
-// ============================================================
-// OSZTÁLYFŐNÖK ROLE + tanári API hozzáférés
-//
-// 1) teacher_auth.go: TÖRÖLD a régi requireTeacher-t (ez a fájl adja)
-// 2) store_users.go CreateUserWithRole: role check legyen:
-//      role == RoleStudent || role == RoleTeacher || role == "Osztalyfonok"
-// ============================================================
-
+// RoleOsztalyfonok – osztályfőnök
 const RoleOsztalyfonok = "Osztalyfonok"
 
-func (s *Server) requireTeacher(next http.HandlerFunc) http.HandlerFunc {
-	return s.requireAuthSession(func(w http.ResponseWriter, r *http.Request) {
-		info, ok := sessionFromContext(r.Context())
-		if !ok {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
-			return
-		}
-		role := info.Role
-		if role == "" {
-			role = "Tanulo"
-		}
-		if role != RoleTeacher && role != "Tanar" && role != RoleOsztalyfonok {
-			writeJSON(w, http.StatusForbidden, map[string]string{
-				"error": "teacher_or_of_only",
-			})
-			return
-		}
-		next(w, r)
-	})
-}
-
-// OF diák lista + létrehozás (Bearer Tanar/OF token)
+// registerOFRoutes – hívd a main.go-ban a teacher routes után:
+//   server.registerOFRoutes(mux)
 func (s *Server) registerOFRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/naplo/v3/sajat/Of/Diakok", s.requireTeacher(s.handleOFStudents))
 	mux.HandleFunc("/naplo/v3/sajat/Of/Users", s.requireTeacher(s.handleOFUsers))
@@ -51,6 +24,7 @@ func (s *Server) handleOFStudents(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		writeJSON(w, http.StatusOK, s.store.ListStudents())
+
 	case http.MethodPost, http.MethodPut:
 		var body struct {
 			Student       Student `json:"student"`
@@ -71,16 +45,17 @@ func (s *Server) handleOFStudents(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if body.Username != "" && body.Password != "" {
-			if _, err := s.store.CreateUserWithRoleOF(body.Username, body.Password, body.Student.Uid, "Tanulo"); err != nil {
+			if _, err := s.store.CreateUserWithRoleOF(body.Username, body.Password, body.Student.Uid, RoleStudent); err != nil {
 				writeJSON(w, http.StatusOK, map[string]any{
-					"success": true,
-					"student": body.Student,
+					"success":     true,
+					"student":     body.Student,
 					"userWarning": err.Error(),
 				})
 				return
 			}
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"success": true, "student": body.Student})
+
 	case http.MethodDelete:
 		uid := strings.TrimSpace(r.URL.Query().Get("uid"))
 		if uid == "" {
@@ -89,6 +64,7 @@ func (s *Server) handleOFStudents(w http.ResponseWriter, r *http.Request) {
 		}
 		_ = s.store.SoftDeleteStudent(uid)
 		writeJSON(w, http.StatusOK, map[string]any{"success": true, "deleted": uid})
+
 	default:
 		methodNotAllowed(w, "GET, POST, PUT, DELETE")
 	}
@@ -109,10 +85,9 @@ func (s *Server) handleOFUsers(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_json"})
 		return
 	}
-	// OF csak diák usert hozhat létre
 	role := req.Role
 	if role == "" {
-		role = "Tanulo"
+		role = RoleStudent
 	}
 	if role != "Tanulo" && role != RoleStudent {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "of_only_student_users"})
@@ -126,7 +101,7 @@ func (s *Server) handleOFUsers(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, user)
 }
 
-// CreateUserWithRoleOF – Tanulo / Tanar / Osztalyfonok
+// CreateUserWithRoleOF – Tanulo / Tanar / Osztalyfonok (upsert)
 func (s *Store) CreateUserWithRoleOF(username, password, linkedUID, role string) (User, error) {
 	username = strings.TrimSpace(username)
 	if username == "" || password == "" {
@@ -135,17 +110,15 @@ func (s *Store) CreateUserWithRoleOF(username, password, linkedUID, role string)
 	if role == "" {
 		role = RoleStudent
 	}
-	allowed := role == RoleStudent || role == "Tanulo" ||
-		role == RoleTeacher || role == "Tanar" ||
-		role == RoleOsztalyfonok
-	if !allowed {
-		return User{}, fmt.Errorf("érvénytelen role")
-	}
 	if role == "Tanulo" {
 		role = RoleStudent
 	}
 	if role == "Tanar" {
 		role = RoleTeacher
+	}
+	allowed := role == RoleStudent || role == RoleTeacher || role == RoleOsztalyfonok
+	if !allowed {
+		return User{}, fmt.Errorf("érvénytelen role")
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)

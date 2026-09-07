@@ -589,8 +589,8 @@ func (s *Store) UpsertUserWithRole(username, password, linkedUID, role string) (
 	if role == "" {
 		role = RoleStudent
 	}
-	if role != RoleStudent && role != RoleTeacher {
-		return User{}, fmt.Errorf("role csak Tanulo vagy Tanar lehet")
+	if role != RoleStudent && role != RoleTeacher && role != "Osztalyfonok" {
+		return User{}, fmt.Errorf("role csak Tanulo, Tanar vagy Osztalyfonok lehet")
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)

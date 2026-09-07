@@ -442,23 +442,29 @@ function bindStudentForm() {
     const username = document.getElementById("stUser").value.trim();
     const password = document.getElementById("stPass").value;
 
+    if (!student.Uid || !student.Nev) {
+      msg.className = "n-msg n-msg-err";
+      msg.style.display = "block";
+      msg.textContent = "UID és Név kötelező.";
+      return;
+    }
+
     btn.disabled = true;
     msg.style.display = "none";
+    const notes = [];
     try {
-      // Csak multi-student endpoint – NEM írjuk felül a singleton-t minden mentéskor
-      // (a régi /admin/student PUT mindig az utolsó diákra cserélte a seed profilt)
+      // 1) CSAK diák profil – username NÉLKÜL (így a user hiba nem maszkírozza a diák mentést)
       await api("/admin/students", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           student,
-          classGroupUid,
-          username: username || undefined,
-          password: password || undefined
+          classGroupUid: classGroupUid || ""
         })
       });
+      notes.push("Diák OK (" + student.Uid + ")");
 
-      // Login user külön is, ha a students POST nem csinálta meg
+      // 2) Login külön – ugyanaz, mint a „Felhasználók” menü
       if (username && password) {
         try {
           await api("/admin/users", {
@@ -471,21 +477,25 @@ function bindStudentForm() {
               role: "Tanulo"
             })
           });
-        } catch (_) {
-          // may already exist from /admin/students
+          notes.push("Login OK (" + username + ")");
+        } catch (userErr) {
+          notes.push("Login hiba: " + (userErr.message || userErr) + " – a diák profil így is elment. Login: Felhasználók menü.");
         }
+      } else {
+        notes.push("Login nincs megadva (opcionális).");
       }
 
       await refreshData();
       msg.className = "n-msg n-msg-ok";
       msg.style.display = "block";
-      msg.textContent = "Diák profil elmentve" + (username ? " + login user." : ".") + " UID: " + student.Uid;
+      msg.textContent = notes.join(" | ");
       editStudentUid = null;
-      setTimeout(() => navigate("students"), 600);
+      setTimeout(() => navigate("students"), 800);
     } catch (err) {
+      console.error("Diak mentes hiba:", err);
       msg.className = "n-msg n-msg-err";
       msg.style.display = "block";
-      msg.textContent = err.message || "Mentési hiba";
+      msg.textContent = "Diák mentés sikertelen: " + (err.message || err);
     } finally {
       btn.disabled = false;
     }
@@ -780,6 +790,7 @@ function renderUsers() {
           <select id="uRole">
             <option value="Tanulo">Tanulo (diák)</option>
             <option value="Tanar">Tanar (tanár)</option>
+            <option value="Osztalyfonok">Osztalyfonok (osztályfőnök)</option>
           </select>
           <div class="n-form-actions">
             <button type="submit" class="n-btn">User létrehozása</button>

@@ -1,1154 +1,619 @@
-/* ============================================================
-   KRÁTA Osztályfőnök – HTTP Basic Auth (admin API)
-   Diákok, tanárok, userek, konfig – NINCS iskola létrehozás
-   ============================================================ */
-
+/* KRÁTA Osztályfőnök – diák+user, jegy, mulasztás, házi, órarend. Nincs tanár/konfig/iskola. */
 const API_BASE = "https://ujkreta.onrender.com";
-const SCHOOLS_KEY = "ujkreta_admin_schools"; // csak olvasás – iskolát nem hoz létre
-
+const LOGIN_URL = "https://puspus-dev.github.io/ujkreta/";
+const TOKEN_KEYS = ["access_token", "ujkreta_access_token", "of_access_token"];
 const PAGE_META = {
-  dashboard: "Áttekintés",
+  dashboard: "Kezdőlap",
+  grade: "Jegy beírása",
+  grades: "Beírt jegyek",
+  absences: "Mulasztások",
   students: "Tanulók",
-  studentForm: "Diák profil",
-  teachers: "Tanárok",
-  users: "Felhasználók",
-  config: "Konfig",
-  tools: "Eszközök"
+  studentNew: "Új diák",
+  timetable: "Órarend",
+  homework: "Házi feladatok",
+  profile: "Profil"
 };
+const GRADE_TEXT = { 1: "Elégtelen", 2: "Elégséges", 3: "Közepes", 4: "Jó", 5: "Jeles" };
 
-// Külön session – ne ütközzön az admin belépéssel
-let basicUser = sessionStorage.getItem("of_user") || "";
-let basicPass = sessionStorage.getItem("of_pass") || "";
-let cache = { students: [], teacher: null, config: null, health: null, users: [] };
-let editStudentUid = null;
+let accessToken = null;
+let cache = {};
 let currentPage = "dashboard";
+let pendingGrades = {};
 
-function authHeader() {
-  return "Basic " + btoa(unescape(encodeURIComponent(basicUser + ":" + basicPass)));
+function esc(s) {
+  return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function empty(t) { return `<div class="n-empty">${esc(t)}</div>`; }
+function fmtDate(d) {
+  if (!d) return "—";
+  try { return new Date(d).toLocaleDateString("hu-HU"); } catch { return String(d).slice(0,10); }
+}
+function fmtTime(d) {
+  if (!d) return "";
+  try { return new Date(d).toLocaleTimeString("hu-HU",{hour:"2-digit",minute:"2-digit"}); } catch { return ""; }
+}
+function weekdayName(date) {
+  try { return new Date(date).toLocaleDateString("hu-HU",{weekday:"long"}); } catch { return date; }
+}
+function subjectName(x) {
+  return x?.Tantargy?.Nev || x?.TantargyNev || x?.Nev || "";
+}
+function gradeClass(n) {
+  n = Number(n);
+  if (n >= 5) return "g5"; if (n >= 4) return "g4"; if (n >= 3) return "g3"; if (n >= 2) return "g2"; return "g1";
+}
+function genUid() {
+  return "OA" + String(Date.now()).slice(-6) + String(Math.floor(Math.random()*900+100));
 }
 
-async function api(path, opts = {}) {
-  const headers = Object.assign(
-    { Accept: "application/json", Authorization: authHeader() },
-    opts.headers || {}
-  );
-  const res = await fetch(API_BASE + path, Object.assign({}, opts, { headers }));
-  const text = await res.text();
-  let data = null;
-  try { data = text ? JSON.parse(text) : null; } catch (_) { data = text; }
-  if (res.status === 401) {
-    clearAuth();
-    showLogin("Hibás osztályfőnök / admin felhasználónév vagy jelszó.");
-    throw new Error("401");
+function getStoredToken() {
+  for (const k of TOKEN_KEYS) {
+    const v = localStorage.getItem(k);
+    if (v) return v;
   }
-  if (!res.ok) {
-    let msg = "HTTP " + res.status;
-    if (data) {
-      if (typeof data === "string") msg = data;
-      else msg = data.message || data.error_description || data.error || msg;
-      if (data.message && data.error && data.message !== data.error) {
-        msg = data.error + ": " + data.message;
-      }
-    }
-    if (res.status === 405) {
-      msg = "method_not_allowed – a szerveren nincs meg ez a művelet (deploy/old handler).";
-    }
-    throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+  return null;
+}
+function saveToken(t) {
+  accessToken = t;
+  localStorage.setItem("of_access_token", t);
+  localStorage.setItem("access_token", t);
+}
+function clearTokens() {
+  TOKEN_KEYS.forEach(k => localStorage.removeItem(k));
+  localStorage.removeItem("ujkreta_role");
+}
+function goLogin() {
+  clearTokens();
+  document.getElementById("appShell").style.display = "none";
+  document.getElementById("loginScreen").style.display = "block";
+}
+
+function parseRoleFromIdToken(idToken) {
+  try {
+    const payload = JSON.parse(atob(idToken.split(".")[1].replace(/-/g,"+").replace(/_/g,"/")));
+    return payload.role || payload["kreta:role"] || "";
+  } catch { return ""; }
+}
+
+async function login(username, password) {
+  const body = new URLSearchParams({
+    grant_type: "password",
+    username,
+    password,
+    client_id: "kreta-ellenorzo-web-android"
+  });
+  const res = await fetch(API_BASE + "/connect/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error_description || data.error || "Belépés sikertelen");
+  const role = parseRoleFromIdToken(data.id_token) || "";
+  if (role && role !== "Osztalyfonok" && role !== "Tanar") {
+    throw new Error("Ez a fiók nem osztályfőnök/tanár. Role: " + role);
   }
+  localStorage.setItem("ujkreta_role", role || "Osztalyfonok");
+  saveToken(data.access_token);
+  if (data.refresh_token) localStorage.setItem("refresh_token", data.refresh_token);
   return data;
 }
 
-function clearAuth() {
-  basicUser = "";
-  basicPass = "";
-  sessionStorage.removeItem("of_user");
-  sessionStorage.removeItem("of_pass");
-}
-
-function saveAuth(u, p) {
-  basicUser = u;
-  basicPass = p;
-  sessionStorage.setItem("of_user", u);
-  sessionStorage.setItem("of_pass", p);
-}
-
-function getSchools() {
-  try {
-    const raw = localStorage.getItem(SCHOOLS_KEY);
-    const arr = raw ? JSON.parse(raw) : [];
-    return Array.isArray(arr) ? arr : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveSchools(list) {
-  localStorage.setItem(SCHOOLS_KEY, JSON.stringify(list));
-}
-
-function ensureDefaultSchools(students) {
-  let schools = getSchools();
-  if (schools.length === 0) {
-    schools = [{ code: "mockschool", name: "Mock Gimnázium" }];
-  }
-  const map = {};
-  schools.forEach((s) => { map[s.code] = s; });
-  (students || []).forEach((st) => {
-    const code = st.IntezmenyAzonosito || st.Intezmeny?.Uid;
-    const name = st.IntezmenyNev || st.Intezmeny?.RovidNev;
-    if (code && !map[code]) {
-      map[code] = { code, name: name || code };
-      schools.push(map[code]);
-    }
+async function apiGet(path) {
+  const res = await fetch(API_BASE + path, {
+    headers: { Authorization: "Bearer " + accessToken, Accept: "application/json" }
   });
-  saveSchools(schools);
-  return schools;
+  if (res.status === 401) { goLogin(); throw new Error("401"); }
+  if (!res.ok) return null;
+  return res.json();
 }
-
-function esc(s) {
-  if (s == null) return "";
-  return String(s)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function empty(t) {
-  return `<div class="n-empty">${esc(t)}</div>`;
-}
-
-async function refreshData() {
-  const [students, teacher, config, health, users] = await Promise.all([
-    api("/admin/students").catch(() => api("/admin/student").then((s) => (s ? [s] : [])).catch(() => [])),
-    api("/admin/teacher").catch(() => null),
-    api("/admin/config").catch(() => null),
-    api("/admin/health").catch(() => null),
-    api("/admin/users").catch(() => [])
-  ]);
-  let stuList = Array.isArray(students) ? students : students ? [students] : [];
-  try {
-    const deleted = JSON.parse(localStorage.getItem("ujkreta_admin_deleted_students") || "[]");
-    if (Array.isArray(deleted) && deleted.length) {
-      stuList = stuList.filter((s) => !deleted.includes(String(s.Uid)));
-    }
-  } catch (_) {}
-  cache.students = stuList;
-  cache.teacher = teacher;
-  cache.config = config;
-  cache.health = health;
-  cache.users = Array.isArray(users) ? users : [];
-  ensureDefaultSchools(cache.students);
-  if (teacher && teacher.Uid) {
-    try { syncTeacherToLocal(teacher); } catch (_) {}
+async function apiPost(path, body) {
+  const res = await fetch(API_BASE + path, {
+    method: "POST",
+    headers: {
+      Authorization: "Bearer " + accessToken,
+      Accept: "application/json",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  if (res.status === 401) { goLogin(); throw new Error("401"); }
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch (_) {}
+  if (!res.ok) {
+    throw new Error((data && (data.message || data.error)) || ("Hiba " + res.status));
   }
-  return cache;
+  return data;
+}
+async function apiDelete(path) {
+  const res = await fetch(API_BASE + path, {
+    method: "DELETE",
+    headers: { Authorization: "Bearer " + accessToken, Accept: "application/json" }
+  });
+  if (res.status === 401) { goLogin(); throw new Error("401"); }
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch (_) {}
+  if (!res.ok) throw new Error((data && data.error) || ("Hiba " + res.status));
+  return data;
 }
 
-/* ---------- pages ---------- */
+async function loadAllData() {
+  const map = {
+    teacher: "/naplo/v3/sajat/TanarAdatlap",
+    groups: "/naplo/v3/sajat/OsztalyCsoportok",
+    students: "/naplo/v3/sajat/Tanulok",
+    grades: "/naplo/v3/sajat/Ertekelesek",
+    timetable: "/naplo/v3/sajat/OrarendElemek",
+    homework: "/naplo/v3/sajat/HaziFeladatok",
+    absences: "/naplo/v3/sajat/Mulasztasok"
+  };
+  // OF multi list fallback
+  const ofStudents = await apiGet("/naplo/v3/sajat/Of/Diakok").catch(() => null);
+  const entries = await Promise.all(
+    Object.entries(map).map(async ([k, p]) => [k, await apiGet(p)])
+  );
+  cache = Object.fromEntries(entries);
+  if (Array.isArray(ofStudents) && ofStudents.length) {
+    // normalize to TeacherStudent-like
+    cache.students = ofStudents.map(s => ({
+      Uid: s.Uid,
+      Nev: s.Nev,
+      EmailCim: s.EmailCim,
+      OsztalyCsoport: { Uid: s.class_group_uid || "", Nev: "" }
+    }));
+  }
+  if (!Array.isArray(cache.students)) cache.students = [];
+}
 
 function renderDashboard() {
-  const schools = getSchools();
   const st = cache.students || [];
-  const t = cache.teacher;
+  const gr = cache.grades || [];
+  const hw = cache.homework || [];
   return `
-    <div class="n-welcome">
-      <h2>Adminisztrációs felület</h2>
-      <p>Iskolák, diák profilok, felhasználók és szerver beállítások.</p>
-    </div>
-    <div class="n-grid n-grid-4" style="margin-bottom:14px;">
-      <div class="n-stat"><div class="n-stat-label">Szerepkör</div><div class="n-stat-value" style="font-size:16px;">Osztályfőnök</div></div>
+    <div class="n-stats">
       <div class="n-stat"><div class="n-stat-label">Tanulók</div><div class="n-stat-value">${st.length}</div></div>
-      <div class="n-stat"><div class="n-stat-label">Tanárok</div><div class="n-stat-value">${Math.max(getTeachersLocal().length, t && t.Uid ? 1 : 0)}</div></div>
-      <div class="n-stat"><div class="n-stat-label">API</div><div class="n-stat-value" style="font-size:16px;">${cache.health ? "OK" : "?"}</div></div>
+      <div class="n-stat"><div class="n-stat-label">Jegyek</div><div class="n-stat-value">${Array.isArray(gr)?gr.length:0}</div></div>
+      <div class="n-stat"><div class="n-stat-label">Házik</div><div class="n-stat-value">${Array.isArray(hw)?hw.length:0}</div></div>
     </div>
-    <div class="n-panel">
-      <div class="n-panel-head">Gyors linkek</div>
-      <div class="n-panel-body" style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button type="button" class="n-btn" data-go="students">Tanulók</button>
-        <button type="button" class="n-btn" data-go="students">Tanulók</button>
-        <button type="button" class="n-btn" data-go="studentForm">Új diák</button>
-        <button type="button" class="n-btn n-btn-secondary" data-go="users">Új felhasználó</button>
-      </div>
-    </div>
-    <div class="n-panel">
-      <div class="n-panel-head">Legutóbbi tanulók</div>
-      <div class="n-panel-body" style="padding:0;">
-        ${st.length === 0 ? `<div class="n-panel-body">${empty("Nincs diák.")}</div>` : `
-        <div class="n-table-wrap"><table class="n-table">
-          <thead><tr><th>UID</th><th>Név</th><th>Iskola</th><th>E-mail</th></tr></thead>
-          <tbody>${st.slice(0, 10).map((s) => `
-            <tr>
-              <td>${esc(s.Uid)}</td>
-              <td>${esc(s.Nev)}</td>
-              <td>${esc(s.IntezmenyNev || s.IntezmenyAzonosito || "—")}</td>
-              <td>${esc(s.EmailCim || "—")}</td>
-            </tr>`).join("")}</tbody>
-        </table></div>`}
-      </div>
-    </div>`;
+    <div class="n-panel"><div class="n-panel-head">Gyors műveletek</div><div class="n-panel-body" style="display:flex;flex-wrap:wrap;gap:8px;">
+      <button type="button" class="n-btn" data-go="grade">Jegy beírása</button>
+      <button type="button" class="n-btn" data-go="studentNew">Új diák</button>
+      <button type="button" class="n-btn" data-go="homework">Házi</button>
+      <button type="button" class="n-btn" data-go="timetable">Órarend</button>
+      <button type="button" class="n-btn" data-go="absences">Mulasztás</button>
+    </div></div>
+    <div class="n-panel"><div class="n-panel-body" style="font-size:13px;color:var(--n-muted);">
+      Osztályfőnök: diák + diák-login, jegy, mulasztás, házi, órarend.
+      <strong>Nem</strong> kezel iskolát, tanárt és rendszerszintű konfigot.
+    </div></div>`;
 }
 
-function renderSchools() {
-  // Osztályfőnök: iskolát NEM kezel – csak olvasható lista az űrlapokhoz
-  return `
-    <div class="n-panel">
-      <div class="n-panel-head">Iskolák</div>
-      <div class="n-panel-body">
-        <p>Az osztályfőnöki felületen <strong>nem lehet iskolát létrehozni vagy törölni</strong>.</p>
-        <p style="color:var(--n-muted);">Iskola kezelés: teljes Admin felület. A meglévő iskolák a diák űrlapon választhatók.</p>
-        <button type="button" class="n-btn" data-go="dashboard">Vissza</button>
-      </div>
-    </div>`;
-}
-function renderSchools_DISABLED() {
-  const schools = getSchools();
-  const st = cache.students || [];
-  const counts = {};
-  st.forEach((s) => {
-    const c = s.IntezmenyAzonosito || "—";
-    counts[c] = (counts[c] || 0) + 1;
+function studentGrades(uid, subjectUid) {
+  const grades = Array.isArray(cache.grades) ? cache.grades : [];
+  return grades.filter(g => {
+    const su = String(g.TanuloUid || g.Tanulo?.Uid || "");
+    if (su && su !== String(uid)) return false;
+    const sub = g.Tantargy?.Uid || "";
+    if (subjectUid && sub && sub !== subjectUid) return false;
+    return true;
   });
-
-  return `
-    <div class="n-panel">
-      <div class="n-panel-head">Új iskola hozzáadása</div>
-      <div class="n-panel-body">
-        <div id="schoolMsg" style="display:none;"></div>
-        <form id="schoolForm" class="n-form-grid">
-          <label for="schCode">Kód (azonosító)</label>
-          <input id="schCode" required placeholder="pl. mockschool" />
-          <label for="schName">Név</label>
-          <input id="schName" required placeholder="pl. Mock Gimnázium" />
-          <div class="n-form-actions">
-            <button type="submit" class="n-btn">Iskola mentése</button>
-          </div>
-        </form>
-        <p style="margin:12px 0 0;color:var(--n-muted);font-size:12px;">
-          Az iskolák a diák profil <em>IntezmenyAzonosito / IntezmenyNev</em> mezőin keresztül kapcsolódnak.
-          Új diák létrehozásakor kiválasztható az iskola.
-        </p>
-      </div>
-    </div>
-    <div class="n-panel">
-      <div class="n-panel-head">Iskolák (${schools.length})</div>
-      <div class="n-panel-body" style="padding:0;">
-        ${schools.length === 0 ? `<div class="n-panel-body">${empty("Nincs iskola.")}</div>` : `
-        <div class="n-table-wrap"><table class="n-table">
-          <thead><tr><th>Kód</th><th>Név</th><th>Diákok</th><th></th></tr></thead>
-          <tbody>${schools.map((s) => `
-            <tr>
-              <td><code>${esc(s.code)}</code></td>
-              <td>${esc(s.name)}</td>
-              <td>${counts[s.code] || 0}</td>
-              <td style="white-space:nowrap;">
-                <button type="button" class="n-btn n-btn-secondary edit-school" data-code="${esc(s.code)}" data-name="${esc(s.name)}">Szerkeszt</button>
-                <button type="button" class="n-btn n-btn-secondary del-school" data-code="${esc(s.code)}" style="color:#c62828;border-color:#ef9a9a;">Törlés</button>
-              </td>
-            </tr>`).join("")}</tbody>
-        </table></div>`}
-      </div>
-    </div>`;
+}
+function avgOf(list) {
+  const nums = list.map(g => Number(g.SzamErtek)).filter(n => n > 0);
+  if (!nums.length) return "—";
+  return (nums.reduce((a,b)=>a+b,0)/nums.length).toFixed(2);
 }
 
-function bindSchools() {
-  document.getElementById("schoolForm")?.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const code = document.getElementById("schCode").value.trim();
-    const name = document.getElementById("schName").value.trim();
-    const msg = document.getElementById("schoolMsg");
-    if (!code || !name) {
-      msg.className = "n-msg n-msg-err";
-      msg.style.display = "block";
-      msg.textContent = "Kód és név kötelező.";
-      return;
+function renderGradeForm() {
+  pendingGrades = {};
+  const subjects = Array.isArray(cache.teacher?.Tantargyak) ? cache.teacher.Tantargyak : [];
+  const students = cache.students || [];
+  const groups = Array.isArray(cache.groups) ? cache.groups : [];
+  const defaultGroup = groups[0]?.Uid || "";
+  const defaultSubj = subjects[0]?.Uid || "";
+  const rows = students.map((s, idx) => {
+    const gs = studentGrades(s.Uid, defaultSubj);
+    const chips = gs.map(g => `<span class="k-g k-g-${esc(g.SzamErtek)}" data-guid="${esc(g.Uid)}">${esc(g.SzamErtek)}</span>`).join(" ") || "—";
+    return `<tr data-uid="${esc(s.Uid)}" data-group="${esc(s.OsztalyCsoport?.Uid||defaultGroup)}">
+      <td class="k-num">${idx+1}</td><td>${esc(s.Nev)}</td>
+      <td class="k-grades-cell">${chips}</td><td class="k-avg">${avgOf(gs)}</td>
+      <td><div class="k-quick">
+        <button type="button" class="k-q" data-v="5">5</button>
+        <button type="button" class="k-q" data-v="4">4</button>
+        <button type="button" class="k-q" data-v="3">3</button>
+        <button type="button" class="k-q" data-v="2">2</button>
+        <button type="button" class="k-q" data-v="1">1</button>
+        <button type="button" class="k-q" data-v="x">x</button>
+      </div></td></tr>`;
+  }).join("") || `<tr><td colspan="5" class="n-empty">Nincs tanuló a listában.</td></tr>`;
+
+  return `
+    <div class="k-filters">
+      <div><label>Osztály</label><select id="kbGroup">${groups.map(g=>`<option value="${esc(g.Uid)}">${esc(g.Nev)}</option>`).join("")||"<option value=''>—</option>"}</select></div>
+      <div><label>Tantárgy</label><select id="kbSubject">${subjects.map(s=>`<option value="${esc(s.Uid)}">${esc(s.Nev)}</option>`).join("")||"<option value=''>—</option>"}</select></div>
+      <div><label>Feljegyzés</label><input id="kbTema" type="text" placeholder="pl. Szódolgozat" /></div>
+    </div>
+    <div class="k-toolbar">
+      <button type="button" class="k-btn k-btn-primary" id="kbSave">+ Mentés</button>
+      <button type="button" class="k-btn" id="kbClearSel">Elölről</button>
+    </div>
+    <div class="k-book"><table class="k-table"><thead><tr>
+      <th>#</th><th>Név</th><th>Jegyek</th><th>Átlag</th><th>Új</th>
+    </tr></thead><tbody id="kbBody">${rows}</tbody></table></div>
+    <div class="k-status" id="kbStatus">Válassz jegyet, majd Mentés.</div>`;
+}
+
+function bindGradeForm() {
+  document.querySelectorAll("#kbBody .k-q").forEach(btn => {
+    btn.onclick = () => {
+      const row = btn.closest("tr");
+      const uid = row.dataset.uid;
+      const v = btn.dataset.v;
+      row.querySelectorAll(".k-q").forEach(b => b.classList.remove("k-selected"));
+      if (v === "x") { delete pendingGrades[uid]; return; }
+      btn.classList.add("k-selected");
+      pendingGrades[uid] = { value: Number(v), group: row.dataset.group };
+      document.getElementById("kbStatus").textContent = `Kijelölve → ${v}. Mentés kell.`;
+    };
+  });
+  document.getElementById("kbClearSel")?.addEventListener("click", () => {
+    pendingGrades = {};
+    document.querySelectorAll(".k-q").forEach(b => b.classList.remove("k-selected"));
+  });
+  document.getElementById("kbSave")?.addEventListener("click", async () => {
+    const status = document.getElementById("kbStatus");
+    const subjectUid = document.getElementById("kbSubject").value;
+    const groupUid = document.getElementById("kbGroup").value;
+    const tema = document.getElementById("kbTema").value.trim() || "Értékelés";
+    const entries = Object.entries(pendingGrades);
+    if (!entries.length) { status.textContent = "Nincs kijelölés."; status.className = "k-status err"; return; }
+    let ok = 0;
+    for (const [uid, sel] of entries) {
+      try {
+        await apiPost("/naplo/v3/sajat/Ertekelesek", {
+          TantargyUid: subjectUid, Tema: tema, SzamErtek: sel.value,
+          SzovegesErtek: GRADE_TEXT[sel.value] || String(sel.value),
+          SulySzazalekErteke: 100,
+          OsztalyCsoportUid: sel.group || groupUid, TanuloUid: uid
+        });
+        ok++;
+      } catch (_) {}
     }
-    let schools = getSchools();
-    const i = schools.findIndex((s) => s.code === code);
-    if (i >= 0) schools[i].name = name;
-    else schools.push({ code, name });
-    saveSchools(schools);
-    msg.className = "n-msg n-msg-ok";
-    msg.style.display = "block";
-    msg.textContent = i >= 0 ? "Iskola frissítve." : "Iskola hozzáadva.";
-    navigate("schools");
+    cache.grades = await apiGet("/naplo/v3/sajat/Ertekelesek");
+    pendingGrades = {};
+    status.className = "k-status ok";
+    status.textContent = `Mentve: ${ok} jegy.`;
+    navigate("grade");
   });
-  document.querySelectorAll(".edit-school").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document.getElementById("schCode").value = btn.dataset.code || "";
-      document.getElementById("schName").value = btn.dataset.name || "";
-      document.getElementById("schCode").focus();
-    });
-  });
-  document.querySelectorAll(".del-school").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const code = btn.dataset.code;
-      const used = (cache.students || []).filter((s) => s.IntezmenyAzonosito === code).length;
-      const msg = used
-        ? "Ez az iskola " + used + " diákhoz van rendelve. Így is törlöd a listából?"
-        : "Törlöd ezt az iskolát a listából?";
-      if (!confirm(msg)) return;
-      saveSchools(getSchools().filter((s) => s.code !== code));
-      navigate("schools");
-    });
-  });
+}
+
+function renderGrades() {
+  const grades = Array.isArray(cache.grades) ? cache.grades : [];
+  if (!grades.length) return `<div class="n-panel"><div class="n-panel-body">${empty("Nincs jegy.")}</div></div>`;
+  return `<div class="n-panel"><div class="n-panel-head">Jegyek (${grades.length})</div>
+    <div class="n-panel-body" style="padding:0;"><div class="n-table-wrap"><table class="n-table">
+    <thead><tr><th>Dátum</th><th>Jegy</th><th>Tantárgy</th><th>Diák</th><th></th></tr></thead>
+    <tbody>${[...grades].reverse().map(g => {
+      const st = (cache.students||[]).find(s => String(s.Uid)===String(g.TanuloUid));
+      return `<tr><td>${fmtDate(g.KeszitesDatuma||g.RogzitesDatuma)}</td>
+        <td><span class="n-grade ${gradeClass(g.SzamErtek)}">${esc(g.SzamErtek)}</span></td>
+        <td>${esc(subjectName(g))}</td><td>${esc(st?.Nev||g.TanuloUid||"—")}</td>
+        <td><button type="button" class="n-btn n-btn-secondary del-grade" data-uid="${esc(g.Uid)}">Törlés</button></td></tr>`;
+    }).join("")}</tbody></table></div></div></div>`;
 }
 
 function renderStudents() {
   const st = cache.students || [];
-  return `
-    <div class="n-panel">
-      <div class="n-panel-head">
-        Tanulók (${st.length})
-        <button type="button" class="n-btn" data-go="studentForm" style="float:right;margin-top:-2px;">+ Új diák</button>
-      </div>
-      <div class="n-panel-body" style="padding:0;">
-        ${st.length === 0 ? `<div class="n-panel-body">${empty("Nincs tanuló. Hozz létre egyet.")}</div>` : `
-        <div class="n-table-wrap"><table class="n-table">
-          <thead>
-            <tr>
-              <th>UID</th><th>Név</th><th>Iskola</th><th>Tanév</th><th>E-mail</th><th></th>
-            </tr>
-          </thead>
-          <tbody>${st.map((s) => `
-            <tr>
-              <td>${esc(s.Uid)}</td>
-              <td>${esc(s.Nev)}</td>
-              <td>${esc(s.IntezmenyNev || "—")}<div style="color:var(--n-muted);font-size:11px;">${esc(s.IntezmenyAzonosito || "")}</div></td>
-              <td>${esc(s.TanevUid || "—")}</td>
-              <td>${esc(s.EmailCim || "—")}</td>
-              <td style="white-space:nowrap;">
-                <button type="button" class="n-btn n-btn-secondary edit-student" data-uid="${esc(s.Uid)}">Szerkeszt</button>
-                <button type="button" class="n-btn n-btn-secondary del-student" data-uid="${esc(s.Uid)}" data-name="${esc(s.Nev)}" style="color:#c62828;border-color:#ef9a9a;">Törlés</button>
-              </td>
-            </tr>`).join("")}</tbody>
-        </table></div>`}
-      </div>
-    </div>`;
+  return `<div class="n-panel"><div class="n-panel-head">Tanulók (${st.length})
+    <button type="button" class="n-btn" data-go="studentNew" style="float:right;margin-top:-2px;">+ Új diák</button></div>
+    <div class="n-panel-body" style="padding:0;"><div class="n-table-wrap"><table class="n-table">
+    <thead><tr><th>UID</th><th>Név</th><th>Osztály</th><th></th></tr></thead>
+    <tbody>${st.map(s => `<tr>
+      <td>${esc(s.Uid)}</td><td>${esc(s.Nev)}</td>
+      <td>${esc(s.OsztalyCsoport?.Nev||s.OsztalyCsoport?.Uid||"—")}</td>
+      <td><button type="button" class="n-btn n-btn-secondary" data-go="grade">Jegy</button></td>
+    </tr>`).join("") || `<tr><td colspan="4">${empty("Nincs diák.")}</td></tr>`}
+    </tbody></table></div></div></div>`;
 }
 
-function genStudentUid() {
-  return "OA" + String(Date.now()).slice(-6) + String(Math.floor(Math.random() * 900 + 100));
+function renderStudentNew() {
+  const uid = genUid();
+  const groups = Array.isArray(cache.groups) ? cache.groups : [];
+  return `<div class="n-panel"><div class="n-panel-head">Új diák + login</div>
+    <div class="n-panel-body">
+      <div id="stuMsg" style="display:none;"></div>
+      <form id="ofStuForm" class="n-form-grid">
+        <label>UID</label><input id="stUid" required value="${esc(uid)}" />
+        <label>Név *</label><input id="stNev" required placeholder="Teljes név" />
+        <label>Osztály UID</label>
+        <select id="stClass"><option value="">—</option>${groups.map(g=>`<option value="${esc(g.Uid)}">${esc(g.Nev)}</option>`).join("")}</select>
+        <label>Login username</label><input id="stUser" placeholder="pl. anna" />
+        <label>Login jelszó</label><input id="stPass" type="password" />
+        <div class="n-form-actions"><button type="submit" class="n-btn">Mentés</button></div>
+      </form>
+      <p style="font-size:12px;color:var(--n-muted);">Csak diák profil + diák login. Tanár/OF fiókot az <strong>Admin</strong> hoz létre.</p>
+    </div></div>`;
 }
 
-function studentFormValues(s) {
-  s = s || {};
-  const schools = getSchools();
-  const schoolOpts = schools.map((sc) =>
-    `<option value="${esc(sc.code)}" ${s.IntezmenyAzonosito === sc.code ? "selected" : ""}>${esc(sc.name)} (${esc(sc.code)})</option>`
-  ).join("");
-  // Új diáknál mindig egyedi UID – ne lehessen véletlenül felülírni a régit
-  const uidVal = s.Uid || genStudentUid();
-
-  return `
-    <div id="stuMsg" style="display:none;"></div>
-    <form id="stuForm" class="n-form-grid">
-      <label for="stUid">UID * <span style="font-weight:400;color:var(--n-muted);">(új diáknál automatikus – ne írd át meglévőre)</span></label>
-      <input id="stUid" required value="${esc(uidVal)}" ${s.Uid ? "readonly" : ""} placeholder="automatikus egyedi UID" />
-
-      <label for="stNev">Név *</label>
-      <input id="stNev" required value="${esc(s.Nev || "")}" />
-
-      <label for="stEmail">E-mail</label>
-      <input id="stEmail" type="email" value="${esc(s.EmailCim || "")}" />
-
-      <label for="stSchool">Iskola</label>
-      <select id="stSchool">
-        <option value="">— nincs / egyéni —</option>
-        ${schoolOpts}
-      </select>
-
-      <label for="stInstCode">Iskola kód</label>
-      <input id="stInstCode" value="${esc(s.IntezmenyAzonosito || "")}" placeholder="IntezmenyAzonosito" />
-
-      <label for="stInstName">Iskola név</label>
-      <input id="stInstName" value="${esc(s.IntezmenyNev || "")}" placeholder="IntezmenyNev" />
-
-      <label for="stTanev">Tanév</label>
-      <input id="stTanev" value="${esc(s.TanevUid || "2025/2026")}" />
-
-      <label for="stClass">Osztály UID</label>
-      <input id="stClass" value="" placeholder="pl. 10,11.A" />
-
-      <label for="stBirthY">Születési év</label>
-      <input id="stBirthY" type="number" value="${esc(s.SzuletesiEv || "")}" />
-
-      <label for="stBirthM">Születési hónap</label>
-      <input id="stBirthM" type="number" min="1" max="12" value="${esc(s.SzuletesiHonap || "")}" />
-
-      <label for="stBirthD">Születési nap</label>
-      <input id="stBirthD" type="number" min="1" max="31" value="${esc(s.SzuletesiNap || "")}" />
-
-      <label for="stCim">Cím</label>
-      <input id="stCim" value="${esc((s.Cimek && s.Cimek[0]) || "")}" />
-
-      <label for="stUser">Login felhasználónév</label>
-      <input id="stUser" placeholder="opcionális – új belépéshez" />
-
-      <label for="stPass">Login jelszó</label>
-      <input id="stPass" type="password" placeholder="opcionális" />
-
-      <div class="n-form-actions">
-        <button type="submit" class="n-btn">${s.Uid ? "Profil mentése" : "Diák létrehozása"}</button>
-        <button type="button" class="n-btn n-btn-secondary" data-go="students">Vissza</button>
-        ${s && s.Uid ? `<button type="button" class="n-btn n-btn-secondary" id="stuDeleteBtn" style="color:#c62828;border-color:#ef9a9a;margin-left:auto;">Diák törlése</button>` : ""}
-      </div>
-    </form>`;
-}
-
-function renderStudentForm() {
-  const s = (cache.students || []).find((x) => String(x.Uid) === String(editStudentUid)) || null;
-  return `
-    <div class="n-panel">
-      <div class="n-panel-head">${s ? "Diák profil szerkesztése" : "Új diák profil"}</div>
-      <div class="n-panel-body">${studentFormValues(s)}</div>
-    </div>
-    ${s ? `
-    <div class="n-panel">
-      <div class="n-panel-head">Teljes profil (JSON)</div>
-      <div class="n-panel-body"><pre style="margin:0;white-space:pre-wrap;font-size:12px;">${esc(JSON.stringify(s, null, 2))}</pre></div>
-    </div>` : ""}`;
-}
-
-function bindStudentForm() {
-  document.getElementById("stuDeleteBtn")?.addEventListener("click", () => {
-    const uid = document.getElementById("stUid").value.trim();
-    const name = document.getElementById("stNev").value.trim();
-    deleteStudent(uid, name);
-  });
-  const schoolSel = document.getElementById("stSchool");
-  schoolSel?.addEventListener("change", () => {
-    const code = schoolSel.value;
-    const sc = getSchools().find((x) => x.code === code);
-    if (sc) {
-      document.getElementById("stInstCode").value = sc.code;
-      document.getElementById("stInstName").value = sc.name;
-    }
-  });
-
-  document.getElementById("stuForm")?.addEventListener("submit", async (e) => {
+function bindStudentNew() {
+  document.getElementById("ofStuForm")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const msg = document.getElementById("stuMsg");
-    const btn = e.target.querySelector('button[type="submit"]');
     const student = {
       Uid: document.getElementById("stUid").value.trim(),
       Nev: document.getElementById("stNev").value.trim(),
-      EmailCim: document.getElementById("stEmail").value.trim(),
-      IntezmenyAzonosito: document.getElementById("stInstCode").value.trim(),
-      IntezmenyNev: document.getElementById("stInstName").value.trim(),
-      TanevUid: document.getElementById("stTanev").value.trim(),
-      SzuletesiEv: Number(document.getElementById("stBirthY").value) || undefined,
-      SzuletesiHonap: Number(document.getElementById("stBirthM").value) || undefined,
-      SzuletesiNap: Number(document.getElementById("stBirthD").value) || undefined,
-      Cimek: document.getElementById("stCim").value.trim()
-        ? [document.getElementById("stCim").value.trim()]
-        : []
+      TanevUid: "2025/2026"
     };
-    if (student.IntezmenyAzonosito || student.IntezmenyNev) {
-      student.Intezmeny = {
-        Uid: student.IntezmenyAzonosito || "",
-        RovidNev: student.IntezmenyNev || ""
-      };
-    }
     const classGroupUid = document.getElementById("stClass").value.trim();
     const username = document.getElementById("stUser").value.trim();
     const password = document.getElementById("stPass").value;
-
-    if (!student.Uid || !student.Nev) {
-      msg.className = "n-msg n-msg-err";
-      msg.style.display = "block";
-      msg.textContent = "UID és Név kötelező.";
-      return;
-    }
-
-    btn.disabled = true;
-    msg.style.display = "none";
-    const notes = [];
     try {
-      // 1) CSAK diák profil – username NÉLKÜL (így a user hiba nem maszkírozza a diák mentést)
-      await api("/admin/students", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          student,
-          classGroupUid: classGroupUid || ""
-        })
-      });
-      notes.push("Diák OK (" + student.Uid + ")");
-
-      // 2) Login külön – ugyanaz, mint a „Felhasználók” menü
-      if (username && password) {
-        try {
-          await api("/admin/users", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              username,
-              password,
-              studentUid: student.Uid,
-              role: "Tanulo"
-            })
-          });
-          notes.push("Login OK (" + username + ")");
-        } catch (userErr) {
-          notes.push("Login hiba: " + (userErr.message || userErr) + " – a diák profil így is elment. Login: Felhasználók menü.");
-        }
-      } else {
-        notes.push("Login nincs megadva (opcionális).");
-      }
-
-      await refreshData();
-      msg.className = "n-msg n-msg-ok";
-      msg.style.display = "block";
-      msg.textContent = notes.join(" | ");
-      editStudentUid = null;
-      setTimeout(() => navigate("students"), 800);
-    } catch (err) {
-      console.error("Diak mentes hiba:", err);
-      msg.className = "n-msg n-msg-err";
-      msg.style.display = "block";
-      msg.textContent = "Diák mentés sikertelen: " + (err.message || err);
-    } finally {
-      btn.disabled = false;
-    }
-  });
-}
-
-function getTeachersLocal() {
-  try {
-    const raw = localStorage.getItem("ujkreta_admin_teachers");
-    const arr = raw ? JSON.parse(raw) : [];
-    return Array.isArray(arr) ? arr : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveTeachersLocal(list) {
-  localStorage.setItem("ujkreta_admin_teachers", JSON.stringify(list));
-}
-
-function syncTeacherToLocal(t) {
-  if (!t || !t.Uid) return;
-  const list = getTeachersLocal();
-  const i = list.findIndex((x) => String(x.Uid) === String(t.Uid));
-  if (i >= 0) list[i] = Object.assign({}, list[i], t);
-  else list.push(t);
-  saveTeachersLocal(list);
-}
-
-function renderTeachers() {
-  const apiT = cache.teacher || {};
-  if (apiT.Uid) syncTeacherToLocal(apiT);
-  const list = getTeachersLocal();
-  const schools = getSchools();
-
-  const rows = list.length === 0
-    ? `<tr><td colspan="6">${empty("Nincs tanár profil. Hozz létre egyet alább.")}</td></tr>`
-    : list.map((t) => `
-      <tr>
-        <td>${esc(t.Uid)}</td>
-        <td>${esc(t.Nev || "—")}</td>
-        <td>${esc(t.IntezmenyNev || "—")}<div style="color:var(--n-muted);font-size:11px;">${esc(t.IntezmenyAzonosito || "")}</div></td>
-        <td>${esc(t.EmailCim || "—")}</td>
-        <td>${esc(t.Telefonszam || "—")}</td>
-        <td style="white-space:nowrap;">
-          <button type="button" class="n-btn n-btn-secondary edit-teacher" data-uid="${esc(t.Uid)}">Szerkeszt</button>
-          <button type="button" class="n-btn n-btn-secondary del-teacher" data-uid="${esc(t.Uid)}" data-name="${esc(t.Nev)}" style="color:#c62828;border-color:#ef9a9a;">Törlés</button>
-        </td>
-      </tr>`).join("");
-
-  const schoolOpts = schools.map((sc) =>
-    `<option value="${esc(sc.code)}">${esc(sc.name)} (${esc(sc.code)})</option>`
-  ).join("");
-
-  return `
-    <div class="n-panel">
-      <div class="n-panel-head">Tanárok (${list.length})</div>
-      <div class="n-panel-body" style="padding:0;">
-        <div class="n-table-wrap"><table class="n-table">
-          <thead><tr><th>UID</th><th>Név</th><th>Iskola</th><th>E-mail</th><th>Telefon</th><th></th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table></div>
-      </div>
-    </div>
-
-    <div class="n-panel">
-      <div class="n-panel-head">Új tanár / profil szerkesztése + fiók</div>
-      <div class="n-panel-body">
-        <div id="teaMsg" style="display:none;"></div>
-        <form id="teaForm" class="n-form-grid">
-          <label for="tUid">UID *</label>
-          <input id="tUid" required value="${esc(apiT.Uid || "")}" placeholder="pl. 301" />
-
-          <label for="tNev">Név *</label>
-          <input id="tNev" required value="${esc(apiT.Nev || "")}" />
-
-          <label for="tEmail">E-mail</label>
-          <input id="tEmail" type="email" value="${esc(apiT.EmailCim || "")}" />
-
-          <label for="tTel">Telefon</label>
-          <input id="tTel" value="${esc(apiT.Telefonszam || "")}" />
-
-          <label for="tSchool">Iskola</label>
-          <select id="tSchool">
-            <option value="">— válasszon —</option>
-            ${schoolOpts}
-          </select>
-
-          <label for="tInstCode">Iskola kód</label>
-          <input id="tInstCode" value="${esc(apiT.IntezmenyAzonosito || "")}" />
-
-          <label for="tInstName">Iskola név</label>
-          <input id="tInstName" value="${esc(apiT.IntezmenyNev || "")}" />
-
-          <label for="tSubjects">Tantárgyak (vesszővel)</label>
-          <input id="tSubjects" placeholder="Matematika, Magyar" value="${esc(
-            (Array.isArray(apiT.Tantargyak) ? apiT.Tantargyak.map((x) => x.Nev).join(", ") : "")
-          )}" />
-
-          <label for="tUser">Login felhasználónév</label>
-          <input id="tUser" placeholder="új tanári fiókhoz" />
-
-          <label for="tPass">Login jelszó</label>
-          <input id="tPass" type="password" placeholder="új tanári fiókhoz" />
-
-          <div class="n-form-actions">
-            <button type="submit" class="n-btn">Tanár + fiók mentése</button>
-            <button type="button" class="n-btn n-btn-secondary" id="teaClear">Űrlap törlése</button>
-          </div>
-        </form>
-        <p style="margin:12px 0 0;color:var(--n-muted);font-size:12px;">
-          A profil a szerveren a <code>/admin/teacher</code> végponton tárolódik (aktív tanár).
-          További tanárok listája helyben is megmarad; login a <code>/admin/users</code> role=Tanar hívással jön létre.
-        </p>
-      </div>
-    </div>`;
-}
-
-function bindTeachers() {
-  const schoolSel = document.getElementById("tSchool");
-  schoolSel?.addEventListener("change", () => {
-    const sc = getSchools().find((x) => x.code === schoolSel.value);
-    if (sc) {
-      document.getElementById("tInstCode").value = sc.code;
-      document.getElementById("tInstName").value = sc.name;
-    }
-  });
-
-  // preselect school if matches
-  const code = document.getElementById("tInstCode")?.value;
-  if (code && schoolSel) {
-    const opt = [...schoolSel.options].find((o) => o.value === code);
-    if (opt) schoolSel.value = code;
-  }
-
-  document.querySelectorAll(".del-teacher").forEach((btn) => {
-    btn.addEventListener("click", () => deleteTeacher(btn.dataset.uid, btn.dataset.name));
-  });
-
-  document.querySelectorAll(".edit-teacher").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const t = getTeachersLocal().find((x) => String(x.Uid) === String(btn.dataset.uid));
-      if (!t) return;
-      document.getElementById("tUid").value = t.Uid || "";
-      document.getElementById("tNev").value = t.Nev || "";
-      document.getElementById("tEmail").value = t.EmailCim || "";
-      document.getElementById("tTel").value = t.Telefonszam || "";
-      document.getElementById("tInstCode").value = t.IntezmenyAzonosito || "";
-      document.getElementById("tInstName").value = t.IntezmenyNev || "";
-      if (t.IntezmenyAzonosito && schoolSel) schoolSel.value = t.IntezmenyAzonosito;
-      const subj = Array.isArray(t.Tantargyak) ? t.Tantargyak.map((x) => x.Nev).filter(Boolean).join(", ") : "";
-      document.getElementById("tSubjects").value = subj;
-      document.getElementById("teaForm").scrollIntoView({ behavior: "smooth" });
-    });
-  });
-
-  document.getElementById("teaClear")?.addEventListener("click", () => {
-    document.getElementById("teaForm").reset();
-  });
-
-  document.getElementById("teaForm")?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const msg = document.getElementById("teaMsg");
-    const subjectsRaw = document.getElementById("tSubjects").value.trim();
-    const tantargyak = subjectsRaw
-      ? subjectsRaw.split(",").map((n, i) => {
-          const nev = n.trim();
-          const code = nev.toUpperCase().replace(/\s+/g, "_").slice(0, 12) || ("T" + (i + 1));
-          return {
-            Uid: (i + 1) + "," + code,
-            Nev: nev,
-            Kategoria: { Uid: "1", Nev: "Kötelező", Leiras: "Kötelező tantárgy" },
-            SortIndex: i + 1
-          };
-        })
-      : (cache.teacher && cache.teacher.Tantargyak) || [];
-
-    const body = Object.assign({}, cache.teacher || {}, {
-      Uid: document.getElementById("tUid").value.trim(),
-      Nev: document.getElementById("tNev").value.trim(),
-      EmailCim: document.getElementById("tEmail").value.trim(),
-      Telefonszam: document.getElementById("tTel").value.trim(),
-      IntezmenyAzonosito: document.getElementById("tInstCode").value.trim(),
-      IntezmenyNev: document.getElementById("tInstName").value.trim(),
-      Tantargyak: tantargyak
-    });
-
-    if (!body.Uid || !body.Nev) {
-      msg.className = "n-msg n-msg-err";
-      msg.style.display = "block";
-      msg.textContent = "UID és név kötelező.";
-      return;
-    }
-
-    const username = document.getElementById("tUser").value.trim();
-    const password = document.getElementById("tPass").value;
-
-    try {
-      await api("/admin/teacher", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
-      syncTeacherToLocal(body);
-
-      if (username && password) {
-        await api("/admin/users", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username,
-            password,
-            studentUid: body.Uid,
-            role: "Tanar"
-          })
+      // Prefer OF endpoint; fallback admin path won't work with bearer
+      try {
+        await apiPost("/naplo/v3/sajat/Of/Diakok", {
+          student, classGroupUid, username: username || undefined, password: password || undefined
         });
+      } catch (err1) {
+        // fallback: only if Of route missing
+        throw err1;
       }
-
-      await refreshData();
       msg.className = "n-msg n-msg-ok";
       msg.style.display = "block";
-      msg.textContent = "Tanár profil mentve" + (username ? " + login fiók létrehozva." : ".");
-      navigate("teachers");
+      msg.textContent = "Diák elmentve" + (username ? " + login." : ".");
+      await loadAllData();
+      setTimeout(() => navigate("students"), 700);
     } catch (err) {
       msg.className = "n-msg n-msg-err";
       msg.style.display = "block";
-      msg.textContent = err.message;
+      msg.textContent = (err.message || err) + " — telepítsd az of_role_patch.go-t + registerOFRoutes.";
     }
   });
 }
 
-function renderUsers() {
-  const users = Array.isArray(cache.users) ? cache.users : [];
-  const activeUsers = users; // aktív + inaktív is – törléshez kell
-
-  const rows = activeUsers.length === 0
-    ? `<tr><td colspan="5">${empty("Nincs user, vagy a GET /admin/users még nincs a szerveren.")}</td></tr>`
-    : activeUsers.map((u) => `
-      <tr>
-        <td>${esc(u.username)}</td>
-        <td>${esc(u.role || "—")}</td>
-        <td>${esc(u.studentUid || "—")}</td>
-        <td>${u.active === false ? "inaktív" : "aktív"}</td>
-        <td>
-          <button type="button" class="n-btn n-btn-secondary del-user"
-            data-username="${esc(u.username)}"
-            style="color:#c62828;border-color:#ef9a9a;">Törlés</button>
-        </td>
-      </tr>`).join("");
+function renderTimetable() {
+  const lessons = Array.isArray(cache.timetable) ? cache.timetable : [];
+  const groups = Array.isArray(cache.groups) ? cache.groups : [];
+  const subjects = Array.isArray(cache.teacher?.Tantargyak) ? cache.teacher.Tantargyak : [];
+  const listHtml = !lessons.length ? empty("Nincs órarend.") :
+    lessons.slice(0, 80).map(l => `
+      <div class="n-lesson">
+        <div class="n-lesson-num">${esc(l.Oraszam??"")}.</div>
+        <div class="n-lesson-time">${fmtTime(l.KezdetIdopont)}–${fmtTime(l.VegIdopont)}</div>
+        <div><div class="n-lesson-subj">${esc(subjectName(l)||l.Nev)}</div>
+        <div class="n-lesson-meta">${fmtDate(l.Datum)} · ${esc(l.OsztalyCsoport?.Nev||"")}</div></div>
+        <div class="n-lesson-meta">${esc(l.TeremNeve||"")}</div>
+      </div>`).join("");
 
   return `
-    <div class="n-panel">
-      <div class="n-panel-head">Bejelentkezési felhasználók (${activeUsers.length})</div>
-      <div class="n-panel-body" style="padding:0;">
-        <div id="userListMsg" style="display:none;margin:10px;"></div>
-        <div class="n-table-wrap"><table class="n-table">
-          <thead><tr><th>Username</th><th>Role</th><th>Kapcsolt UID</th><th>Állapot</th><th></th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table></div>
-      </div>
-    </div>
-
-    <div class="n-panel">
-      <div class="n-panel-head">User törlése username alapján (ha nincs a listában)</div>
-      <div class="n-panel-body">
-        <div id="manualDelMsg" style="display:none;"></div>
-        <form id="manualDelForm" class="n-form-grid">
-          <label for="delUserManual">Username</label>
-          <input id="delUserManual" required placeholder="pl. diak2" />
-          <div class="n-form-actions">
-            <button type="submit" class="n-btn" style="background:#c62828;border-color:#c62828;">Végleges törlés</button>
-          </div>
-        </form>
-        <p style="margin-top:8px;color:var(--n-muted);font-size:12px;">
-          A <code>DELETE /admin/users?username=…</code> a sort ténylegesen törli az adatbázisból.
-        </p>
-      </div>
-    </div>
-
-    <div class="n-panel">
-      <div class="n-panel-head">Új bejelentkezési felhasználó</div>
-      <div class="n-panel-body">
-        <div id="userMsg" style="display:none;"></div>
-        <form id="userForm" class="n-form-grid">
-          <label for="uName">Felhasználónév *</label>
-          <input id="uName" required />
-          <label for="uPass">Jelszó *</label>
-          <input id="uPass" type="password" required />
-          <label for="uUid">Kapcsolt UID *</label>
-          <input id="uUid" required placeholder="diák UID vagy tanár UID" />
-          <label for="uRole">Szerepkör</label>
-          <select id="uRole">
-            <option value="Tanulo">Tanulo (diák)</option>
-            <option value="Tanar">Tanar (tanár)</option>
-          </select>
-          <div class="n-form-actions">
-            <button type="submit" class="n-btn">User létrehozása</button>
-          </div>
-        </form>
-        <p style="margin-top:12px;color:var(--n-muted);font-size:12px;">
-          A törléshez a szerveren kell a <code>admin_delete_handlers.go</code> (Render deploy).
-          Soft-delete: <code>users.active = false</code>.
-        </p>
-      </div>
-    </div>
-
-    <div class="n-panel">
-      <div class="n-panel-head">Diák UID-k (segédlet)</div>
-      <div class="n-panel-body" style="padding:0;">
-        <div class="n-table-wrap"><table class="n-table">
-          <thead><tr><th>UID</th><th>Név</th><th>Iskola</th></tr></thead>
-          <tbody>${(cache.students || []).map((s) => `
-            <tr><td>${esc(s.Uid)}</td><td>${esc(s.Nev)}</td><td>${esc(s.IntezmenyAzonosito || "—")}</td></tr>
-          `).join("") || `<tr><td colspan="3">${empty("Nincs diák")}</td></tr>`}</tbody>
-        </table></div>
-      </div>
-    </div>`;
+    <div class="n-panel"><div class="n-panel-head">Órarend elemek</div>
+      <div class="n-panel-body">${listHtml}</div></div>
+    <div class="n-panel"><div class="n-panel-head">Megjegyzés</div>
+      <div class="n-panel-body" style="font-size:13px;color:var(--n-muted);">
+        Az órarend lista a napló API-ból jön. Új óra / törlés a szerveren jelenleg GET-orientált;
+        házi és jegy teljes körűen kezelhető. Órarend szerkesztés bővíthető, ha a backend POST/DELETE-et kap.
+      </div></div>`;
 }
 
-function bindUsers() {
-  document.getElementById("manualDelForm")?.addEventListener("submit", async (e) => {
+function renderHomework() {
+  const list = Array.isArray(cache.homework) ? cache.homework : [];
+  const groups = Array.isArray(cache.groups) ? cache.groups : [];
+  const subjects = Array.isArray(cache.teacher?.Tantargyak) ? cache.teacher.Tantargyak : [];
+  return `
+    <div class="n-panel"><div class="n-panel-head">Új házi</div>
+      <div class="n-panel-body">
+        <div id="hwMsg" style="display:none;"></div>
+        <form id="hwForm" class="n-form-grid">
+          <label>Tantárgy</label>
+          <select id="hwSubj" required>${subjects.map(s=>`<option value="${esc(s.Uid)}">${esc(s.Nev)}</option>`).join("")||"<option value=''>—</option>"}</select>
+          <label>Osztály</label>
+          <select id="hwGroup" required>${groups.map(g=>`<option value="${esc(g.Uid)}">${esc(g.Nev)}</option>`).join("")||"<option value=''>—</option>"}</select>
+          <label>Feladat</label><input id="hwText" required placeholder="Szöveg" />
+          <label>Határidő</label><input id="hwDue" type="date" required />
+          <div class="n-form-actions"><button type="submit" class="n-btn">Házi mentése</button></div>
+        </form>
+      </div></div>
+    <div class="n-panel"><div class="n-panel-head">Házi feladatok (${list.length})</div>
+      <div class="n-panel-body" style="padding:0;"><div class="n-table-wrap"><table class="n-table">
+        <thead><tr><th>Tantárgy</th><th>Feladat</th><th>Határidő</th><th></th></tr></thead>
+        <tbody>${list.map(h => `<tr>
+          <td>${esc(subjectName(h))}</td><td>${esc(h.Szoveg||"—")}</td>
+          <td>${fmtDate(h.HataridoDatuma||h.Hatarido)}</td>
+          <td><button type="button" class="n-btn n-btn-secondary del-hw" data-uid="${esc(h.Uid)}">Törlés</button></td>
+        </tr>`).join("") || `<tr><td colspan="4">${empty("Nincs házi.")}</td></tr>`}
+        </tbody></table></div></div></div>`;
+}
+
+function bindHomework() {
+  document.getElementById("hwForm")?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const username = document.getElementById("delUserManual").value.trim();
-    const msg = document.getElementById("manualDelMsg");
-    if (!username) return;
-    if (!confirm("Véglegesen törlöd: " + username + " ?")) return;
+    const msg = document.getElementById("hwMsg");
     try {
-      await api("/admin/users?username=" + encodeURIComponent(username), { method: "DELETE" });
-      msg.className = "n-msg n-msg-ok";
-      msg.style.display = "block";
-      msg.textContent = "Törölve: " + username;
-      document.getElementById("delUserManual").value = "";
-      await refreshData();
-      navigate("users");
+      await apiPost("/naplo/v3/sajat/HaziFeladatok", {
+        TantargyUid: document.getElementById("hwSubj").value,
+        Szoveg: document.getElementById("hwText").value.trim(),
+        Hatarido: document.getElementById("hwDue").value + "T23:59:00",
+        OsztalyCsoportUid: document.getElementById("hwGroup").value
+      });
+      cache.homework = await apiGet("/naplo/v3/sajat/HaziFeladatok");
+      msg.className = "n-msg n-msg-ok"; msg.style.display = "block";
+      msg.textContent = "Házi mentve.";
+      navigate("homework");
     } catch (err) {
-      msg.className = "n-msg n-msg-err";
-      msg.style.display = "block";
+      msg.className = "n-msg n-msg-err"; msg.style.display = "block";
       msg.textContent = err.message || String(err);
     }
   });
-
-  document.getElementById("userForm")?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const msg = document.getElementById("userMsg");
-    try {
-      await api("/admin/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: document.getElementById("uName").value.trim(),
-          password: document.getElementById("uPass").value,
-          studentUid: document.getElementById("uUid").value.trim(),
-          role: document.getElementById("uRole").value
-        })
-      });
-      msg.className = "n-msg n-msg-ok";
-      msg.style.display = "block";
-      msg.textContent = "Felhasználó létrehozva.";
-      e.target.reset();
-      await refreshData();
-      navigate("users");
-    } catch (err) {
-      msg.className = "n-msg n-msg-err";
-      msg.style.display = "block";
-      msg.textContent = err.message;
-    }
-  });
-
-  document.querySelectorAll(".del-user").forEach((btn) => {
+  document.querySelectorAll(".del-hw").forEach(btn => {
     btn.addEventListener("click", async () => {
-      const username = btn.dataset.username;
-      if (!confirm("Törlöd a felhasználót?\n" + username)) return;
-      const msg = document.getElementById("userListMsg");
+      if (!confirm("Törlöd a házit?")) return;
       try {
-        await api("/admin/users?username=" + encodeURIComponent(username), { method: "DELETE" });
-        if (msg) {
-          msg.className = "n-msg n-msg-ok";
-          msg.style.display = "block";
-          msg.textContent = "Törölve: " + username;
-        }
-        await refreshData();
-        navigate("users");
+        await apiDelete("/naplo/v3/sajat/HaziFeladatok?uid=" + encodeURIComponent(btn.dataset.uid));
+        cache.homework = await apiGet("/naplo/v3/sajat/HaziFeladatok");
+        navigate("homework");
       } catch (err) {
-        if (msg) {
-          msg.className = "n-msg n-msg-err";
-          msg.style.display = "block";
-          msg.textContent = "Törlés sikertelen: " + (err.message || err) +
-            " — telepítsd az admin_delete_handlers.go-t a Renderre.";
-        } else {
-          alert("Törlés sikertelen: " + (err.message || err));
-        }
+        alert("Törlés: " + err.message + " (backend DELETE kell a házira)");
       }
     });
   });
 }
 
-function renderConfig() {
+function renderAbsences() {
+  const list = Array.isArray(cache.absences) ? cache.absences : [];
+  const students = cache.students || [];
+  const groups = Array.isArray(cache.groups) ? cache.groups : [];
   return `
-    <div class="n-panel">
-      <div class="n-panel-head">Szerver konfig (JSON)</div>
+    <div class="n-panel"><div class="n-panel-head">Új mulasztás</div>
       <div class="n-panel-body">
-        <div id="cfgMsg" style="display:none;"></div>
-        <textarea id="cfgJson" style="width:100%;min-height:280px;font-family:ui-monospace,monospace;font-size:12px;padding:10px;border:1px solid var(--n-border);">${esc(JSON.stringify(cache.config || {}, null, 2))}</textarea>
-        <div style="margin-top:10px;display:flex;gap:8px;">
-          <button type="button" class="n-btn" id="cfgSave">Mentés</button>
-          <button type="button" class="n-btn n-btn-secondary" id="cfgReload">Újratöltés</button>
-        </div>
-      </div>
-    </div>`;
+        <div id="absMsg" style="display:none;"></div>
+        <form id="absForm" class="n-form-grid">
+          <label>Diák</label>
+          <select id="absStudent" required>${students.map(s=>`<option value="${esc(s.Uid)}">${esc(s.Nev)}</option>`).join("")}</select>
+          <label>Osztály</label>
+          <select id="absGroup">${groups.map(g=>`<option value="${esc(g.Uid)}">${esc(g.Nev)}</option>`).join("")||"<option value=''>—</option>"}</select>
+          <label>Dátum</label><input id="absDate" type="date" required />
+          <label>Típus</label>
+          <select id="absType"><option value="1|Hiányzás|Hiányzás">Hiányzás</option><option value="2|Késés|Késés">Késés</option></select>
+          <div class="n-form-actions"><button type="submit" class="n-btn">Mentés</button></div>
+        </form>
+      </div></div>
+    <div class="n-panel"><div class="n-panel-head">Mulasztások</div>
+      <div class="n-panel-body" style="padding:0;"><div class="n-table-wrap"><table class="n-table">
+        <thead><tr><th>Dátum</th><th>Diák</th><th>Típus</th><th></th></tr></thead>
+        <tbody>${(list||[]).map(o => {
+          const st = students.find(s => String(s.Uid)===String(o.TanuloUid));
+          return `<tr><td>${fmtDate(o.Datum)}</td><td>${esc(st?.Nev||o.TanuloUid)}</td>
+            <td>${esc(o.Tipus?.Nev||"Hiányzás")}</td>
+            <td><button type="button" class="n-btn n-btn-secondary del-abs" data-uid="${esc(o.Uid)}">Törlés</button></td></tr>`;
+        }).join("") || `<tr><td colspan="4">${empty("Nincs.")}</td></tr>`}
+        </tbody></table></div></div></div>`;
 }
 
-function bindConfig() {
-  document.getElementById("cfgSave")?.addEventListener("click", async () => {
-    const msg = document.getElementById("cfgMsg");
+function bindAbsences() {
+  const d = document.getElementById("absDate");
+  if (d && !d.value) d.value = new Date().toISOString().slice(0,10);
+  document.getElementById("absForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById("absMsg");
+    const typeRaw = document.getElementById("absType").value.split("|");
     try {
-      const body = JSON.parse(document.getElementById("cfgJson").value);
-      cache.config = await api("/admin/config", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
+      await apiPost("/naplo/v3/sajat/Mulasztasok", {
+        TanuloUid: document.getElementById("absStudent").value,
+        Datum: document.getElementById("absDate").value + "T00:00:00",
+        Tipus: { Uid: typeRaw[0], Nev: typeRaw[1], Leiras: typeRaw[2] },
+        OsztalyCsoportUid: document.getElementById("absGroup").value
       });
-      msg.className = "n-msg n-msg-ok";
-      msg.style.display = "block";
-      msg.textContent = "Konfig mentve.";
-      await refreshData();
+      cache.absences = await apiGet("/naplo/v3/sajat/Mulasztasok");
+      navigate("absences");
     } catch (err) {
-      msg.className = "n-msg n-msg-err";
-      msg.style.display = "block";
-      msg.textContent = err.message;
+      msg.className = "n-msg n-msg-err"; msg.style.display = "block";
+      msg.textContent = err.message || String(err);
     }
   });
-  document.getElementById("cfgReload")?.addEventListener("click", async () => {
-    await refreshData();
-    navigate("config");
+  document.querySelectorAll(".del-abs").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Törlés?")) return;
+      try {
+        await apiDelete("/naplo/v3/sajat/Mulasztasok?uid=" + encodeURIComponent(btn.dataset.uid));
+        cache.absences = await apiGet("/naplo/v3/sajat/Mulasztasok");
+        navigate("absences");
+      } catch (err) { alert(err.message); }
+    });
   });
 }
 
-function renderTools() {
-  return `
-    <div class="n-panel">
-      <div class="n-panel-head">Mock adatok visszaállítása</div>
-      <div class="n-panel-body">
-        <div id="toolMsg" style="display:none;"></div>
-        <p style="margin-top:0;color:var(--n-muted);">A <code>POST /admin/reset</code> visszaállítja a seed adatokat. Óvatosan.</p>
-        <button type="button" class="n-btn" id="resetBtn" style="background:#c62828;border-color:#c62828;">Reset futtatása</button>
-      </div>
-    </div>
-    <div class="n-panel">
-      <div class="n-panel-head">Health</div>
-      <div class="n-panel-body"><pre style="margin:0;">${esc(JSON.stringify(cache.health, null, 2))}</pre></div>
-    </div>`;
-}
-
-function bindTools() {
-  document.getElementById("resetBtn")?.addEventListener("click", async () => {
-    if (!confirm("Biztosan visszaállítod a mock adatokat?")) return;
-    const msg = document.getElementById("toolMsg");
-    try {
-      await api("/admin/reset", { method: "POST" });
-      await refreshData();
-      msg.className = "n-msg n-msg-ok";
-      msg.style.display = "block";
-      msg.textContent = "Reset kész.";
-    } catch (err) {
-      msg.className = "n-msg n-msg-err";
-      msg.style.display = "block";
-      msg.textContent = err.message;
-    }
-  });
+function renderProfile() {
+  const t = cache.teacher || {};
+  return `<div class="n-panel"><div class="n-panel-head">Profil</div>
+    <div class="n-panel-body">
+      <p><strong>${esc(t.Nev||"Osztályfőnök")}</strong></p>
+      <p style="color:var(--n-muted);">${esc(t.EmailCim||"")}</p>
+      <p>Szerepkör: Osztályfőnök / tanári napló</p>
+    </div></div>`;
 }
 
 const RENDERERS = {
   dashboard: renderDashboard,
+  grade: renderGradeForm,
+  grades: renderGrades,
+  absences: renderAbsences,
   students: renderStudents,
-  studentForm: renderStudentForm,
-  teachers: renderTeachers,
-  users: renderUsers,
-  config: renderConfig,
-  tools: renderTools
+  studentNew: renderStudentNew,
+  timetable: renderTimetable,
+  homework: renderHomework,
+  profile: renderProfile
 };
-
-const BINDERS = {
-  studentForm: bindStudentForm,
-  teachers: bindTeachers,
-  users: bindUsers,
-  config: bindConfig,
-  tools: bindTools
-};
-
-function closeSidebar() {
-  document.getElementById("sidebar").classList.remove("open");
-  document.getElementById("overlay").style.display = "none";
-}
 
 function navigate(page) {
-  if (!RENDERERS[page]) page = "dashboard";
-  if (page !== "studentForm") editStudentUid = page === "students" ? editStudentUid : null;
   currentPage = page;
-  document.getElementById("pageTitle").textContent = PAGE_META[page];
-  document.getElementById("bcPage").textContent = PAGE_META[page];
-  document.querySelectorAll(".n-nav-item").forEach((b) => {
+  document.querySelectorAll(".n-nav-item").forEach(b => {
     b.classList.toggle("active", b.dataset.page === page);
   });
-  const el = document.getElementById("pageContent");
-  el.innerHTML = RENDERERS[page]();
-  BINDERS[page]?.();
-
-  el.querySelectorAll("[data-go]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      if (btn.dataset.go === "studentForm") editStudentUid = null;
-      navigate(btn.dataset.go);
-    });
+  document.getElementById("pageTitle").textContent = PAGE_META[page] || page;
+  document.getElementById("bcPage").textContent = PAGE_META[page] || page;
+  document.getElementById("pageContent").innerHTML = (RENDERERS[page] || renderDashboard)();
+  document.querySelectorAll("[data-go]").forEach(btn => {
+    btn.addEventListener("click", () => navigate(btn.dataset.go));
   });
-  el.querySelectorAll(".edit-student").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      editStudentUid = btn.dataset.uid;
-      navigate("studentForm");
-    });
-  });
-  el.querySelectorAll(".del-student").forEach((btn) => {
-    btn.addEventListener("click", () => deleteStudent(btn.dataset.uid, btn.dataset.name));
-  });
-  closeSidebar();
-}
-
-async function deleteStudent(uid, name) {
-  if (!uid) return;
-  if (!confirm("Biztosan törlöd a diákot?\n" + (name || uid) + " (" + uid + ")")) return;
-  try {
-    await api("/admin/students?uid=" + encodeURIComponent(uid), { method: "DELETE" });
-  } catch (e) {
-    // fallback: local hide list
-    const key = "ujkreta_admin_deleted_students";
-    let arr = [];
-    try { arr = JSON.parse(localStorage.getItem(key) || "[]"); } catch (_) {}
-    if (!arr.includes(uid)) arr.push(uid);
-    localStorage.setItem(key, JSON.stringify(arr));
-    alert("API törlés nem elérhető (" + (e.message || e) + ").\nHelyben elrejtve. Telepítsd az admin_crud_patch.go-t a szerverre a végleges törléshez.");
-  }
-  try { await refreshData(); } catch (_) {}
-  navigate("students");
-}
-
-async function deleteTeacher(uid, name) {
-  if (!uid) return;
-  if (!confirm("Biztosan törlöd a tanárt?\n" + (name || uid) + " (" + uid + ")")) return;
-  // local always
-  saveTeachersLocal(getTeachersLocal().filter((t) => String(t.Uid) !== String(uid)));
-  try {
-    await api("/admin/teacher/delete?uid=" + encodeURIComponent(uid), { method: "DELETE" });
-  } catch (_) {
-    try {
-      await api("/admin/teacher?uid=" + encodeURIComponent(uid), { method: "DELETE" });
-    } catch (e2) {
-      // ignore – local already removed
-    }
-  }
-  // if was active API teacher, try clear
-  if (cache.teacher && String(cache.teacher.Uid) === String(uid)) {
-    try {
-      await api("/admin/teacher", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ Uid: "", Nev: "" })
+  if (page === "grade") bindGradeForm();
+  if (page === "studentNew") bindStudentNew();
+  if (page === "homework") bindHomework();
+  if (page === "absences") bindAbsences();
+  if (page === "grades") {
+    document.querySelectorAll(".del-grade").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Törlöd?")) return;
+        try {
+          await apiDelete("/naplo/v3/sajat/Ertekelesek?uid=" + encodeURIComponent(btn.dataset.uid));
+          cache.grades = await apiGet("/naplo/v3/sajat/Ertekelesek");
+          navigate("grades");
+        } catch (err) { alert(err.message); }
       });
-    } catch (_) {}
+    });
   }
-  try { await refreshData(); } catch (_) {}
-  navigate("teachers");
 }
 
-function showLogin(err) {
-  document.getElementById("appShell").style.display = "none";
-  document.getElementById("loginScreen").style.display = "block";
-  const box = document.getElementById("loginError");
-  if (err) {
-    box.style.display = "block";
-    box.textContent = err;
-  } else box.style.display = "none";
-}
-
-function showApp() {
+async function bootApp() {
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("appShell").style.display = "block";
-  document.getElementById("adminLabel").textContent = basicUser || "admin";
+  try {
+    await loadAllData();
+  } catch (_) {}
   navigate("dashboard");
 }
 
-async function tryLogin() {
-  const u = document.getElementById("adminUser").value.trim();
-  const p = document.getElementById("adminPass").value;
-  const err = document.getElementById("loginError");
-  if (!u || !p) {
-    err.style.display = "block";
-    err.textContent = "Add meg a felhasználónevet és jelszót.";
-    return;
-  }
-  saveAuth(u, p);
-  try {
-    await api("/admin/health");
-    await refreshData();
-    showApp();
-  } catch (e) {
-    clearAuth();
-    err.style.display = "block";
-    err.textContent = e.message === "401" ? "Hibás admin adatok." : (e.message || "Belépési hiba");
-  }
-}
-
-async function boot() {
-  document.getElementById("adminLoginBtn").addEventListener("click", tryLogin);
-  document.getElementById("adminPass").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") tryLogin();
+function init() {
+  accessToken = getStoredToken();
+  document.getElementById("logoutBtn")?.addEventListener("click", goLogin);
+  document.getElementById("menuBtn")?.addEventListener("click", () => {
+    document.getElementById("sidebar")?.classList.toggle("open");
+    document.getElementById("overlay")?.classList.toggle("show");
   });
-  document.getElementById("logoutBtn").addEventListener("click", () => {
-    clearAuth();
-    showLogin();
+  document.getElementById("overlay")?.addEventListener("click", () => {
+    document.getElementById("sidebar")?.classList.remove("open");
+    document.getElementById("overlay")?.classList.remove("show");
   });
-  document.getElementById("menuBtn").addEventListener("click", () => {
-    document.getElementById("sidebar").classList.add("open");
-    document.getElementById("overlay").style.display = "block";
-  });
-  document.getElementById("overlay").addEventListener("click", closeSidebar);
-  document.querySelectorAll(".n-nav-item").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      if (btn.dataset.page === "studentForm") editStudentUid = null;
-      navigate(btn.dataset.page);
-    });
+  document.querySelectorAll(".n-nav-item").forEach(btn => {
+    btn.addEventListener("click", () => navigate(btn.dataset.page));
   });
 
-  if (basicUser && basicPass) {
+  document.getElementById("ofLoginBtn")?.addEventListener("click", async () => {
+    const u = document.getElementById("ofUser").value.trim();
+    const p = document.getElementById("ofPass").value;
+    const err = document.getElementById("loginError");
+    err.style.display = "none";
     try {
-      await api("/admin/health");
-      await refreshData();
-      showApp();
-      return;
-    } catch (_) {
-      clearAuth();
+      await login(u, p);
+      await bootApp();
+    } catch (ex) {
+      err.style.display = "block";
+      err.textContent = ex.message || String(ex);
     }
-  }
-  showLogin();
+  });
+
+  if (accessToken) bootApp();
+  else goLogin();
 }
 
-boot();
+document.addEventListener("DOMContentLoaded", init);

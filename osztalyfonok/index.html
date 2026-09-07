@@ -12,16 +12,16 @@
       <div class="login-card" style="max-width:420px;margin:40px auto;background:#fff;border:1px solid #c5d0dc;padding:28px;border-radius:4px;">
         <div style="font-weight:800;font-size:18px;color:#004578;margin-bottom:4px;">KRÁTA Osztályfőnök</div>
         <div style="color:#5a6a7a;font-size:13px;margin-bottom:16px;">
-          Diákok, tanárok, felhasználók kezelése.<br/>
-          <strong>Iskolát nem lehet létrehozni</strong>
+          Diákok, jegyek, házi, órarend, mulasztás.<br/>
+          <strong>Nincs</strong> iskola / tanár / konfig kezelés.
         </div>
         <label style="display:block;font-weight:650;margin-bottom:4px;">Felhasználónév</label>
-        <input id="adminUser" type="text" autocomplete="username" style="width:100%;padding:8px;margin-bottom:10px;border:1px solid #c5d0dc;" />
+        <input id="ofUser" type="text" autocomplete="username" style="width:100%;padding:8px;margin-bottom:10px;border:1px solid #c5d0dc;" />
         <label style="display:block;font-weight:650;margin-bottom:4px;">Jelszó</label>
-        <input id="adminPass" type="password" autocomplete="current-password" style="width:100%;padding:8px;margin-bottom:10px;border:1px solid #c5d0dc;" />
+        <input id="ofPass" type="password" autocomplete="current-password" style="width:100%;padding:8px;margin-bottom:10px;border:1px solid #c5d0dc;" />
         <div id="loginError" class="n-msg n-msg-err" style="display:none;"></div>
-        <button type="button" class="n-btn" id="adminLoginBtn" style="width:100%;">Belépés</button>
-        <p style="margin-top:12px;font-size:12px;color:#5a6a7a;">Ugyanaz az admin API (Basic Auth), mint a rendszeradminnál.</p>
+        <button type="button" class="n-btn" id="ofLoginBtn" style="width:100%;">Belépés</button>
+        <p style="margin-top:12px;font-size:12px;color:#5a6a7a;">OF fiókot az Admin → Felhasználók → role <code>Osztalyfonok</code> hoz létre.</p>
       </div>
     </div>
 
@@ -32,44 +32,36 @@
           <div class="n-logo">KRÁTA</div>
           <div class="n-header-title">
             <span class="n-system">Osztályfőnök</span>
-            <span class="n-inst">Osztály / diák kezelés</span>
+            <span class="n-inst">Osztály napló</span>
           </div>
         </div>
         <div class="n-header-right">
-          <div class="n-user">
-            <span class="n-user-name" id="adminLabel">osztályfőnök</span>
-            <span class="n-user-code">OF</span>
-          </div>
+          <div class="n-user"><span class="n-user-name">OF</span><span class="n-user-code">Osztályfőnök</span></div>
           <button type="button" class="n-logout" id="logoutBtn">Kijelentkezés</button>
         </div>
       </header>
-
       <div class="n-body">
         <aside class="n-sidebar" id="sidebar">
-          <div class="n-sidebar-label">Osztályfőnök menü</div>
+          <div class="n-sidebar-label">Menü</div>
           <nav class="n-nav">
-            <button class="n-nav-item active" data-page="dashboard">Áttekintés</button>
+            <button class="n-nav-item active" data-page="dashboard">Kezdőlap</button>
             <button class="n-nav-item" data-page="students">Tanulók</button>
-            <button class="n-nav-item" data-page="studentForm">Új / szerkeszt diák</button>
-            <button class="n-nav-item" data-page="teachers">Tanárok</button>
-            <button class="n-nav-item" data-page="users">Felhasználók</button>
-            <button class="n-nav-item" data-page="config">Konfig</button>
-            <button class="n-nav-item" data-page="tools">Eszközök</button>
+            <button class="n-nav-item" data-page="studentNew">Új diák</button>
+            <button class="n-nav-item" data-page="grade">Jegy beírása</button>
+            <button class="n-nav-item" data-page="grades">Beírt jegyek</button>
+            <button class="n-nav-item" data-page="absences">Mulasztások</button>
+            <button class="n-nav-item" data-page="homework">Házi feladatok</button>
+            <button class="n-nav-item" data-page="timetable">Órarend</button>
+            <button class="n-nav-item" data-page="profile">Profil</button>
           </nav>
         </aside>
-
         <main class="n-main">
-          <div class="n-breadcrumb">
-            <span>KRÁTA Osztályfőnök</span>
-            <span class="n-bc-sep">›</span>
-            <span id="bcPage">Áttekintés</span>
-          </div>
-          <h1 class="n-page-title" id="pageTitle">Áttekintés</h1>
+          <div class="n-breadcrumb"><span>Osztályfőnök</span><span class="n-bc-sep">›</span><span id="bcPage">Kezdőlap</span></div>
+          <h1 class="n-page-title" id="pageTitle">Kezdőlap</h1>
           <div id="pageContent"></div>
         </main>
       </div>
     </div>
-
     <div id="overlay" class="n-overlay" style="display:none;"></div>
   </div>
   <script src="app.js"></script>

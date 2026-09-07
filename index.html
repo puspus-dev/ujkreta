@@ -355,7 +355,7 @@ async function login() {
         );
 
         /*
-         * Szerepkör az id_token-ből (Tanar / Tanulo).
+         * Szerepkör az id_token-ből (Tanar / Tanulo / Osztalyfonok).
          */
         let role = "Tanulo";
         try {
@@ -364,11 +364,12 @@ async function login() {
                 const b64 = payload.replace(/-/g, "+").replace(/_/g, "/");
                 const padded = b64 + "=".repeat((4 - b64.length % 4) % 4);
                 const claims = JSON.parse(atob(padded));
-                if (claims.role) role = claims.role;
+                role = claims.role || claims["kreta:role"] || claims.Role || role;
             }
         } catch (_) {}
 
         localStorage.setItem("ujkreta_role", role);
+        console.log("Login role:", role);
 
         /*
          * Régi, korábbi verzióból esetlegesen megmaradt

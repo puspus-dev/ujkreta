@@ -385,15 +385,24 @@ async function login() {
 
 
         /*
-         * Tanár → /tanar, diák → /diak
+         * Osztályfőnök → /osztalyfonok, Tanár → /tanar, diák → /diak
          */
+        const roleL = String(role).toLowerCase();
+        const isOF =
+            roleL.indexOf("osztalyfonok") !== -1 ||
+            roleL.indexOf("osztályfőnök") !== -1 ||
+            roleL === "of";
         const isTeacher =
-            String(role).toLowerCase().indexOf("tanar") !== -1 ||
-            String(role).toLowerCase() === "teacher";
+            roleL.indexOf("tanar") !== -1 ||
+            roleL === "teacher";
 
-        window.location.href = isTeacher
-            ? "https://puspus-dev.github.io/ujkreta/tanar/"
-            : "https://puspus-dev.github.io/ujkreta/diak/";
+        if (isOF) {
+            window.location.href = "https://puspus-dev.github.io/ujkreta/osztalyfonok/";
+        } else if (isTeacher) {
+            window.location.href = "https://puspus-dev.github.io/ujkreta/tanar/";
+        } else {
+            window.location.href = "https://puspus-dev.github.io/ujkreta/diak/";
+        }
 
 
     } catch (error) {
@@ -550,13 +559,22 @@ function checkSession() {
         const role =
             localStorage.getItem("ujkreta_role") || "";
 
+        const roleL = String(role).toLowerCase();
+        const isOF =
+            roleL.indexOf("osztalyfonok") !== -1 ||
+            roleL.indexOf("osztályfőnök") !== -1 ||
+            roleL === "of";
         const isTeacher =
-            String(role).toLowerCase().indexOf("tanar") !== -1 ||
-            String(role).toLowerCase() === "teacher";
+            roleL.indexOf("tanar") !== -1 ||
+            roleL === "teacher";
 
-        window.location.href = isTeacher
-            ? "https://puspus-dev.github.io/ujkreta/tanar/"
-            : "https://puspus-dev.github.io/ujkreta/diak/";
+        if (isOF) {
+            window.location.href = "https://puspus-dev.github.io/ujkreta/osztalyfonok/";
+        } else if (isTeacher) {
+            window.location.href = "https://puspus-dev.github.io/ujkreta/tanar/";
+        } else {
+            window.location.href = "https://puspus-dev.github.io/ujkreta/diak/";
+        }
 
     }
 

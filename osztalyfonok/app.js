@@ -64,8 +64,7 @@ function clearTokens() {
 }
 function goLogin() {
   clearTokens();
-  document.getElementById("appShell").style.display = "none";
-  document.getElementById("loginScreen").style.display = "block";
+  window.location.href = LOGIN_URL;
 }
 
 function parseRoleFromIdToken(idToken) {
@@ -584,7 +583,14 @@ async function bootApp() {
 }
 
 function init() {
+  // Belépés a FŐ login oldalon történik; ide tokennel jön.
   accessToken = getStoredToken();
+  if (!accessToken) {
+    goLogin();
+    return;
+  }
+
+  document.getElementById("loginScreen").style.display = "none";
   document.getElementById("logoutBtn")?.addEventListener("click", goLogin);
   document.getElementById("menuBtn")?.addEventListener("click", () => {
     document.getElementById("sidebar")?.classList.toggle("open");
@@ -598,22 +604,7 @@ function init() {
     btn.addEventListener("click", () => navigate(btn.dataset.page));
   });
 
-  document.getElementById("ofLoginBtn")?.addEventListener("click", async () => {
-    const u = document.getElementById("ofUser").value.trim();
-    const p = document.getElementById("ofPass").value;
-    const err = document.getElementById("loginError");
-    err.style.display = "none";
-    try {
-      await login(u, p);
-      await bootApp();
-    } catch (ex) {
-      err.style.display = "block";
-      err.textContent = ex.message || String(ex);
-    }
-  });
-
-  if (accessToken) bootApp();
-  else goLogin();
+  bootApp();
 }
 
 document.addEventListener("DOMContentLoaded", init);

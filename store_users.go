@@ -81,8 +81,9 @@ func (s *Store) CreateUserWithRole(
 	if role == "" {
 		role = RoleStudent
 	}
-	if role != RoleStudent && role != RoleTeacher {
-		return User{}, fmt.Errorf("role csak Tanulo vagy Tanar lehet")
+	// Tanulo | Tanar | Osztalyfonok
+	if role != RoleStudent && role != RoleTeacher && role != "Osztalyfonok" {
+		return User{}, fmt.Errorf("role csak Tanulo, Tanar vagy Osztalyfonok lehet")
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)

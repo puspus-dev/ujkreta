@@ -1,6 +1,6 @@
 # ÚjKréta / KRÁTA API dokumentáció
 
-**Base URL:** _keressetek ki ha annyira erdekel_ 
+**Base URL:** ujkreta.onrender.com 
 **Repo:** https://github.com/puspus-dev/ujkreta  
 **Verzió:** sokadik
 

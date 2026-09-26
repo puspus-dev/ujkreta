@@ -304,6 +304,35 @@ func cors(
 				)
 			}
 
+			if origin == "https://e-krata.github.io" {
+
+				w.Header().Set(
+					"Access-Control-Allow-Origin",
+					origin,
+				)
+
+				w.Header().Set(
+					"Access-Control-Allow-Credentials",
+					"true",
+				)
+
+				w.Header().Set(
+					"Access-Control-Allow-Headers",
+					"Authorization, Content-Type, Accept",
+				)
+
+				w.Header().Set(
+					"Access-Control-Allow-Methods",
+					"GET, POST, PUT, DELETE, OPTIONS",
+				)
+
+				w.Header().Set(
+					"Vary",
+					"Origin",
+				)
+			}
+
+
 			if r.Method == http.MethodOptions {
 				w.WriteHeader(
 					http.StatusNoContent,

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KRÁTA – E-ügyintézés</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="e-header">
+    <div class="e-header-left">
+      <button type="button" class="e-menu-toggle" id="menuBtn" aria-label="Menü">☰</button>
+      <div class="e-logo">KRÁTA</div>
+      <div class="e-title">
+        <span>E-ügyintézés</span>
+        <span>Ügyintézési postafiók</span>
+      </div>
+    </div>
+    <div class="e-header-right">
+      <span id="userLabel">—</span>
+      <button type="button" class="e-logout" id="logoutBtn">Kijelentkezés</button>
+    </div>
+  </header>
+
+  <div class="e-body">
+    <aside class="e-sidebar" id="sidebar">
+      <div class="e-side-label">Postafiók</div>
+      <button type="button" class="e-nav-btn active" data-folder="inbox">
+        Beérkezett <span class="e-badge" id="badgeInbox" hidden>0</span>
+      </button>
+      <button type="button" class="e-nav-btn" data-folder="unread">
+        Olvasatlan <span class="e-badge" id="badgeUnread" hidden>0</span>
+      </button>
+      <button type="button" class="e-nav-btn" data-folder="compose">Új üzenet</button>
+      <div class="e-side-label" style="margin-top:12px;">Egyéb</div>
+      <button type="button" class="e-nav-btn" id="btnRefresh">Frissítés</button>
+    </aside>
+
+    <main class="e-main">
+      <div class="e-crumb">KRÁTA › E-ügyintézés › <span id="crumb">Beérkezett</span></div>
+      <h1 class="e-page-title" id="pageTitle">Beérkezett üzenetek</h1>
+      <div id="flash"></div>
+      <div id="appRoot"></div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,8 +1,7 @@
 # ÚjKréta / KRÁTA API dokumentáció
 
-**Base URL:** ujkreta.onrender.com 
+**Base URL:** `https://ujkreta.onrender.com`  
 **Repo:** https://github.com/puspus-dev/ujkreta  
-**Verzió:** sokadik
 
 ---
 
@@ -10,26 +9,28 @@
 
 1. [Áttekintés](#áttekintés)
 2. [Autentikáció](#autentikáció)
-3. [Diák API](#diák-api)
-4. [Tanár (Napló) API](#tanár-napló-api)
-5. [Admin API](#admin-api)
-6. [Hibák](#hibák)
-7. [CORS](#cors)
+3. [Intézmények](#intézmények)
+4. [Diák API](#diák-api)
+5. [Tanár (Napló) API](#tanár-napló-api)
+6. [E-ügyintézés – üzenetek](#e-ügyintézés--üzenetek)
+7. [Osztályfőnök](#osztályfőnök)
+8. [Admin API](#admin-api)
+9. [Hibák](#hibák)
+10. [CORS](#cors)
+11. [Health](#health)
 
 ---
 
 ## Áttekintés
 
-A szerver a hivatalos e-KRÉTA diák (`/ellenorzo/v3/sajat/*`) és egy mock tanári (`/naplo/v3/sajat/*`) API-t emulál.
-
-| Réteg | Prefix | Role |
+| Réteg | Prefix | Auth |
 |-------|--------|------|
-| Diák | `/ellenorzo/v3/sajat/*` | `Tanulo` |
-| Tanár | `/naplo/v3/sajat/*` | `Tanar` |
+| Diák | `/ellenorzo/v3/sajat/*` | Bearer |
+| Tanár | `/naplo/v3/sajat/*` | Bearer, role `Tanar` / `Osztalyfonok` |
+| E-ügyintézés | `/integration-kretamobile-api/v1/kommunikacio/*` | Bearer |
+| Intézmények | `/intezmenyek` | publikus GET |
 | Admin | `/admin/*` | HTTP Basic |
 | Health | `/health` | – |
-
-Minden védett endpoint `Authorization: Bearer <access_token>` headert vár (kivéve admin: Basic Auth).
 
 ---
 
@@ -37,30 +38,24 @@ Minden védett endpoint `Authorization: Bearer <access_token>` headert vár (kiv
 
 ### `POST /connect/token`
 
-OAuth2 token endpoint.
-
-**Grant types:**
-
 | grant_type | Paraméterek |
 |------------|-------------|
-| `password` | `username`, `password` |
+| `password` | `username`, `password`, opcionálisan `institute_code` |
 | `refresh_token` | `refresh_token` |
 | `authorization_code` | `code` |
-
-**Példa (password):**
 
 ```http
 POST /connect/token
 Content-Type: application/x-www-form-urlencoded
 
-grant_type=password&username=teacher&password=teacher
+grant_type=password&username=student&password=student&institute_code=dae0004
 ```
 
-**Sikeres válasz:**
+**Válasz:**
 
 ```json
 {
-  "id_token": "<JWT, alg:none>",
+  "id_token": "<JWT alg:none>",
   "access_token": "<opaque>",
   "expires_in": 43200,
   "token_type": "Bearer",
@@ -69,226 +64,302 @@ grant_type=password&username=teacher&password=teacher
 }
 ```
 
-Az `id_token` payload tartalmazza:
+**`id_token` claims (példa):**
 
 ```json
 {
-  "kreta:institute_code": "mockschool",
-  "kreta:institute_user_id": "300",
-  "kreta:user_name": "teacher",
-  "name": "Kovács Béla",
-  "role": "Tanar",
+  "kreta:institute_code": "dae0004",
+  "kreta:institute_user_id": "100",
+  "kreta:user_name": "student",
+  "name": "Teszt Elek",
+  "role": "Tanulo",
   "iat": 1710000000
 }
 ```
 
-**Alapértelmezett seed userek:**
+**Role értékek:** `Tanulo` | `Tanar` | `Osztalyfonok`
 
-| Username | Password | Role | UID |
-|----------|----------|------|-----|
-| `student` | `student` | Tanulo | `100` |
-| `teacher` | `teacher` | Tanar | `300` |
+Védett hívások:
 
-### Egyéb auth endpointok
+```http
+Authorization: Bearer <access_token>
+```
 
-| Endpoint | Metódus | Leírás |
-|----------|---------|--------|
-| `/Account/Login` | GET/POST | Login form / redirect flow |
-| `/ellenorzo-student/prod/oauthredirect` | GET | OAuth redirect handler |
+---
+
+## Intézmények
+
+### `GET /intezmenyek`  
+Alias: `GET /api/public/institutions`  
+
+**Auth:** nincs (főoldali intézményválasztó).
+
+```json
+[
+  {
+    "Uid": "dae0004",
+    "Kod": "dae0004",
+    "Nev": "SuliKód Gimnázium",
+    "RovidNev": "SuliKód",
+    "Varos": "Kisvárda"
+  }
+]
+```
+
+### Admin: `GET|POST|DELETE /admin/institutions`
+
+Basic Auth.  
+POST body: `{ "Uid", "Kod", "Nev", "RovidNev", "Varos", "Active" }`  
+DELETE: `?uid=` vagy `?kod=`
 
 ---
 
 ## Diák API
 
-Minden endpoint: `GET`, `Authorization: Bearer …`, role: `Tanulo` (vagy bármely érvényes token a mockban).
+Prefix: `/ellenorzo/v3/sajat/*` — mind `GET`, Bearer.
 
 | Endpoint | Leírás |
 |----------|--------|
-| `/ellenorzo/v3/sajat/TanuloAdatlap` | Diák profil |
-| `/ellenorzo/v3/sajat/OsztalyCsoportok` | Osztálycsoportok |
-| `/ellenorzo/v3/sajat/FaliujsagElemek` | Faliújság |
-| `/ellenorzo/v3/sajat/Feljegyzesek` | Feljegyzések |
-| `/ellenorzo/v3/sajat/Ertekelesek` | Értékelések |
-| `/ellenorzo/v3/sajat/Ertekelesek/Atlagok/OsztalyAtlagok` | Osztályátlagok |
-| `/ellenorzo/v3/sajat/OrarendElemek` | Órarend |
-| `/ellenorzo/v3/sajat/Mulasztasok` | Mulasztások |
-| `/ellenorzo/v3/sajat/HaziFeladatok` | Házi feladatok |
-| `/ellenorzo/v3/sajat/BejelentettSzamonkeresek` | Bejelentett számonkérések |
-| `/dktapi/intezmenyek/munkaterek/tanulok` | DKT tantárgyak |
-
-### Diák válasz – `TanuloAdatlap` (részlet)
-
-```json
-{
-  "Uid": "100",
-  "Nev": "Teszt Elek",
-  "Cimek": ["1234 Budapest, Példa utca 1."],
-  "SzuletesiEv": 2008,
-  "SzuletesiHonap": 9,
-  "SzuletesiNap": 1,
-  "EmailCim": "teszt.elek@example.com",
-  "TanevUid": "2025/2026",
-  "IntezmenyAzonosito": "mockschool",
-  "IntezmenyNev": "Mock Gimnázium",
-  "Gondviselok": [...],
-  "Intezmeny": {...}
-}
-```
+| `/TanuloAdatlap` | Profil |
+| `/OsztalyCsoportok` | Osztályok |
+| `/FaliujsagElemek` | Faliújság |
+| `/Feljegyzesek` | Feljegyzések |
+| `/Ertekelesek` | Értékelések |
+| `/Ertekelesek/Atlagok/OsztalyAtlagok` | Osztályátlagok |
+| `/OrarendElemek` | Órarend |
+| `/Mulasztasok` | Mulasztások |
+| `/HaziFeladatok` | Házi |
+| `/BejelentettSzamonkeresek` | Számonkérések |
+| `/dktapi/intezmenyek/munkaterek/tanulok` | DKT |
 
 ---
 
 ## Tanár (Napló) API
 
 Prefix: `/naplo/v3/sajat/*`  
-Auth: Bearer token, ajánlott role: `Tanar`.
+Auth: Bearer, role `Tanar` vagy `Osztalyfonok`.
 
-### Profil és listák
+### Olvasás
+
+| Endpoint | Metódus |
+|----------|---------|
+| `/TanarAdatlap` | GET |
+| `/OsztalyCsoportok` | GET |
+| `/Tanulok` | GET |
+| `/OrarendElemek` | GET |
+| `/Ertekelesek` | GET |
+| `/HaziFeladatok` | GET |
+| `/Mulasztasok` | GET |
+| `/BejelentettSzamonkeresek` | GET |
+
+### Írás / törlés (mock)
+
+| Endpoint | Metódus |
+|----------|---------|
+| `/Ertekelesek` | POST, DELETE |
+| `/HaziFeladatok` | POST (, DELETE ha telepítve) |
+| `/Mulasztasok` | POST, DELETE |
+| `/BejelentettSzamonkeresek` | POST |
+
+### OF extra
 
 | Endpoint | Metódus | Leírás |
 |----------|---------|--------|
-| `/naplo/v3/sajat/TanarAdatlap` | GET | Tanár profil |
-| `/naplo/v3/sajat/OsztalyCsoportok` | GET | Tanár osztályai |
-| `/naplo/v3/sajat/Tanulok` | GET | Diákok listája (osztályonként) |
-| `/naplo/v3/sajat/OrarendElemek` | GET | Tanári órarend |
-| `/naplo/v3/sajat/Ertekelesek` | GET | A tanár által rögzített értékelések |
-| `/naplo/v3/sajat/HaziFeladatok` | GET | Házi feladatok |
-| `/naplo/v3/sajat/Mulasztasok` | GET | Mulasztások |
-| `/naplo/v3/sajat/BejelentettSzamonkeresek` | GET | Számonkérések |
+| `/Of/Diakok` | GET, POST, DELETE | Diák lista / felvétel |
+| `/Of/Users` | POST | Csak `Tanulo` user |
 
-### Írás (mock CRUD)
+---
 
-| Endpoint | Metódus | Leírás |
-|----------|---------|--------|
-| `/naplo/v3/sajat/Ertekelesek` | POST | Új értékelés |
-| `/naplo/v3/sajat/HaziFeladatok` | POST | Új házi feladat |
-| `/naplo/v3/sajat/Mulasztasok` | POST | Új mulasztás |
-| `/naplo/v3/sajat/BejelentettSzamonkeresek` | POST | Új számonkérés |
+## E-ügyintézés – üzenetek
 
-### `GET /naplo/v3/sajat/TanarAdatlap`
+Hivatalos mobil path a mock szerveren (ugyanaz a host).
 
-```json
-{
-  "Uid": "300",
-  "Nev": "Kovács Béla",
-  "EmailCim": "kovacs.bela@mockschool.hu",
-  "Telefonszam": "+36301112233",
-  "IntezmenyAzonosito": "mockschool",
-  "IntezmenyNev": "Mock Gimnázium",
-  "OsztalyFonokOsztalyok": [
-    { "Uid": "10,11.A", "Nev": "11.A" }
-  ],
-  "Tantargyak": [
-    {
-      "Uid": "1,MATEK",
-      "Nev": "Matematika",
-      "Kategoria": { "Uid": "1", "Nev": "Kötelező", "Leiras": "Kötelező tantárgy" },
-      "SortIndex": 1
-    }
-  ]
-}
+**Prefix:** `/integration-kretamobile-api/v1/kommunikacio`  
+**Auth:** `Authorization: Bearer <access_token>`
+
+### 1. Postafiók lista
+
+```http
+GET /integration-kretamobile-api/v1/kommunikacio/postaladaelemek/sajat
 ```
 
-### `GET /naplo/v3/sajat/Tanulok`
+- A `uzenet.szoveg` mező **legfeljebb ~100 karakter** (lista nézet).
+- Üres postafiók: `[]` (a valós szerver néha 500-at ad).
+
+**Válasz (tömb):**
 
 ```json
 [
   {
-    "Uid": "100",
-    "Nev": "Teszt Elek",
-    "OsztalyCsoport": { "Uid": "10,11.A", "Nev": "11.A" },
-    "EmailCim": "teszt.elek@example.com"
+    "azonosito": 1001,
+    "isElolvasva": false,
+    "isToroltElem": false,
+    "tipus": {
+      "azonosito": 1,
+      "kod": "BEERKEZETT",
+      "rovidNev": "Beérkezett üzenet",
+      "nev": "Beérkezett üzenet",
+      "leiras": "Beérkezett üzenet"
+    },
+    "uzenet": {
+      "azonosito": 50001,
+      "kuldesDatum": "2026-09-25T10:00:00",
+      "feladoNev": "Kovács Béla",
+      "feladoTitulus": "tanár",
+      "szoveg": "Kedves Szülő / Gondviselő! …",
+      "targy": "Szülői értekezlet",
+      "cimzettLista": [
+        {
+          "azonosito": 70001,
+          "kretaAzonosito": 100,
+          "nev": "Teszt Elek",
+          "tipus": {
+            "azonosito": 4,
+            "kod": "OSZTALY_TANULO",
+            "rovidNev": "Osztály - Tanuló",
+            "nev": "Osztály - Tanuló",
+            "leiras": "Osztály - Tanuló"
+          }
+        }
+      ],
+      "csatolmanyok": [
+        { "azonosito": 90001, "fajlNev": "tematika.pdf" }
+      ]
+    }
   }
 ]
 ```
 
-### `POST /naplo/v3/sajat/Ertekelesek`
+### 2. Üzenet részlete (teljes szöveg)
 
-**Body:**
+```http
+GET /integration-kretamobile-api/v1/kommunikacio/postaladaelemek/{azonosito}
+```
+
+`{azonosito}` = a lista **legkülső** `azonosito` mezője (pl. `1001`).
+
+- Találat: egy objektum (nem tömb), **teljes** `uzenet.szoveg`.
+- Nincs ilyen id: **HTTP 500**, body: `An error has occured!`
+
+### 3. Olvasottnak jelölés
+
+```http
+POST /integration-kretamobile-api/v1/kommunikacio/uzenetek/olvasott
+Content-Type: application/json
+```
 
 ```json
 {
-  "TantargyUid": "1,MATEK",
-  "Tema": "Lineáris egyenletek",
-  "SzamErtek": 4,
-  "SzovegesErtek": "Jó",
-  "SulySzazalekErteke": 100,
-  "Tipus": { "Uid": "1", "Nev": "Írásbeli", "Leiras": "Írásbeli felelet" },
-  "OsztalyCsoportUid": "10,11.A",
-  "TanuloUid": "100"
+  "isOlvasott": true,
+  "uzenetAzonositoLista": [1001, 1002]
 }
 ```
 
-**Válasz:** a létrehozott `Grade` objektum (`201 Created`).
+Siker: `{ "success": true }` — az elemek `isElolvasva` mezője `true` lesz.
 
-### `POST /naplo/v3/sajat/HaziFeladatok`
+### 4. Üzenet küldése (mock extra)
+
+```http
+POST /integration-kretamobile-api/v1/kommunikacio/uzenetek
+Content-Type: application/json
+```
 
 ```json
 {
-  "TantargyUid": "1,MATEK",
-  "Szoveg": "30. oldal 1–5. feladat",
-  "Hatarido": "2026-09-05T23:59:59",
-  "OsztalyCsoportUid": "10,11.A"
+  "targy": "Tárgy",
+  "szoveg": "Teljes üzenet szövege…",
+  "cimzettUid": "100",
+  "cimzettNev": "Teszt Elek",
+  "feladoNev": "Kovács Béla",
+  "feladoTitulus": "tanár"
 }
 ```
 
-### `POST /naplo/v3/sajat/Mulasztasok`
+**201** + a létrehozott postafiók-elem.
 
-```json
-{
-  "TanuloUid": "100",
-  "Datum": "2026-08-29T00:00:00",
-  "Tipus": { "Uid": "1", "Nev": "Hiányzás", "Leiras": "Hiányzás" },
-  "KesesPercben": 0,
-  "OsztalyCsoportUid": "10,11.A"
-}
+### curl példák
+
+```bash
+BASE=https://ujkreta.onrender.com
+
+TOKEN=$(curl -s -X POST "$BASE/connect/token" \
+  -d "grant_type=password&username=student&password=student" \
+  | jq -r .access_token)
+
+# Lista
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "$BASE/integration-kretamobile-api/v1/kommunikacio/postaladaelemek/sajat" | jq
+
+# Részlet
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "$BASE/integration-kretamobile-api/v1/kommunikacio/postaladaelemek/1001" | jq
+
+# Olvasott
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"isOlvasott":true,"uzenetAzonositoLista":[1001]}' \
+  "$BASE/integration-kretamobile-api/v1/kommunikacio/uzenetek/olvasott" | jq
 ```
 
-### `POST /naplo/v3/sajat/BejelentettSzamonkeresek`
+---
 
-```json
-{
-  "TantargyUid": "1,MATEK",
-  "Datum": "2026-09-10T08:00:00",
-  "Modja": { "Uid": "1", "Nev": "Dolgozat", "Leiras": "Írásbeli dolgozat" },
-  "OsztalyCsoportUid": "10,11.A"
-}
-```
+## Osztályfőnök
+
+- User role: **`Osztalyfonok`** (Admin → felhasználók).
+- Belépés: fő login → `/osztalyfonok/` felület.
+- Napló API: ugyanaz, mint tanár (`requireTeacher` engedi).
+- Diák + diák-user felvétel: `/naplo/v3/sajat/Of/*` (ha telepítve).
 
 ---
 
 ## Admin API
 
-Auth: **HTTP Basic** (`ADMIN_USERNAME` / `ADMIN_PASSWORD` env).
+**Auth:** HTTP Basic (`ADMIN_USERNAME` / `ADMIN_PASSWORD`).
 
 | Endpoint | Metódus | Leírás |
 |----------|---------|--------|
-| `/admin` | GET | Endpoint lista |
-| `/admin/health` | GET | Health |
-| `/admin/config` | GET, PUT, POST | Szerver konfig |
-| `/admin/student` | GET, PUT, POST | Diák profil szerkesztés |
-| `/admin/teacher` | GET, PUT, POST | Tanár profil szerkesztés |
-| `/admin/reset` | POST | Mock adatok visszaállítása |
-| `/admin/users` | POST | Új user (role támogatással) |
+| `/admin/health` | GET | Admin él |
+| `/admin/config` | GET, PUT | Konfig |
+| `/admin/student` | GET, PUT | Singleton diák |
+| `/admin/students` | GET, POST, DELETE | Több diák |
+| `/admin/teacher` | GET, PUT, POST, DELETE | Tanár |
+| `/admin/users` | GET, POST, DELETE | Userek |
+| `/admin/institutions` | GET, POST, DELETE | Intézmények |
+| `/admin/reset` | POST | Mock reset |
 
 ### `POST /admin/users`
 
 ```json
 {
-  "username": "tanar2",
+  "username": "of1",
   "password": "titok",
-  "studentUid": "300",
-  "role": "Tanar"
+  "studentUid": "",
+  "role": "Osztalyfonok"
 }
 ```
 
-`role` opcionális, alapértelmezés: `Tanulo`.  
-`studentUid` tanár esetén a tanár UID-ját jelenti (`teacher_uid` alias is elfogadott).
+`role`: `Tanulo` | `Tanar` | `Osztalyfonok`
+
+### `POST /admin/students`
+
+```json
+{
+  "student": {
+    "Uid": "OA200001",
+    "Nev": "Kovács Anna",
+    "IntezmenyAzonosito": "dae0004",
+    "IntezmenyNev": "SuliKód",
+    "TanevUid": "2025/2026"
+  },
+  "classGroupUid": "",
+  "username": "anna",
+  "password": "anna123"
+}
+```
 
 ---
 
 ## Hibák
-
-OAuth / token hibák:
 
 ```json
 {
@@ -297,29 +368,20 @@ OAuth / token hibák:
 }
 ```
 
-Általános:
-
-```json
-{
-  "error": "method_not_allowed"
-}
-```
-
 | HTTP | Jelentés |
 |------|----------|
 | 400 | Hibás kérés / JSON |
-| 401 | Hiányzó / érvénytelen token vagy Basic Auth |
-| 405 | Nem engedélyezett metódus |
-| 500 | Szerverhiba |
+| 401 | Token / Basic Auth |
+| 403 | Role nem elég (pl. nem tanár) |
+| 405 | Method not allowed |
+| 500 | Szerverhiba / hiányzó üzenet id (e-ügyintézés) |
 
 ---
 
 ## CORS
 
-Jelenleg engedélyezett origin: `https://puspus-dev.github.io`  
-(Credentials, Authorization, Content-Type, Accept header-ekkel.)
-
-A tanár frontend fejlesztéshez javasolt bővíteni pl. `http://localhost:*` originökkel.
+Engedélyezett origin tipikusan: `https://puspus-dev.github.io`  
+(+ fejlesztéshez localhost, iktató domain, ha be van állítva).
 
 ---
 
@@ -328,25 +390,4 @@ A tanár frontend fejlesztéshez javasolt bővíteni pl. `http://localhost:*` or
 ```http
 GET /health
 → { "status": "ok" }
-```
-
----
-
-## Gyors teszt (curl)
-
-```bash
-# Token tanárként
-TOKEN=$(curl -s -X POST https://nemkapodmeg.onrender.com/connect/token \
-  -d "grant_type=password&username=teacher&password=teacher" \
-  | jq -r .access_token)
-
-# Tanár profil
-curl -s -H "Authorization: Bearer $TOKEN" \
-  https://keresdki.onrender.com/naplo/v3/sajat/TanarAdatlap | jq
-
-# Új jegy
-curl -s -X POST -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"TantargyUid":"1,MATEK","Tema":"Teszt","SzamErtek":5,"SzovegesErtek":"Jeles","SulySzazalekErteke":100,"OsztalyCsoportUid":"10,11.A","TanuloUid":"100"}' \
-  https://megmindignem.onrender.com/naplo/v3/sajat/Ertekelesek | jq
 ```

@@ -113,6 +113,8 @@ func main() {
 
 	server.registerMessageRoutes(mux)
 
+	server.registerMFARoutes(mux)
+
 	// ============================================================
 	// Admin
 	// ============================================================

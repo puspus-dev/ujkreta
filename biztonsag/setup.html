@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KRÁTA – 2FA beállítás</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh;
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      background: #e8eef2; color: #1a1a1a;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 28px 14px 40px;
+    }
+    .logo { font-size: 26px; font-weight: 800; letter-spacing: .1em; color: #1a3a4a; margin-bottom: 6px; }
+    .sub { font-size: 13px; color: #5a6a7a; margin-bottom: 18px; }
+    .card {
+      width: 100%; max-width: 480px; background: #fff;
+      border-radius: 4px; box-shadow: 0 2px 12px rgba(0,0,0,.08); overflow: hidden;
+    }
+    .card-head {
+      background: #0088a8; color: #fff; padding: 14px 18px;
+      font-size: 16px; font-weight: 650;
+    }
+    .card-body { padding: 18px 20px 22px; }
+    p { font-size: 14px; line-height: 1.45; margin: 0 0 12px; }
+    .status {
+      padding: 10px 12px; border-radius: 3px; font-size: 14px; margin-bottom: 14px;
+      background: #eef6fb; border: 1px solid #b3d4ea;
+    }
+    .status.on { background: #e8f5e9; border-color: #a5d6a7; color: #1b5e20; }
+    .status.off { background: #fff8e1; border-color: #ffe082; color: #6d4c00; }
+    .status.err { background: #ffebee; border-color: #ef9a9a; color: #c62828; }
+    .btn {
+      min-height: 40px; padding: 8px 16px; font-size: 14px; font-weight: 600;
+      border-radius: 3px; cursor: pointer; border: 1px solid #c5d0dc;
+      background: #f5f7f9; margin: 4px 6px 4px 0;
+    }
+    .btn-primary { background: #0088a8; border-color: #0088a8; color: #fff; }
+    .btn-danger { background: #c62828; border-color: #c62828; color: #fff; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    label { display: block; font-size: 12px; font-weight: 650; color: #5a6a7a; margin: 10px 0 4px; }
+    input {
+      width: 100%; min-height: 42px; padding: 8px 10px; font-size: 15px;
+      border: 1px solid #c5d0dc; border-radius: 3px;
+    }
+    .secret-box {
+      font-family: ui-monospace, monospace; font-size: 15px; letter-spacing: .06em;
+      background: #f4f7f9; border: 1px dashed #90a4ae; padding: 12px;
+      border-radius: 4px; word-break: break-all; margin: 10px 0;
+      user-select: all;
+    }
+    .otpauth {
+      font-size: 11px; color: #5a6a7a; word-break: break-all;
+      background: #fafbfc; padding: 8px; border-radius: 3px; margin-bottom: 12px;
+    }
+    .step { display: none; }
+    .step.show { display: block; }
+    .msg { font-size: 13px; margin-top: 10px; }
+    .msg.ok { color: #2e7d32; }
+    .msg.bad { color: #c62828; }
+    a.back { font-size: 13px; color: #0067b8; margin-top: 16px; display: inline-block; }
+    ol { margin: 0 0 12px; padding-left: 20px; font-size: 14px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="logo">KRÁTA</div>
+  <div class="sub">Kétfaktoros azonosítás beállítása (tanár / osztályfőnök)</div>
+
+  <div class="card">
+    <div class="card-head">2FA beállítás</div>
+    <div class="card-body">
+      <div id="banner" class="status">Állapot betöltése…</div>
+
+      <!-- nincs token -->
+      <div class="step" id="stepLogin">
+        <p>Először jelentkezz be a főoldalon <strong>tanár</strong> vagy <strong>osztályfőnök</strong> fiókkal, majd nyisd meg újra ezt az oldalt.</p>
+        <a class="btn btn-primary" href="https://puspus-dev.github.io/ujkreta/" style="display:inline-block;text-decoration:none;">Bejelentkezés</a>
+      </div>
+
+      <!-- diák -->
+      <div class="step" id="stepStudent">
+        <p>A 2FA csak <strong>tanár</strong> és <strong>osztályfőnök</strong> fiókokhoz érhető el.</p>
+      </div>
+
+      <!-- ki van kapcsolva -->
+      <div class="step" id="stepOff">
+        <p>A kétfaktoros azonosítás jelenleg <strong>ki van kapcsolva</strong>. Nem kötelező; bármikor bekapcsolhatod.</p>
+        <ol>
+          <li>Nyomd meg a <em>Beállítás indítása</em> gombot.</li>
+          <li>Add hozzá a titkos kulcsot (vagy az otpauth linket) Google Authenticator / Authy / Microsoft Authenticator appban.</li>
+          <li>Írd be a 6 jegyű kódot a megerősítéshez.</li>
+          <li>Mentsd el a helyreállító kódot!</li>
+        </ol>
+        <button type="button" class="btn btn-primary" id="btnStart">Beállítás indítása</button>
+        <div class="msg" id="msgOff"></div>
+      </div>
+
+      <!-- setup folyamat -->
+      <div class="step" id="stepSetup">
+        <p><strong>1.</strong> Másold be ezt a titkos kulcsot az authenticator appba (vagy olvasd be az otpauth URI-t):</p>
+        <div class="secret-box" id="secretBox">—</div>
+        <div class="otpauth" id="otpauthBox"></div>
+        <p><strong>2.</strong> Írd be a app által mutatott 6 jegyű kódot:</p>
+        <label for="enableCode">Kód</label>
+        <input id="enableCode" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="one-time-code" />
+        <div style="margin-top:12px;">
+          <button type="button" class="btn btn-primary" id="btnEnable">2FA bekapcsolása</button>
+          <button type="button" class="btn" id="btnCancelSetup">Mégse</button>
+        </div>
+        <div class="msg" id="msgSetup"></div>
+      </div>
+
+      <!-- recovery mutatása -->
+      <div class="step" id="stepRecovery">
+        <p class="msg ok">A 2FA sikeresen bekapcsolva.</p>
+        <p>Ez a <strong>helyreállító kód</strong> egyszer használható, ha nincs nálad a telefon. Mentsd el biztonságos helyre:</p>
+        <div class="secret-box" id="recoveryBox">—</div>
+        <button type="button" class="btn btn-primary" id="btnDone">Kész</button>
+      </div>
+
+      <!-- be van kapcsolva -->
+      <div class="step" id="stepOn">
+        <p>A kétfaktoros azonosítás <strong>be van kapcsolva</strong>. Belépéskor a jelszó után kérni fogja a 6 jegyű kódot (kivéve „biztonságos eszköz”).</p>
+        <label for="disPass">Jelszó (kikapcsoláshoz)</label>
+        <input id="disPass" type="password" autocomplete="current-password" />
+        <label for="disCode">Authenticator vagy helyreállító kód</label>
+        <input id="disCode" autocomplete="one-time-code" placeholder="6 jegyű vagy helyreállító" />
+        <div style="margin-top:12px;">
+          <button type="button" class="btn btn-danger" id="btnDisable">2FA kikapcsolása</button>
+        </div>
+        <div class="msg" id="msgOn"></div>
+      </div>
+
+      <a class="back" id="backLink" href="https://puspus-dev.github.io/ujkreta/tanar/">← Vissza a tanári felületre</a>
+    </div>
+  </div>
+
+  <script>
+    const API = "https://ujkreta.onrender.com";
+    const TOKEN_KEYS = ["access_token", "ujkreta_access_token"];
+
+    function token() {
+      for (const k of TOKEN_KEYS) {
+        const v = localStorage.getItem(k);
+        if (v) return v;
+      }
+      return null;
+    }
+
+    function show(id) {
+      document.querySelectorAll(".step").forEach((el) => el.classList.remove("show"));
+      document.getElementById(id).classList.add("show");
+    }
+
+    function setBanner(text, cls) {
+      const b = document.getElementById("banner");
+      b.textContent = text;
+      b.className = "status " + (cls || "");
+    }
+
+    async function api(path, opts = {}) {
+      const res = await fetch(API + path, {
+        ...opts,
+        headers: {
+          Accept: "application/json",
+          Authorization: "Bearer " + token(),
+          ...(opts.body ? { "Content-Type": "application/json" } : {}),
+          ...(opts.headers || {})
+        }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data.message || data.error_description || data.error || ("HTTP " + res.status);
+        throw new Error(msg);
+      }
+      return data;
+    }
+
+    async function refreshStatus() {
+      const t = token();
+      if (!t) {
+        setBanner("Nincs bejelentkezés", "err");
+        show("stepLogin");
+        return;
+      }
+      try {
+        const st = await api("/ellenorzo/v3/sajat/Mfa/Status");
+        if (!st.available) {
+          setBanner("Ez a fiók nem használhat 2FA-t (csak Tanar / Osztalyfonok).", "err");
+          show("stepStudent");
+          const role = (localStorage.getItem("ujkreta_role") || "").toLowerCase();
+          if (role.indexOf("osztalyfonok") !== -1) {
+            document.getElementById("backLink").href = "https://puspus-dev.github.io/ujkreta/osztalyfonok/";
+          }
+          return;
+        }
+        if (st.enabled) {
+          setBanner("2FA bekapcsolva", "on");
+          show("stepOn");
+        } else {
+          setBanner("2FA kikapcsolva (opcionális)", "off");
+          show("stepOff");
+        }
+        const role = (localStorage.getItem("ujkreta_role") || "").toLowerCase();
+        if (role.indexOf("osztalyfonok") !== -1) {
+          document.getElementById("backLink").href = "https://puspus-dev.github.io/ujkreta/osztalyfonok/";
+        }
+      } catch (e) {
+        setBanner("Hiba: " + e.message + " — a mfa.go / registerMFARoutes nincs deployolva?", "err");
+        show("stepLogin");
+      }
+    }
+
+    document.getElementById("btnStart").onclick = async () => {
+      const msg = document.getElementById("msgOff");
+      msg.textContent = "";
+      try {
+        const data = await api("/ellenorzo/v3/sajat/Mfa/Setup", { method: "POST" });
+        document.getElementById("secretBox").textContent = data.secret || "—";
+        document.getElementById("otpauthBox").textContent = data.otpauth || "";
+        show("stepSetup");
+        setBanner("Állítsd be az authenticator appot", "off");
+      } catch (e) {
+        msg.className = "msg bad";
+        msg.textContent = e.message;
+      }
+    };
+
+    document.getElementById("btnCancelSetup").onclick = () => refreshStatus();
+
+    document.getElementById("btnEnable").onclick = async () => {
+      const msg = document.getElementById("msgSetup");
+      msg.textContent = "";
+      const code = document.getElementById("enableCode").value.trim();
+      if (!/^\d{6}$/.test(code)) {
+        msg.className = "msg bad";
+        msg.textContent = "6 jegyű számkód kell.";
+        return;
+      }
+      try {
+        const data = await api("/ellenorzo/v3/sajat/Mfa/Enable", {
+          method: "POST",
+          body: JSON.stringify({ code })
+        });
+        document.getElementById("recoveryBox").textContent = data.recovery_code || "(nincs kód a válaszban)";
+        show("stepRecovery");
+        setBanner("2FA bekapcsolva", "on");
+      } catch (e) {
+        msg.className = "msg bad";
+        msg.textContent = e.message;
+      }
+    };
+
+    document.getElementById("btnDone").onclick = () => refreshStatus();
+
+    document.getElementById("btnDisable").onclick = async () => {
+      const msg = document.getElementById("msgOn");
+      msg.textContent = "";
+      try {
+        await api("/ellenorzo/v3/sajat/Mfa/Disable", {
+          method: "POST",
+          body: JSON.stringify({
+            password: document.getElementById("disPass").value,
+            code: document.getElementById("disCode").value.trim()
+          })
+        });
+        msg.className = "msg ok";
+        msg.textContent = "Kikapcsolva.";
+        await refreshStatus();
+      } catch (e) {
+        msg.className = "msg bad";
+        msg.textContent = e.message;
+      }
+    };
+
+    refreshStatus();
+  </script>
+</body>
+</html>

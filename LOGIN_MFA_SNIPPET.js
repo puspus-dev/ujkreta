@@ -4,7 +4,7 @@
 
 if (data.error === "mfa_required" && data.mfa_token) {
     sessionStorage.setItem("mfa_token", data.mfa_token);
-    window.location.href = "https://puspus-dev.github.io/ujkreta/2fa/";
+    window.location.href = "https://puspus-dev.github.io/ujkreta/biztonsag/";
     return;
 }
 

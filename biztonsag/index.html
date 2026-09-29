@@ -3,289 +3,403 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>KRÁTA – Kétfaktoros azonosítás</title>
+  <title>KRÁTA – Biztonság (2FA)</title>
   <style>
     * { box-sizing: border-box; }
     body {
       margin: 0; min-height: 100vh;
       font-family: "Segoe UI", Tahoma, Arial, sans-serif;
-      background: #e8eef2;
+      background: #e8eef2; color: #1a1a1a;
       display: flex; flex-direction: column; align-items: center;
-      padding: 32px 16px 48px;
-      color: #1a1a1a;
+      padding: 28px 14px 40px;
     }
-    .logo-wrap { text-align: center; margin-bottom: 20px; }
-    .logo-wrap img { max-height: 56px; max-width: 180px; }
-    .logo-text {
-      font-size: 28px; font-weight: 800; letter-spacing: 0.12em;
-      color: #1a3a4a; margin: 0;
-    }
-    .logo-sub { font-size: 11px; color: #5a6a7a; letter-spacing: 0.2em; margin-top: 2px; }
-
+    .logo-wrap { text-align: center; margin-bottom: 16px; }
+    .logo-text { font-size: 28px; font-weight: 800; letter-spacing: .12em; color: #1a3a4a; margin: 0; }
+    .logo-sub { font-size: 11px; color: #5a6a7a; letter-spacing: .2em; }
     .card {
-      width: 100%; max-width: 420px;
-      background: #fff;
-      border-radius: 4px;
-      box-shadow: 0 2px 12px rgba(0,0,0,.08);
-      overflow: hidden;
+      width: 100%; max-width: 460px; background: #fff;
+      border-radius: 4px; box-shadow: 0 2px 12px rgba(0,0,0,.08); overflow: hidden;
     }
     .card-head {
-      background: #0088a8;
-      color: #fff;
-      padding: 14px 18px;
-      font-size: 16px;
-      font-weight: 650;
+      background: #0088a8; color: #fff; padding: 14px 18px;
+      font-size: 16px; font-weight: 650;
     }
     .card-body { padding: 18px 20px 22px; }
-    .hint {
-      font-size: 14px; color: #333; margin: 0 0 18px; line-height: 1.45;
+    .hint { font-size: 14px; margin: 0 0 14px; line-height: 1.45; }
+    .status {
+      padding: 10px 12px; border-radius: 3px; font-size: 13px; margin-bottom: 12px;
+      background: #eef6fb; border: 1px solid #b3d4ea;
     }
-    .otp-row {
-      display: flex; align-items: center; gap: 10px;
-      justify-content: center; margin-bottom: 18px;
-    }
-    .otp-icon {
-      width: 36px; height: 36px; border-radius: 6px;
-      background: #e8f4f8; display: flex; align-items: center; justify-content: center;
-      font-size: 20px; flex-shrink: 0;
-    }
-    .otp-boxes {
-      display: flex; gap: 6px;
-    }
-    .otp-boxes input {
-      width: 40px; height: 44px;
-      text-align: center; font-size: 20px; font-weight: 650;
-      border: 1px solid #c5d0dc; border-radius: 4px;
-      outline: none;
-    }
-    .otp-boxes input:focus {
-      border-color: #0088a8;
-      box-shadow: 0 0 0 2px rgba(0,136,168,.2);
-    }
-    .actions {
-      display: flex; justify-content: space-between; align-items: center;
-      gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
-    }
+    .status.on { background: #e8f5e9; border-color: #a5d6a7; color: #1b5e20; }
+    .status.off { background: #fff8e1; border-color: #ffe082; color: #6d4c00; }
+    .status.err { background: #ffebee; border-color: #ef9a9a; color: #c62828; }
     .btn {
       min-height: 40px; padding: 8px 16px; font-size: 14px; font-weight: 600;
       border-radius: 3px; cursor: pointer; border: 1px solid #c5d0dc;
-      background: #f5f7f9; color: #333;
+      background: #f5f7f9; margin: 4px 6px 4px 0;
     }
-    .btn-primary {
-      background: #0088a8; border-color: #0088a8; color: #fff;
+    .btn-primary { background: #0088a8; border-color: #0088a8; color: #fff; }
+    .btn-danger { background: #c62828; border-color: #c62828; color: #fff; }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    label { display: block; font-size: 12px; font-weight: 650; color: #5a6a7a; margin: 10px 0 4px; }
+    input[type="text"], input[type="password"], input:not([type]) {
+      width: 100%; min-height: 42px; padding: 8px 10px; font-size: 15px;
+      border: 1px solid #c5d0dc; border-radius: 3px;
     }
-    .btn-primary:hover { background: #00718c; }
-    .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
-    .link-row { font-size: 13px; color: #555; margin-bottom: 12px; }
+    .secret-box {
+      font-family: ui-monospace, monospace; font-size: 14px; letter-spacing: .04em;
+      background: #f4f7f9; border: 1px dashed #90a4ae; padding: 12px;
+      border-radius: 4px; word-break: break-all; margin: 8px 0 12px; user-select: all;
+    }
+    .otp-row { display: flex; align-items: center; gap: 10px; justify-content: center; margin-bottom: 16px; }
+    .otp-icon {
+      width: 36px; height: 36px; border-radius: 6px; background: #e8f4f8;
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+    .otp-boxes { display: flex; gap: 6px; }
+    .otp-boxes input {
+      width: 40px; height: 44px; text-align: center; font-size: 20px; font-weight: 650;
+      border: 1px solid #c5d0dc; border-radius: 4px; min-height: 44px; padding: 0;
+    }
+    .otp-boxes input:focus { border-color: #0088a8; outline: none; box-shadow: 0 0 0 2px rgba(0,136,168,.2); }
+    .actions { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+    .trust { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-top: 8px; }
+    .link-row { font-size: 13px; color: #555; margin-bottom: 10px; }
     .link-row a { color: #0067b8; }
-    .trust {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 13px; color: #444; margin-top: 4px;
-    }
-    .err {
-      display: none; margin-bottom: 12px; padding: 10px 12px;
-      background: #ffebee; border: 1px solid #ef9a9a; color: #c62828;
-      border-radius: 3px; font-size: 13px;
-    }
-    .err.show { display: block; }
-    .recovery-panel {
-      display: none; margin-top: 12px; padding-top: 12px;
-      border-top: 1px solid #e0e6ea;
-    }
-    .recovery-panel.show { display: block; }
-    .recovery-panel input {
-      width: 100%; min-height: 42px; padding: 8px 10px;
-      font-size: 15px; border: 1px solid #c5d0dc; border-radius: 3px;
-      margin: 8px 0 12px;
-    }
+    .panel { display: none; }
+    .panel.show { display: block; }
+    .msg { font-size: 13px; margin-top: 8px; }
+    .msg.ok { color: #2e7d32; }
+    .msg.bad { color: #c62828; }
+    a.nav { font-size: 13px; color: #0067b8; margin-top: 14px; display: inline-block; }
+    ol { margin: 0 0 12px; padding-left: 20px; font-size: 14px; line-height: 1.5; }
   </style>
 </head>
 <body>
   <div class="logo-wrap">
-    <img src="https://puspus-dev.github.io/ujkreta/src/logo-dark.png" alt="KRÁTA"
-         onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='block';" />
-    <div id="logoFallback" style="display:none;">
-      <p class="logo-text">KRÁTA</p>
-      <div class="logo-sub">NAPLÓ</div>
-    </div>
+    <img src="https://puspus-dev.github.io/ujkreta/src/logo.png" alt="KRÁTA" style="max-height:52px"
+         onerror="this.style.display='none';document.getElementById('lf').style.display='block'" />
+    <div id="lf" style="display:none"><p class="logo-text">KRÁTA</p><div class="logo-sub">NAPLÓ</div></div>
   </div>
 
   <div class="card">
-    <div class="card-head">Kétfaktoros azonosítás</div>
+    <div class="card-head" id="cardTitle">Biztonság</div>
     <div class="card-body">
-      <p class="hint">Kérjük, adja meg a hitelesítő alkalmazás által generált hatjegyű kódot!</p>
-      <div class="err" id="errBox"></div>
+      <div id="banner" class="status">Betöltés…</div>
 
-      <div class="otp-row">
-        <div class="otp-icon" title="Hitelesítő app">📱</div>
-        <div class="otp-boxes" id="otpBoxes">
-          <input inputmode="numeric" maxlength="1" aria-label="1" />
-          <input inputmode="numeric" maxlength="1" aria-label="2" />
-          <input inputmode="numeric" maxlength="1" aria-label="3" />
-          <input inputmode="numeric" maxlength="1" aria-label="4" />
-          <input inputmode="numeric" maxlength="1" aria-label="5" />
-          <input inputmode="numeric" maxlength="1" aria-label="6" />
+      <!-- Belépési 2FA (mfa_token van) -->
+      <div class="panel" id="panelVerify">
+        <p class="hint">Kérjük, adja meg a hitelesítő alkalmazás által generált hatjegyű kódot!</p>
+        <div class="otp-row">
+          <div class="otp-icon">📱</div>
+          <div class="otp-boxes" id="otpBoxes">
+            <input inputmode="numeric" maxlength="1" /><input inputmode="numeric" maxlength="1" />
+            <input inputmode="numeric" maxlength="1" /><input inputmode="numeric" maxlength="1" />
+            <input inputmode="numeric" maxlength="1" /><input inputmode="numeric" maxlength="1" />
+          </div>
         </div>
+        <div class="actions">
+          <button type="button" class="btn" id="btnCancel">Mégse</button>
+          <button type="button" class="btn btn-primary" id="btnVerify">Kód ellenőrzése</button>
+        </div>
+        <div class="link-row">Nem fér hozzá készülékéhez? <a href="#" id="linkRec">Helyreállító kód</a></div>
+        <div id="recBox" style="display:none">
+          <input id="recInput" placeholder="Helyreállító kód" />
+          <button type="button" class="btn btn-primary" id="btnRec" style="width:100%;margin-top:8px">Belépés</button>
+        </div>
+        <label class="trust"><input type="checkbox" id="trustDevice" /> Eszköz megjelölése biztonságosként</label>
+        <div class="msg bad" id="verifyErr"></div>
       </div>
 
-      <div class="actions">
-        <button type="button" class="btn" id="btnCancel">Mégse</button>
-        <button type="button" class="btn btn-primary" id="btnVerify">Kód ellenőrzése</button>
+      <!-- Nincs login -->
+      <div class="panel" id="panelNeedLogin">
+        <p class="hint">A 2FA beállításához előbb jelentkezz be <strong>tanár</strong> vagy <strong>osztályfőnök</strong> fiókkal a főoldalon, majd gyere vissza ide:</p>
+        <p style="font-size:13px;word-break:break-all"><strong>https://puspus-dev.github.io/ujkreta/biztonsag/</strong></p>
+        <a class="btn btn-primary" href="https://puspus-dev.github.io/ujkreta/" style="display:inline-block;text-decoration:none">Bejelentkezés</a>
       </div>
 
-      <div class="link-row">
-        Nem fér hozzá készülékéhez?
-        <a href="#" id="linkRecovery">Lépjen be helyreállító kóddal</a>
+      <!-- Diák -->
+      <div class="panel" id="panelStudent">
+        <p class="hint">A kétfaktoros azonosítás csak tanár és osztályfőnök fiókokhoz érhető el.</p>
+        <a class="nav" href="https://puspus-dev.github.io/ujkreta/diak/">← Diák felület</a>
       </div>
 
-      <div class="recovery-panel" id="recoveryPanel">
-        <label for="recoveryInput"><strong>Helyreállító kód</strong></label>
-        <input id="recoveryInput" autocomplete="one-time-code" placeholder="8 karakteres kód" />
-        <button type="button" class="btn btn-primary" id="btnRecovery" style="width:100%;">Belépés helyreállító kóddal</button>
+      <!-- Setup / manage -->
+      <div class="panel" id="panelOff">
+        <p class="hint">A 2FA most <strong>ki van kapcsolva</strong>. Nem kötelező.</p>
+        <ol>
+          <li>Authenticator app (Google / Microsoft / Authy)</li>
+          <li>„Beállítás indítása” → titkos kulcs hozzáadása</li>
+          <li>6 jegyű kód megadása</li>
+          <li>Helyreállító kód elmentése</li>
+        </ol>
+        <button type="button" class="btn btn-primary" id="btnStart">Beállítás indítása</button>
+        <div class="msg bad" id="msgOff"></div>
+        <a class="nav" id="backOff" href="https://puspus-dev.github.io/ujkreta/tanar/">← Vissza</a>
       </div>
 
-      <label class="trust">
-        <input type="checkbox" id="trustDevice" />
-        Eszköz megjelölése biztonságosként
-      </label>
+      <div class="panel" id="panelSetup">
+        <p class="hint"><strong>Titkos kulcs</strong> – másold az appba:</p>
+        <div class="secret-box" id="secretBox">—</div>
+        <div class="secret-box" id="otpauthBox" style="font-size:11px;color:#5a6a7a"></div>
+        <label for="enCode">6 jegyű kód az appból</label>
+        <input id="enCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" />
+        <div style="margin-top:12px">
+          <button type="button" class="btn btn-primary" id="btnEnable">2FA bekapcsolása</button>
+          <button type="button" class="btn" id="btnCancelSetup">Mégse</button>
+        </div>
+        <div class="msg bad" id="msgSetup"></div>
+      </div>
+
+      <div class="panel" id="panelRecovery">
+        <p class="msg ok">2FA bekapcsolva. Mentsd el a helyreállító kódot:</p>
+        <div class="secret-box" id="recoveryBox">—</div>
+        <button type="button" class="btn btn-primary" id="btnDone">Kész</button>
+      </div>
+
+      <div class="panel" id="panelOn">
+        <p class="hint">A 2FA <strong>be van kapcsolva</strong>. Belépéskor (jelszó után) kéri a kódot.</p>
+        <label for="disPass">Jelszó</label>
+        <input id="disPass" type="password" autocomplete="current-password" />
+        <label for="disCode">Authenticator / helyreállító kód</label>
+        <input id="disCode" autocomplete="one-time-code" />
+        <div style="margin-top:12px">
+          <button type="button" class="btn btn-danger" id="btnDisable">2FA kikapcsolása</button>
+        </div>
+        <div class="msg" id="msgOn"></div>
+        <a class="nav" id="backOn" href="https://puspus-dev.github.io/ujkreta/tanar/">← Vissza</a>
+      </div>
     </div>
   </div>
 
-  <script>
-    const API_BASE = "https://ujkreta.onrender.com";
-    const LOGIN_URL = "https://puspus-dev.github.io/ujkreta/";
+<script>
+const API = "https://ujkreta.onrender.com";
+const LOGIN = "https://puspus-dev.github.io/ujkreta/";
+const TOKEN_KEYS = ["access_token", "ujkreta_access_token"];
 
-    const mfaToken = sessionStorage.getItem("mfa_token") || "";
-    if (!mfaToken) {
-      window.location.href = LOGIN_URL;
+function token() {
+  for (const k of TOKEN_KEYS) {
+    const v = localStorage.getItem(k);
+    if (v) return v;
+  }
+  return null;
+}
+function show(id) {
+  document.querySelectorAll(".panel").forEach((p) => p.classList.remove("show"));
+  document.getElementById(id).classList.add("show");
+}
+function banner(t, cls) {
+  const b = document.getElementById("banner");
+  b.textContent = t;
+  b.className = "status " + (cls || "");
+}
+function backHref() {
+  const r = (localStorage.getItem("ujkreta_role") || "").toLowerCase();
+  if (r.indexOf("osztalyfonok") !== -1) return "https://puspus-dev.github.io/ujkreta/osztalyfonok/";
+  if (r.indexOf("tanar") !== -1) return "https://puspus-dev.github.io/ujkreta/tanar/";
+  return LOGIN;
+}
+function setBackLinks() {
+  const h = backHref();
+  document.getElementById("backOff").href = h;
+  document.getElementById("backOn").href = h;
+}
+
+async function api(path, opts = {}) {
+  const res = await fetch(API + path, {
+    ...opts,
+    headers: {
+      Accept: "application/json",
+      Authorization: "Bearer " + token(),
+      ...(opts.body ? { "Content-Type": "application/json" } : {}),
+      ...(opts.headers || {})
     }
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || data.error_description || data.error || ("HTTP " + res.status));
+  return data;
+}
 
-    const inputs = [...document.querySelectorAll("#otpBoxes input")];
-    const errBox = document.getElementById("errBox");
-
-    function showErr(msg) {
-      errBox.textContent = msg || "";
-      errBox.classList.toggle("show", !!msg);
-    }
-
-    function getCode() {
-      return inputs.map((i) => i.value.replace(/\D/g, "")).join("");
-    }
-
-    inputs.forEach((inp, idx) => {
-      inp.addEventListener("input", (e) => {
-        const v = e.target.value.replace(/\D/g, "").slice(-1);
-        e.target.value = v;
-        if (v && idx < inputs.length - 1) inputs[idx + 1].focus();
-        if (getCode().length === 6) verify(getCode());
-      });
-      inp.addEventListener("keydown", (e) => {
-        if (e.key === "Backspace" && !inp.value && idx > 0) {
-          inputs[idx - 1].focus();
-        }
-      });
-      inp.addEventListener("paste", (e) => {
-        e.preventDefault();
-        const t = (e.clipboardData.getData("text") || "").replace(/\D/g, "").slice(0, 6);
-        t.split("").forEach((ch, i) => { if (inputs[i]) inputs[i].value = ch; });
-        if (t.length === 6) verify(t);
-      });
+/* ===== VERIFY (login 2FA) ===== */
+function initVerify(mfaToken) {
+  document.getElementById("cardTitle").textContent = "Kétfaktoros azonosítás";
+  banner("Add meg a hitelesítő kódot", "off");
+  show("panelVerify");
+  const inputs = [...document.querySelectorAll("#otpBoxes input")];
+  function code() { return inputs.map((i) => i.value.replace(/\D/g, "")).join(""); }
+  inputs.forEach((inp, idx) => {
+    inp.addEventListener("input", (e) => {
+      e.target.value = e.target.value.replace(/\D/g, "").slice(-1);
+      if (e.target.value && idx < 5) inputs[idx + 1].focus();
+      if (code().length === 6) doVerify(code());
     });
-
-    function deviceToken() {
-      let t = localStorage.getItem("krata_device_token");
-      if (!t) {
-        t = Array.from(crypto.getRandomValues(new Uint8Array(16)))
-          .map((b) => b.toString(16).padStart(2, "0")).join("");
-        localStorage.setItem("krata_device_token", t);
-      }
-      return t;
+    inp.addEventListener("keydown", (e) => {
+      if (e.key === "Backspace" && !inp.value && idx > 0) inputs[idx - 1].focus();
+    });
+    inp.addEventListener("paste", (e) => {
+      e.preventDefault();
+      const t = (e.clipboardData.getData("text") || "").replace(/\D/g, "").slice(0, 6);
+      t.split("").forEach((c, i) => { if (inputs[i]) inputs[i].value = c; });
+      if (t.length === 6) doVerify(t);
+    });
+  });
+  function deviceToken() {
+    let t = localStorage.getItem("krata_device_token");
+    if (!t) {
+      t = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
+      localStorage.setItem("krata_device_token", t);
     }
-
-    async function verify(code) {
-      showErr("");
-      const btn = document.getElementById("btnVerify");
-      btn.disabled = true;
-      try {
-        const body = new URLSearchParams();
-        body.set("mfa_token", mfaToken);
-        body.set("code", code);
-        body.set("device_token", deviceToken());
-        if (document.getElementById("trustDevice").checked) {
-          body.set("trust_device", "true");
-        }
-        const res = await fetch(API_BASE + "/connect/mfa/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: body.toString()
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          throw new Error(data.error_description || data.error || "Hibás kód");
-        }
-        finishLogin(data);
-      } catch (e) {
-        showErr(e.message || String(e));
-        inputs.forEach((i) => (i.value = ""));
-        inputs[0].focus();
-      } finally {
-        btn.disabled = false;
-      }
-    }
-
-    function finishLogin(data) {
+    return t;
+  }
+  async function doVerify(c) {
+    const err = document.getElementById("verifyErr");
+    err.textContent = "";
+    try {
+      const body = new URLSearchParams();
+      body.set("mfa_token", mfaToken);
+      body.set("code", c);
+      body.set("device_token", deviceToken());
+      if (document.getElementById("trustDevice").checked) body.set("trust_device", "true");
+      const res = await fetch(API + "/connect/mfa/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString()
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error_description || data.error || "Hibás kód");
       if (data.access_token) {
         localStorage.setItem("access_token", data.access_token);
         localStorage.setItem("ujkreta_access_token", data.access_token);
       }
-      if (data.refresh_token) {
-        localStorage.setItem("refresh_token", data.refresh_token);
-      }
-      if (data.device_token) {
-        localStorage.setItem("krata_device_token", data.device_token);
-      }
+      if (data.refresh_token) localStorage.setItem("refresh_token", data.refresh_token);
+      if (data.device_token) localStorage.setItem("krata_device_token", data.device_token);
       let role = "Tanulo";
       try {
         if (data.id_token) {
-          const payload = data.id_token.split(".")[1];
-          const b64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-          const claims = JSON.parse(atob(b64 + "=".repeat((4 - b64.length % 4) % 4)));
+          const p = data.id_token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+          const claims = JSON.parse(atob(p + "=".repeat((4 - p.length % 4) % 4)));
           role = claims.role || role;
         }
       } catch (_) {}
       localStorage.setItem("ujkreta_role", role);
       sessionStorage.removeItem("mfa_token");
-
-      const roleL = String(role).toLowerCase();
-      if (roleL.indexOf("osztalyfonok") !== -1) {
-        window.location.href = "https://puspus-dev.github.io/ujkreta/osztalyfonok/";
-      } else if (roleL.indexOf("tanar") !== -1 || roleL === "teacher") {
-        window.location.href = "https://puspus-dev.github.io/ujkreta/tanar/";
-      } else {
-        window.location.href = "https://puspus-dev.github.io/ujkreta/diak/";
-      }
+      window.location.href = backHref();
+    } catch (e) {
+      err.textContent = e.message || String(e);
+      inputs.forEach((i) => (i.value = ""));
+      inputs[0].focus();
     }
+  }
+  document.getElementById("btnVerify").onclick = () => {
+    const c = code();
+    if (c.length !== 6) { document.getElementById("verifyErr").textContent = "6 jegyű kód kell."; return; }
+    doVerify(c);
+  };
+  document.getElementById("btnCancel").onclick = () => {
+    sessionStorage.removeItem("mfa_token");
+    window.location.href = LOGIN;
+  };
+  document.getElementById("linkRec").onclick = (e) => {
+    e.preventDefault();
+    const b = document.getElementById("recBox");
+    b.style.display = b.style.display === "none" ? "block" : "none";
+  };
+  document.getElementById("btnRec").onclick = () => {
+    const c = document.getElementById("recInput").value.trim();
+    if (c) doVerify(c);
+  };
+  inputs[0].focus();
+}
 
-    document.getElementById("btnVerify").onclick = () => {
-      const c = getCode();
-      if (c.length !== 6) { showErr("Add meg a 6 jegyű kódot."); return; }
-      verify(c);
-    };
-    document.getElementById("btnCancel").onclick = () => {
-      sessionStorage.removeItem("mfa_token");
-      window.location.href = LOGIN_URL;
-    };
-    document.getElementById("linkRecovery").onclick = (e) => {
-      e.preventDefault();
-      document.getElementById("recoveryPanel").classList.toggle("show");
-    };
-    document.getElementById("btnRecovery").onclick = () => {
-      const c = document.getElementById("recoveryInput").value.trim();
-      if (!c) { showErr("Add meg a helyreállító kódot."); return; }
-      verify(c);
-    };
+/* ===== SETUP ===== */
+async function initSetup() {
+  document.getElementById("cardTitle").textContent = "Biztonság – 2FA";
+  setBackLinks();
+  if (!token()) {
+    banner("Nincs bejelentkezés – nem dobunk át máshova", "err");
+    show("panelNeedLogin");
+    return;
+  }
+  try {
+    const st = await api("/ellenorzo/v3/sajat/Mfa/Status");
+    if (!st.available) {
+      banner("Csak Tanar / Osztalyfonok", "err");
+      show("panelStudent");
+      return;
+    }
+    if (st.enabled) {
+      banner("2FA bekapcsolva", "on");
+      show("panelOn");
+    } else {
+      banner("2FA kikapcsolva (opcionális)", "off");
+      show("panelOff");
+    }
+  } catch (e) {
+    banner("API hiba: " + e.message, "err");
+    show("panelNeedLogin");
+  }
+}
 
-    inputs[0].focus();
-  </script>
+document.getElementById("btnStart").onclick = async () => {
+  const msg = document.getElementById("msgOff");
+  msg.textContent = "";
+  try {
+    const data = await api("/ellenorzo/v3/sajat/Mfa/Setup", { method: "POST" });
+    document.getElementById("secretBox").textContent = data.secret || "—";
+    document.getElementById("otpauthBox").textContent = data.otpauth || "";
+    show("panelSetup");
+    banner("Add hozzá az apphoz, majd erősítsd meg", "off");
+  } catch (e) {
+    msg.textContent = e.message;
+  }
+};
+document.getElementById("btnCancelSetup").onclick = () => initSetup();
+document.getElementById("btnEnable").onclick = async () => {
+  const msg = document.getElementById("msgSetup");
+  msg.textContent = "";
+  const code = document.getElementById("enCode").value.trim();
+  if (!/^\d{6}$/.test(code)) { msg.textContent = "6 jegyű kód kell."; return; }
+  try {
+    const data = await api("/ellenorzo/v3/sajat/Mfa/Enable", {
+      method: "POST", body: JSON.stringify({ code })
+    });
+    document.getElementById("recoveryBox").textContent = data.recovery_code || "—";
+    show("panelRecovery");
+    banner("2FA bekapcsolva", "on");
+  } catch (e) {
+    msg.textContent = e.message;
+  }
+};
+document.getElementById("btnDone").onclick = () => initSetup();
+document.getElementById("btnDisable").onclick = async () => {
+  const msg = document.getElementById("msgOn");
+  msg.textContent = "";
+  try {
+    await api("/ellenorzo/v3/sajat/Mfa/Disable", {
+      method: "POST",
+      body: JSON.stringify({
+        password: document.getElementById("disPass").value,
+        code: document.getElementById("disCode").value.trim()
+      })
+    });
+    msg.className = "msg ok";
+    msg.textContent = "Kikapcsolva.";
+    await initSetup();
+  } catch (e) {
+    msg.className = "msg bad";
+    msg.textContent = e.message;
+  }
+};
+
+// BOOT – NEM irányít át OF-re, ha nincs mfa_token
+(function boot() {
+  const mfa = sessionStorage.getItem("mfa_token") || "";
+  if (mfa) {
+    initVerify(mfa);
+  } else {
+    initSetup();
+  }
+})();
+</script>
 </body>
 </html>

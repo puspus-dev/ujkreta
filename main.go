@@ -115,6 +115,8 @@ func main() {
 
 	server.registerMFARoutes(mux)
 
+	server.registerSurveyRoutes(mux)
+
 	// ============================================================
 	// Admin
 	// ============================================================

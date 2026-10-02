@@ -80,7 +80,7 @@ async function login(username, password) {
     grant_type: "password",
     username,
     password,
-    client_id: "kreta-ellenorzo-web-android"
+    client_id: "ekrata-naplo-web"
   });
   const res = await fetch(API_BASE + "/connect/token", {
     method: "POST",

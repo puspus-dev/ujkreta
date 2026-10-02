@@ -3,80 +3,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>KRÁTA – Hallgatói Web</title>
+  <title>KRÁTA – Iskolai Alaprendszer</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="app">
-    <div id="bootMsg" class="boot-msg">Betöltés...</div>
-
-    <div id="appShell" style="display:none;">
-      <!-- NEPTUN-szerű felső sáv -->
-      <header class="n-header">
-        <div class="n-header-left">
-          <button type="button" class="n-menu-toggle" id="menuBtn" aria-label="Menü">☰</button>
-          <div class="n-logo">KRÁTA</div>
-          <div class="n-header-title">
-            <span class="n-system">Hallgatói Web</span>
-            <span class="n-inst" id="instName">—</span>
-          </div>
+  <div id="bootMsg" class="boot-msg">Betöltés…</div>
+  <div id="appShell" style="display:none;">
+    <div class="k-top">
+      <div>
+        <div class="k-school" id="instName">—</div>
+        <div class="k-year" id="tanev">—</div>
+      </div>
+      <div class="k-userbox">
+        <div class="name" id="userName">—</div>
+        <div class="meta"><span id="userCode"></span>
+          <button type="button" class="k-logout" id="logoutBtn">Kijelentkezés</button>
         </div>
-        <div class="n-header-right">
-          <div class="n-user">
-            <span class="n-user-name" id="userName">—</span>
-            <span class="n-user-code" id="userCode"></span>
-          </div>
-          <button type="button" class="n-logout" id="logoutBtn">Kijelentkezés</button>
-        </div>
-      </header>
-
-      <div class="n-body">
-        <aside class="n-sidebar" id="sidebar">
-          <div class="n-sidebar-label">Főmenü</div>
-          <nav class="n-nav">
-            <button class="n-nav-item active" data-page="dashboard">Kezdőlap</button>
-            <button class="n-nav-item" data-page="grades">Értékelések</button>
-            <button class="n-nav-item" data-page="timetable">Órarend</button>
-            <button class="n-nav-item" data-page="homework">Házi feladatok</button>
-            <button class="n-nav-item" data-page="tests">Számonkérések</button>
-            <button class="n-nav-item" data-page="absences">Mulasztások</button>
-            <button class="n-nav-item" data-page="notices">Faliújság</button>
-            <button class="n-nav-item" data-page="notes">Feljegyzések</button>
-            <button class="n-nav-item" data-page="profile">Személyes adatok</button>
-          </nav>
-        </aside>
-
-        <main class="n-main">
-          <div class="n-breadcrumb">
-            <span>KRÁTA</span>
-            <span class="n-bc-sep">›</span>
-            <span id="bcPage">Kezdőlap</span>
-          </div>
-          <h1 class="n-page-title" id="pageTitle">Kezdőlap</h1>
-          <div id="pageContent"></div>
-        </main>
       </div>
     </div>
 
-    <nav class="m-bottom-nav" id="bottomNav" aria-label="Mobil menü">
-        <button type="button" class="m-tab active" data-page="dashboard">
-          <span class="m-ico">⌂</span><span class="m-lbl">Kezdőlap</span>
-        </button>
-        <button type="button" class="m-tab" data-page="grades">
-          <span class="m-ico">★</span><span class="m-lbl">Jegyek</span>
-        </button>
-        <button type="button" class="m-tab" data-page="timetable">
-          <span class="m-ico">▦</span><span class="m-lbl">Órarend</span>
-        </button>
-        <button type="button" class="m-tab" data-page="homework">
-          <span class="m-ico">✎</span><span class="m-lbl">Házi</span>
-        </button>
-        <button type="button" class="m-tab" id="moreBtn" data-more="1">
-          <span class="m-ico">☰</span><span class="m-lbl">Több</span>
-        </button>
-      </nav>
+    <nav class="k-nav" id="topNav">
+      <div class="k-nav-logo">KRÁTA<br/><span>NAPLÓ</span></div>
+      <button type="button" class="k-nav-item active" data-page="dashboard"><span class="ico">🏠</span>Faliújság</button>
+      <button type="button" class="k-nav-item" data-page="timetable"><span class="ico">📅</span>Órarend</button>
+      <button type="button" class="k-nav-item" data-page="grades"><span class="ico">🎓</span>Osztályzatok</button>
+      <button type="button" class="k-nav-item" data-page="absences"><span class="ico">⏱</span>Mulasztások</button>
+      <button type="button" class="k-nav-item" data-page="notes"><span class="ico">ℹ</span>Információk</button>
+      <button type="button" class="k-nav-item" data-page="homework"><span class="ico">📝</span>Házi feladatok</button>
+      <button type="button" class="k-nav-item" data-page="messages"><span class="ico">✉</span>Üzenetek</button>
+      <button type="button" class="k-nav-item" data-page="tests"><span class="ico">📋</span>Dolgozatok</button>
+      <button type="button" class="k-nav-item" data-page="profile"><span class="ico">👤</span>Adatok</button>
+    </nav>
 
-    <div id="overlay" class="n-overlay" style="display:none;"></div>
+    <main class="k-main">
+      <div id="pageContent"></div>
+    </main>
+
+    <nav class="m-bottom-nav" id="bottomNav">
+      <button type="button" class="m-tab active" data-page="dashboard"><span class="m-ico">⌂</span>Faliújság</button>
+      <button type="button" class="m-tab" data-page="grades"><span class="m-ico">★</span>Jegyek</button>
+      <button type="button" class="m-tab" data-page="timetable"><span class="m-ico">▦</span>Órarend</button>
+      <button type="button" class="m-tab" data-page="homework"><span class="m-ico">✎</span>Házi</button>
+      <button type="button" class="m-tab" data-page="profile"><span class="m-ico">☰</span>Több</button>
+    </nav>
   </div>
   <script src="app.js"></script>
 </body>

@@ -12,6 +12,7 @@ const REFRESH_KEYS = ["refresh_token", "ujkreta_refresh_token"];
 const PAGE_META = {
   dashboard: "Kezdőlap",
   grade: "Jegy beírása",
+  naplo: "Óra naplózása",
   grades: "Beírt jegyek",
   absences: "Mulasztások",
   students: "Tanulók",
@@ -710,28 +711,7 @@ function renderTimetable() {
 }
 
 function renderHomework() {
-  const list = Array.isArray(cache.homework) ? cache.homework : [];
-  if (!list.length) {
-    return `<div class="n-panel"><div class="n-panel-body">${empty("Nincsenek házi feladatok.")}</div></div>`;
-  }
-
-  return `
-    <div class="n-panel">
-      <div class="n-panel-head">Házi feladatok</div>
-      <div class="n-panel-body" style="padding:0;">
-        <div class="n-table-wrap"><table class="n-table">
-          <thead><tr><th>Tantárgy</th><th>Feladat</th><th>Osztály</th><th>Határidő</th><th>Rögzítő</th></tr></thead>
-          <tbody>${list.map((h) => `
-            <tr>
-              <td>${esc(subjectName(h))}</td>
-              <td>${esc(h.Szoveg || "—")}</td>
-              <td>${esc(h.OsztalyCsoport?.Nev || h.OsztalyCsoport?.Uid || "—")}</td>
-              <td>${fmtDate(h.HataridoDatuma || h.Hatarido)}</td>
-              <td>${esc(h.RogzitoTanarNeve || "—")}</td>
-            </tr>`).join("")}</tbody>
-        </table></div>
-      </div>
-    </div>`;
+  return renderHomeworkForm();
 }
 
 function renderProfile() {
@@ -931,7 +911,8 @@ function navigate(page, opts = {}) {
 
   if (page === "grade") bindGradeForm();
   if (page === "absences") bindAbsences();
-  if (page === "grades") {
+  if (page === "naplo") html = renderNaplo();
+  else if (page === "grades") {
     document.querySelectorAll(".del-grade").forEach((btn) => {
       btn.addEventListener("click", async () => {
         if (!confirm("Törlöd a jegyet?")) return;
@@ -1019,3 +1000,135 @@ async function boot() {
 }
 
 boot();
+
+
+function renderNaplo() {
+  const students = Array.isArray(cache.students) ? cache.students : [];
+  const rows = students.map((s, i) => {
+    const uid = s.Uid || s.uid;
+    return `<tr data-uid="${esc(uid)}">
+      <td>${i + 1}</td>
+      <td>${esc(s.Nev || uid)}</td>
+      <td>0%</td>
+      <td>
+        <span class="seg" data-uid="${esc(uid)}">
+          <button type="button" class="att-j on-j" data-v="jelen">Jelenlét</button>
+          <button type="button" class="att-h" data-v="hianyzas">Hiányzás</button>
+        </span>
+      </td>
+      <td><input type="number" min="0" max="45" value="" style="width:56px" class="late-inp" data-uid="${esc(uid)}" /></td>
+      <td class="ico-row">🏠 📚 ➕ 🏅</td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="6">Nincs diák a listában (API /naplo/v3/sajat/Tanulok).</td></tr>`;
+
+  setTimeout(() => {
+    document.querySelectorAll(".seg button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const seg = btn.parentElement;
+        seg.querySelectorAll("button").forEach(b => b.classList.remove("on-j", "on-h"));
+        if (btn.dataset.v === "jelen") btn.classList.add("on-j");
+        else btn.classList.add("on-h");
+      });
+    });
+    document.getElementById("btnSaveNaplo")?.addEventListener("click", async () => {
+      const msg = document.getElementById("naploMsg");
+      msg.textContent = "Mentés…";
+      try {
+        const absents = [];
+        document.querySelectorAll(".seg").forEach(seg => {
+          const h = seg.querySelector(".att-h.on-h");
+          if (h) absents.push(seg.dataset.uid);
+        });
+        for (const uid of absents) {
+          await apiPost("/naplo/v3/sajat/Mulasztasok", {
+            TanuloUid: uid,
+            Datum: new Date().toISOString().slice(0, 10),
+            Tipus: { Uid: "1", Nev: "Hiányzás" }
+          });
+        }
+        msg.className = "msg ok";
+        msg.textContent = "Óra naplózva. Hiányzások: " + absents.length;
+        await loadAllData();
+      } catch (e) {
+        msg.className = "msg bad";
+        msg.textContent = e.message || String(e);
+      }
+    });
+  }, 0);
+
+  return `
+  <div class="naplo-layout">
+    <div class="naplo-side">
+      <button type="button" class="active">Naplózás</button>
+      <button type="button" data-go="grades">Értékelések</button>
+      <button type="button">Feljegyzések</button>
+      <button type="button" data-go="homework">Házi feladat</button>
+      <button type="button" data-go="timetable">Korábbi órák</button>
+    </div>
+    <div class="naplo-main">
+      <div class="naplo-title">Tanóra naplózása – jelenlét / hiányzás</div>
+      <div style="margin-bottom:10px;font-size:13px;color:#5a6a70">
+        Téma: <input id="naploTema" value="Gyakorlás" style="min-width:200px;padding:6px;border:1px solid #c5d0d4" />
+      </div>
+      <div style="overflow-x:auto">
+        <table class="att-table">
+          <thead><tr>
+            <th>#</th><th>Tanuló neve</th><th>Mulasztás %</th><th>Jelenlét</th><th>Késés (perc)</th><th></th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="att-actions">
+        <span class="msg" id="naploMsg"></span>
+        <button type="button" class="k-btn k-btn-primary" id="btnSaveNaplo">ÓRA NAPLÓZÁSA</button>
+        <button type="button" class="k-btn">ELMARADT ÓRA</button>
+        <button type="button" class="k-btn k-btn-ghost" id="btnNaploCancel">MÉGSE</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderHomeworkForm() {
+  const students = Array.isArray(cache.students) ? cache.students : [];
+  setTimeout(() => {
+    document.getElementById("hwSubmit")?.addEventListener("click", async () => {
+      const msg = document.getElementById("hwMsg");
+      try {
+        await apiPost("/naplo/v3/sajat/HaziFeladatok", {
+          Szoveg: document.getElementById("hwText").value.trim(),
+          Hatarido: document.getElementById("hwDeadline").value,
+          TantargyNeve: document.getElementById("hwSubject").value.trim() || "Általános",
+          OsztalyCsoportUid: document.getElementById("hwClass").value.trim()
+        });
+        msg.className = "msg ok";
+        msg.textContent = "Házi feladat rögzítve.";
+        await loadAllData();
+        navigate("homework");
+      } catch (e) {
+        msg.className = "msg bad";
+        msg.textContent = e.message || String(e);
+      }
+    });
+  }, 0);
+  const list = Array.isArray(cache.homework) ? cache.homework : [];
+  const existing = list.length ? `<table class="g-matrix" style="margin-top:16px"><thead><tr><th>Határidő</th><th>Szöveg</th><th>Tantárgy</th></tr></thead>
+    <tbody>${list.map(h => `<tr><td>${esc(fmtDate(h.Hatarido||h.Datum||""))}</td><td>${esc(h.Szoveg||h.Leiras||"")}</td><td>${esc(h.TantargyNeve||h.Tantargy?.Nev||"")}</td></tr>`).join("")}</tbody></table>` : "<p class='msg'>Még nincs házi.</p>";
+
+  return `<div class="k-panel hw-form">
+    <h2 class="k-h">Házi feladat feladása</h2>
+    <label>Tantárgy</label>
+    <input id="hwSubject" placeholder="pl. Magyar nyelv és irodalom" />
+    <label>Osztály / csoport UID (opcionális)</label>
+    <input id="hwClass" placeholder="pl. 10,11.A" />
+    <label>Határidő</label>
+    <input id="hwDeadline" type="date" />
+    <label>Feladat szövege</label>
+    <textarea id="hwText" placeholder="Pl. Olvasd el a 12–15. oldalt, írd meg a vázlatot…"></textarea>
+    <div style="margin-top:12px">
+      <button type="button" class="k-btn k-btn-primary" id="hwSubmit">+ MENTÉS</button>
+    </div>
+    <div class="msg" id="hwMsg"></div>
+    <h3 style="margin-top:20px;font-size:15px">Meglévő házik</h3>
+    ${existing}
+  </div>`;
+}

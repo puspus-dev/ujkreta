@@ -4,6 +4,7 @@ const LOGIN_URL = "https://puspus-dev.github.io/ujkreta/";
 const TOKEN_KEYS = ["access_token", "ujkreta_access_token", "of_access_token"];
 const PAGE_META = {
   dashboard: "Kezdőlap",
+  naplo: renderNaplo,
   grade: "Jegy beírása",
   grades: "Beírt jegyek",
   absences: "Mulasztások",
@@ -546,15 +547,16 @@ const RENDERERS = {
 
 function navigate(page) {
   currentPage = page;
-  document.querySelectorAll(".n-nav-item").forEach(b => {
+  document.querySelectorAll(".k-nav-item").forEach(b => {
     b.classList.toggle("active", b.dataset.page === page);
   });
-  document.getElementById("pageTitle").textContent = PAGE_META[page] || page;
-  document.getElementById("bcPage").textContent = PAGE_META[page] || page;
+  (document.getElementById("pageTitle")||{}).textContent = PAGE_META[page] || page;
+  (document.getElementById("bcPage")||{}).textContent = PAGE_META[page] || page;
   document.getElementById("pageContent").innerHTML = (RENDERERS[page] || renderDashboard)();
   document.querySelectorAll("[data-go]").forEach(btn => {
     btn.addEventListener("click", () => navigate(btn.dataset.go));
   });
+  if (page === "naplo") { el.innerHTML = renderNaplo(); return; }
   if (page === "grade") bindGradeForm();
   if (page === "studentNew") bindStudentNew();
   if (page === "homework") bindHomework();
@@ -576,6 +578,8 @@ function navigate(page) {
 async function bootApp() {
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("appShell").style.display = "block";
+  const bm = document.getElementById("bootMsg");
+  if (bm) bm.style.display = "none";
   try {
     await loadAllData();
   } catch (_) {}
@@ -591,6 +595,8 @@ function init() {
   }
 
   document.getElementById("loginScreen").style.display = "none";
+  const un = document.getElementById("userName");
+  if (un) un.textContent = localStorage.getItem("local_usr") || "OF";
   document.getElementById("logoutBtn")?.addEventListener("click", goLogin);
   document.getElementById("menuBtn")?.addEventListener("click", () => {
     document.getElementById("sidebar")?.classList.toggle("open");
@@ -600,7 +606,7 @@ function init() {
     document.getElementById("sidebar")?.classList.remove("open");
     document.getElementById("overlay")?.classList.remove("show");
   });
-  document.querySelectorAll(".n-nav-item").forEach(btn => {
+  document.querySelectorAll(".k-nav-item").forEach(btn => {
     btn.addEventListener("click", () => navigate(btn.dataset.page));
   });
 
@@ -608,3 +614,73 @@ function init() {
 }
 
 document.addEventListener("DOMContentLoaded", init);
+
+
+function renderNaplo() {
+  const students = Array.isArray(cache.students) ? cache.students : [];
+  const rows = students.map((s, i) => {
+    const uid = s.Uid || s.uid;
+    return `<tr data-uid="${esc(uid)}">
+      <td>${i + 1}</td>
+      <td>${esc(s.Nev || uid)}</td>
+      <td>0%</td>
+      <td><span class="seg" data-uid="${esc(uid)}">
+        <button type="button" class="att-j on-j" data-v="jelen">Jelenlét</button>
+        <button type="button" class="att-h" data-v="hianyzas">Hiányzás</button>
+      </span></td>
+      <td><input type="number" min="0" max="45" style="width:56px" class="late-inp" data-uid="${esc(uid)}" /></td>
+      <td class="ico-row">🏠 📚</td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="6">Nincs diák.</td></tr>`;
+
+  setTimeout(() => {
+    document.querySelectorAll(".seg button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const seg = btn.parentElement;
+        seg.querySelectorAll("button").forEach(b => b.classList.remove("on-j", "on-h"));
+        btn.classList.add(btn.dataset.v === "jelen" ? "on-j" : "on-h");
+      });
+    });
+    document.getElementById("btnSaveNaplo")?.addEventListener("click", async () => {
+      const msg = document.getElementById("naploMsg");
+      try {
+        let n = 0;
+        for (const seg of document.querySelectorAll(".seg")) {
+          if (seg.querySelector(".att-h.on-h")) {
+            await apiPost("/naplo/v3/sajat/Mulasztasok", {
+              TanuloUid: seg.dataset.uid,
+              Datum: new Date().toISOString().slice(0, 10),
+              Tipus: { Uid: "1", Nev: "Hiányzás" }
+            });
+            n++;
+          }
+        }
+        msg.className = "msg ok";
+        msg.textContent = "Naplózva. Hiányzások: " + n;
+        await loadAllData();
+      } catch (e) {
+        msg.className = "msg bad";
+        msg.textContent = e.message || String(e);
+      }
+    });
+  }, 0);
+
+  return `<div class="naplo-layout">
+    <div class="naplo-side">
+      <button type="button" class="active">Naplózás</button>
+      <button type="button" onclick="navigate('grade')">Értékelések</button>
+      <button type="button" onclick="navigate('homework')">Házi</button>
+    </div>
+    <div class="naplo-main">
+      <div class="naplo-title">Tanóra naplózása (osztályfőnök)</div>
+      <table class="att-table">
+        <thead><tr><th>#</th><th>Tanuló</th><th>%</th><th>Jelenlét</th><th>Késés</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="att-actions">
+        <span class="msg" id="naploMsg"></span>
+        <button type="button" class="k-btn k-btn-primary" id="btnSaveNaplo">ÓRA NAPLÓZÁSA</button>
+      </div>
+    </div>
+  </div>`;
+}

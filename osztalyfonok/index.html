@@ -7,55 +7,49 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="app">
-    <div id="loginScreen" class="login-screen" style="display:none;">
-      <div class="login-card" style="max-width:420px;margin:40px auto;background:#fff;border:1px solid #c5d0dc;padding:28px;border-radius:4px;text-align:center;">
-        <div style="font-weight:800;font-size:18px;color:#004578;margin-bottom:8px;">KRÁTA Osztályfőnök</div>
-        <p style="color:#5a6a7a;font-size:14px;">A bejelentkezés a <strong>fő oldalon</strong> történik.</p>
-        <p style="font-size:13px;color:#5a6a7a;">Átirányítás a loginra…</p>
-        <a class="n-btn" href="https://puspus-dev.github.io/ujkreta/" style="display:inline-block;margin-top:12px;text-decoration:none;">Bejelentkezés</a>
+  <div id="bootMsg" class="boot-msg">Betöltés…</div>
+
+  <div id="loginScreen" class="login-screen" style="display:none;">
+    <div class="k-panel" style="max-width:420px;margin:40px auto;text-align:center;">
+      <div style="font-weight:800;font-size:18px;color:#1a6b7c;margin-bottom:8px;">KRÁTA Osztályfőnök</div>
+      <p style="color:#5a6a70;font-size:14px;">A bejelentkezés a <strong>fő oldalon</strong> történik.</p>
+      <a class="k-btn k-btn-primary" href="https://puspus-dev.github.io/ujkreta/" style="display:inline-block;margin-top:12px;text-decoration:none;">Bejelentkezés</a>
+    </div>
+  </div>
+
+  <div id="appShell" style="display:none;">
+    <div class="k-top">
+      <div>
+        <div class="k-school" id="instName">KRÁTA – Osztályfőnöki felület</div>
+        <div class="k-year" id="tanev">Osztály napló</div>
+      </div>
+      <div class="k-userbox">
+        <span id="userName">OF</span>
+        <button type="button" class="k-logout" id="logoutBtn">Kijelentkezés</button>
+        <a class="k-logout" href="https://puspus-dev.github.io/ujkreta/biztonsag/" style="text-decoration:none;display:inline-block">2FA</a>
       </div>
     </div>
 
-    <div id="appShell" style="display:none;">
-      <header class="n-header">
-        <div class="n-header-left">
-          <button type="button" class="n-menu-toggle" id="menuBtn">☰</button>
-          <div class="n-logo">KRÁTA</div>
-          <div class="n-header-title">
-            <span class="n-system">Osztályfőnök</span>
-            <span class="n-inst">Osztály napló</span>
-          </div>
-        </div>
-        <div class="n-header-right">
-          <div class="n-user"><span class="n-user-name">OF</span><span class="n-user-code">Osztályfőnök</span></div>
-          <button type="button" class="n-logout" id="logoutBtn">Kijelentkezés</button>
-        </div>
-      </header>
-      <div class="n-body">
-        <aside class="n-sidebar" id="sidebar">
-          <div class="n-sidebar-label">Menü</div>
-          <nav class="n-nav">
-            <button class="n-nav-item active" data-page="dashboard">Kezdőlap</button>
-            <button class="n-nav-item" data-page="students">Tanulók</button>
-            <button class="n-nav-item" data-page="studentNew">Új diák</button>
-            <button class="n-nav-item" data-page="grade">Jegy beírása</button>
-            <button class="n-nav-item" data-page="grades">Beírt jegyek</button>
-            <button class="n-nav-item" data-page="absences">Mulasztások</button>
-            <button class="n-nav-item" data-page="homework">Házi feladatok</button>
-            <button class="n-nav-item" data-page="timetable">Órarend</button>
-            <button class="n-nav-item" data-page="profile">Profil</button>
-          </nav>
-        </aside>
-        <main class="n-main">
-          <div class="n-breadcrumb"><span>Osztályfőnök</span><span class="n-bc-sep">›</span><span id="bcPage">Kezdőlap</span></div>
-          <h1 class="n-page-title" id="pageTitle">Kezdőlap</h1>
-          <div id="pageContent"></div>
-        </main>
-      </div>
-    </div>
-    <div id="overlay" class="n-overlay" style="display:none;"></div>
+    <nav class="k-nav" id="topNav">
+      <div class="k-nav-logo">KRÁTA<br/><span style="font-size:9px;opacity:.85">OF</span></div>
+      <button type="button" class="k-nav-item active" data-page="dashboard"><span class="ico">🏠</span>Kezdőlap</button>
+      <button type="button" class="k-nav-item" data-page="students"><span class="ico">👥</span>Tanulók</button>
+      <button type="button" class="k-nav-item" data-page="studentNew"><span class="ico">➕</span>Új diák</button>
+      <button type="button" class="k-nav-item" data-page="grade"><span class="ico">✅</span>Jegy beírása</button>
+      <button type="button" class="k-nav-item" data-page="grades"><span class="ico">📋</span>Beírt jegyek</button>
+      <button type="button" class="k-nav-item" data-page="naplo"><span class="ico">📝</span>Óra naplózása</button>
+      <button type="button" class="k-nav-item" data-page="absences"><span class="ico">⏱</span>Mulasztások</button>
+      <button type="button" class="k-nav-item" data-page="homework"><span class="ico">📚</span>Házi</button>
+      <button type="button" class="k-nav-item" data-page="timetable"><span class="ico">📅</span>Órarend</button>
+      <button type="button" class="k-nav-item" data-page="profile"><span class="ico">👤</span>Profil</button>
+    </nav>
+
+    <main class="k-main">
+      <div id="pageContent"></div>
+    </main>
   </div>
+
+  <div id="overlay" class="n-overlay" style="display:none;"></div>
   <script src="app.js"></script>
 </body>
 </html>

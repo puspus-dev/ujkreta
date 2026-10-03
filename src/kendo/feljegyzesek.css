@@ -1,0 +1,153 @@
+﻿#BeirasokGrid.k-grid tbody tr td,
+#ElektronikusUzenetNaploNezetGrid.k-grid tbody tr td,
+#ElektronikusUzenetListaNezetGrid.k-grid tbody tr td,
+#FaliujsagBejegyzesekGrid.k-grid tbody tr td,
+#KozossegiSzolgalatokGrid.k-grid tbody tr td,
+#ModifyPopupGrid.k-grid tbody tr td,
+.k-content #BeirasokGrid.k-grid tbody tr .gridcell,
+.k-content #ElektronikusUzenetNaploNezetGrid.k-grid tbody tr .gridcell,
+.k-content #ElektronikusUzenetListaNezetGrid.k-grid tbody tr .gridcell,
+.k-content #FaliujsagBejegyzesekGrid.k-grid tbody tr .gridcell,
+.k-content #KozossegiSzolgalatokGrid.k-grid tbody tr .gridcell,
+.k-content #ModifyPopupGrid.k-grid tbody tr .gridcell {
+  height: 30px !important;
+}
+
+#BeirasokGrid.k-grid .kendo-gridFunctionKommand .clearFunctionCommand,
+#ElektronikusUzenetNaploNezetGrid.k-grid
+  .kendo-gridFunctionKommand
+  .clearFunctionCommand,
+#ElektronikusUzenetListaNezetGrid.k-grid
+  .kendo-gridFunctionKommand
+  .clearFunctionCommand,
+#FaliujsagBejegyzesekGrid.k-grid
+  .kendo-gridFunctionKommand
+  .clearFunctionCommand,
+#KozossegiSzolgalatokGrid.k-grid
+  .kendo-gridFunctionKommand
+  .clearFunctionCommand,
+#ModifyPopupGrid.k-grid .kendo-gridFunctionKommand .clearFunctionCommand {
+  background-color: initial;
+  color: #5c6a79;
+  cursor: initial;
+  text-transform: initial;
+  font-weight: bold;
+}
+
+#BeirasokGrid.k-grid .kendo-gridFunctionKommand .clearFunctionCommand:before,
+#ElektronikusUzenetNaploNezetGrid.k-grid
+  .kendo-gridFunctionKommand
+  .clearFunctionCommand:before,
+#ElektronikusUzenetListaNezetGrid.k-grid
+  .kendo-gridFunctionKommand
+  .clearFunctionCommand:before,
+#FaliujsagBejegyzesekGrid.k-grid
+  .kendo-gridFunctionKommand
+  .clearFunctionCommand:before,
+#KozossegiSzolgalatokGrid.k-grid
+  .kendo-gridFunctionKommand
+  .clearFunctionCommand:before,
+#ModifyPopupGrid.k-grid
+  .kendo-gridFunctionKommand
+  .clearFunctionCommand:before {
+  content: initial;
+}
+
+#BeirasokGrid.k-grid tbody tr,
+#ElektronikusUzenetNaploNezetGrid.k-grid tbody tr {
+  height: 45px;
+}
+
+#BeirasokGrid.k-grid tr.k-master-row,
+#ElektronikusUzenetNaploNezetGrid.k-grid tr.k-master-row {
+  height: 30px;
+}
+
+#BeirasokGrid.k-grid
+  .nevWidth
+  #ElektronikusUzenetNaploNezetGrid.k-grid
+  .nevWidth {
+  width: auto;
+}
+
+#BeirasokGrid.k-grid table > tbody > tr > td.rowFunction,
+#ElektronikusUzenetNaploNezetGrid.k-grid table > tbody > tr > td.rowFunction {
+  text-align: center;
+}
+
+#BeirasokGrid.k-grid th.honap,
+#ElektronikusUzenetNaploNezetGrid.k-grid th.honap {
+  width: 6%;
+  text-align: center;
+}
+
+#BeirasokGrid.k-grid td.honap,
+#ElektronikusUzenetNaploNezetGrid.k-grid td.honap {
+  padding-left: 2px !important;
+  padding-right: 1px !important;
+}
+
+#BeirasokGrid.k-grid td.honap span,
+#ElektronikusUzenetNaploNezetGrid.k-grid td.honap span {
+  display: inline-block;
+  margin-top: 1px !important;
+  margin-bottom: 1px !important;
+}
+
+#BeirasokGrid.k-grid table > tbody > tr > td.k-hierarchy-cell,
+#ElektronikusUzenetNaploNezetGrid.k-grid
+  table
+  > tbody
+  > tr
+  > td.k-hierarchy-cell {
+  border-left: 1px solid #e0e0e0;
+}
+
+#BeirasokGrid.k-grid table > tbody > tr > td,
+#ElektronikusUzenetNaploNezetGrid.k-grid table > tbody > tr > td {
+  border-right: 1px solid #e0e0e0;
+}
+
+#BeirasokGrid.k-grid table span.feljegyzesPadding,
+#ElektronikusUzenetNaploNezetGrid.k-grid table span.feljegyzesPadding {
+  padding: 1px 3px 1px 3px;
+}
+
+#ElektronikusUzenetNaploNezetGrid.k-grid table td.gridSelectCheckBox,
+#ElektronikusUzenetNaploNezetGrid.k-grid table th.gridHeaderSelectCheckBox,
+#ModifyPopupGrid.k-grid table td.gridSelectCheckBox,
+#ModifyPopupGrid.k-grid table th.gridHeaderSelectCheckBox {
+  text-align: center;
+  vertical-align: middle;
+  width: 50px;
+}
+
+.modalContainer .modalContent > .k-content > form#ElektronikusUzenetModifyForm,
+.modalContainer
+  .modalContent
+  > .k-content
+  > form#FaliujsagBejegyzesekNewModifyForm {
+  height: initial !important;
+}
+
+.NaploNezetEdit .row {
+  border: 1px solid #e0e0e0;
+  margin: -1px;
+}
+
+#FeljegyzesKeresoGrid.k-grid table > tbody > tr > td.rowFunction,
+#FeljegyzesKeresoGrid.k-grid table > thead > tr > th.rowFunction,
+#ElektronikusUzenetKeresoGrid.k-grid table > tbody > tr > td.rowFunction,
+#ElektronikusUzenetKeresoGrid.k-grid table > thead > tr > th.rowFunction,
+#FaliujsagKeresoGrid.k-grid table > tbody > tr > td.rowFunction,
+#FaliujsagKeresoGrid.k-grid table > thead > tr > th.rowFunction {
+  width: 80px !important;
+}
+
+#FeljegyzesKeresoGrid.k-grid table > tbody > tr > td.rowFunction,
+#ElektronikusUzenetKeresoGrid.k-grid table > tbody > tr > td.rowFunction,
+#FaliujsagKeresoGrid.k-grid table > tbody > tr > td.rowFunction {
+  text-align: center;
+  padding: 0 4px 6px 4px !important;
+  border-width: 0 0 1px 0;
+}

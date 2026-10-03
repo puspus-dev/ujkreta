@@ -1,0 +1,244 @@
+﻿/* "Pdf" reset */
+a[href$='.pdf'] {
+  height: auto;
+  padding: 0;
+  display: inline;
+  border-radius: 0px;
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  background: unset !important;
+  background-color: transparent !important;
+  background-size: unset !important;
+  background-position: unset !important;
+  -moz-transition: unset;
+  -o-transition: unset;
+  -webkit-transition: unset;
+  transition: unset;
+  color: #5c6a79;
+  font-family: 'Open Sans';
+  font-weight: 600;
+  border: none;
+}
+
+a[href$='.pdf']:before {
+  font-family: unset;
+  margin-right: unset;
+  font-weight: unset;
+}
+
+a[href$='.pdf']:hover {
+  text-decoration: underline;
+  background: none !important;
+  background-color: transparent !important;
+  background-size: unset !important;
+  background-position: unset !important;
+  -moz-transition: unset;
+  -o-transition: unset;
+  -webkit-transition: unset;
+  transition: unset;
+  color: #54a5d1;
+  filter: none !important;
+}
+
+a[href$='.pdf']:before {
+  content: initial;
+}
+
+/*Értesítés rendszerhibákról*/
+.rendszerHeader {
+  font-weight: bold;
+}
+
+.nb-item {
+  -webkit-animation: fadein 2s;
+  -moz-animation: fadein 2s;
+  -ms-animation: fadein 2s;
+  -o-animation: fadein 2s;
+  animation: fadein 2s;
+}
+
+.nb-item .nb-timeline {
+  overflow: hidden;
+  text-align: right;
+  max-width: 40px;
+}
+
+.nb-item .nb-timeline .nb-line {
+  margin-bottom: -99999px;
+  padding-bottom: 99999px;
+  width: 4px;
+  background-color: white;
+  position: relative;
+  float: right;
+  margin-right: 12px;
+}
+
+.nb-item .nb-content {
+  margin-top: 10px;
+  margin-bottom: 10px;
+  background-color: white;
+  box-shadow: 0 1px 1px 0 #e0e0e0;
+  margin-right: 15px;
+  border-radius: 2px;
+  border-top: 1px solid #e5e9ec;
+  position: relative;
+  float: left;
+  width: 100%;
+  min-height: 30px;
+  box-sizing: border-box;
+  padding: 0 20px;
+}
+
+.nb-item .nb-content .content {
+  padding: 15px 10px 15px 10px;
+  margin: 0 -15px;
+  border-bottom: 0;
+  text-align: justify;
+}
+
+.nb-item .nb-content .subjectError {
+  background-color: #a94442;
+}
+
+.nb-item .nb-content .subjectWarning {
+  background-color: #e39f0b;
+}
+
+.nb-item .nb-content .subjectSuccess {
+  background-color: #74a942;
+}
+
+.nb-item .nb-content .subjectInfo {
+  background-color: #24a9ca;
+}
+
+.nb-item .nb-content .subjectPriority {
+  background-color: #652d8e;
+}
+
+.nb-item .nb-content .subjectError,
+.nb-item .nb-content .subjectWarning,
+.nb-item .nb-content .subjectSuccess,
+.nb-item .nb-content .subjectInfo,
+.nb-item .nb-content .subjectPriority {
+  min-height: 36px;
+  padding: 10px;
+  margin: 0 -15px;
+  overflow: auto;
+}
+
+.nb-item .nb-content .subjectError h4,
+.nb-item .nb-content .subjectWarning h4,
+.nb-item .nb-content .subjectSuccess h4,
+.nb-item .nb-content .subjectInfo h4,
+.nb-item .nb-content .subjectPriority h4 {
+  margin: 0;
+  color: #445261;
+  font-weight: 400;
+}
+
+.nb-item:first-child .nb-line {
+  margin-top: 20px;
+}
+
+.nb-item:first-child .nb-circle {
+  margin-top: 0;
+}
+
+.nb-item.highlighted .subjectError h4,
+.nb-item.highlighted .subjectWarning h4,
+.nb-item.highlighted .subjectSuccess h4,
+.nb-item.highlighted .subjectInfo h4,
+.nb-item.highlighted .subjectPriority h4 {
+  color: white;
+}
+
+.subjectError .left,
+.subjectWarning .left,
+.subjectSuccess .left,
+.subjectInfo .left,
+.subjectPriority .left {
+  float: left;
+}
+
+.subjectError .right,
+.subjectWarning .right,
+.subjectSuccess .right,
+.subjectInfo .right,
+.subjectPriority .right {
+  float: left;
+}
+
+.displayNone {
+  display: none;
+}
+
+.redirectionLink {
+  font-weight: 600;
+}
+
+.redirectionLink:hover {
+  color: #337ab7;
+  text-decoration: underline;
+}
+
+.redirectionLink:after {
+  color: #5c6a79;
+  text-decoration: none;
+}
+
+@media only screen and (min-width: 1100px) and (max-width: 1365px) {
+  .rendszerContainer > div:nth-child(2n + 3) {
+    clear: left;
+  }
+}
+
+@media only screen and (min-width: 1366px) {
+  .rendszerContainer > div:nth-child(3n + 4) {
+    clear: left;
+  }
+}
+
+.textAlignCenter {
+  text-align: center;
+}
+
+.textAlignRight {
+  text-align: right;
+}
+
+.contentHeader {
+  font-weight: 600;
+  padding-bottom: 6px;
+  padding-top: 6px;
+}
+
+.contentContent {
+  padding-top: 3px;
+  padding-bottom: 6px;
+  text-align: justify;
+}
+
+.contentDescription {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  text-align: justify;
+  font-style: italic;
+}
+
+.ulDecimalStyle {
+  list-style-type: decimal;
+  margin-left: 2em;
+  margin-right: 1em;
+  padding-left: 6px;
+}
+
+.tableLink {
+  color: #445261;
+  font-weight: 600;
+  cursor: pointer;
+}
+.rendszerContainer .dashboard-card-header:first-child {
+  min-width: 77px;
+}

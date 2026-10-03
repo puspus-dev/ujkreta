@@ -1,0 +1,39 @@
+﻿.fejlegyezesImgDefault {
+  background-size: cover;
+  width: 30px;
+  height: 30px;
+  margin: 5px;
+  cursor: pointer;
+}
+
+.autoFeljegyzesTable .haziFeladatHiany {
+  background-image: url('../KRATA_NEWUI_IMG/ImagesKRETA/NaplozasMulasztasImages/HaziFeladatHiany.png');
+}
+
+.autoFeljegyzesTable .haziFeladatHianyRed {
+  background-image: url('../KRATA_NEWUI_IMG/ImagesKRETA/NaplozasMulasztasImages/HaziFeladatHiany_Red.png');
+}
+
+.autoFeljegyzesTable .felszerelesHiany {
+  background-image: url('../KRATA_NEWUI_IMG/ImagesKRETA/NaplozasMulasztasImages/FelszerelesHiany.png');
+}
+
+.autoFeljegyzesTable .felszerelesHianyRed {
+  background-image: url('../KRATA_NEWUI_IMG/ImagesKRETA/NaplozasMulasztasImages/FelszerelesHiany_Red.png');
+}
+
+.autoFeljegyzesTable .felmentes {
+  background-image: url('../KRATA_NEWUI_IMG/ImagesKRETA/NaplozasMulasztasImages/Felmentes.png');
+}
+
+.autoFeljegyzesTable .felmentesOrange {
+  background-image: url('../KRATA_NEWUI_IMG/ImagesKRETA/NaplozasMulasztasImages/Felmentes_Orange.png');
+}
+
+.autoFeljegyzesTable .dicseret {
+  background-image: url('../KRATA_NEWUI_IMG/ImagesKRETA/NaplozasMulasztasImages/OraiDicseret.png');
+}
+
+.autoFeljegyzesTable .dicseretGreen {
+  background-image: url('../KRATA_NEWUI_IMG/ImagesKRETA/NaplozasMulasztasImages/OraiDicseret_Green.png');
+}

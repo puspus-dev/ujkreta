@@ -1,0 +1,90 @@
+﻿#MulasztasokTanuloNezetGrid.k-grid th.groupHeader,
+#MulasztasokTanuloNezetGrid.k-grid th.statisztika,
+#MulasztasokTanuloNezetGrid.k-grid td.statisztika {
+  text-align: center;
+}
+
+#MulasztasokTanuloNezetGrid.k-grid th.statisztika {
+  width: 6%;
+}
+
+#MulasztasokTanuloNezetGrid.k-grid th.statisztika,
+#MulasztasokTanuloNezetGrid.k-grid th.groupHeader {
+  white-space: normal;
+}
+#MulasztasokTanuloNezetGrid.k-grid th.statisztika span,
+#MulasztasokTanuloNezetGrid.k-grid th.groupHeader span {
+  height: auto;
+}
+
+#MulasztasokTanuloNezetGrid.k-grid th.borderRight,
+#MulasztasokTanuloNezetGrid.k-grid td.borderRight,
+#MulasztasokNaploNezetGrid.k-grid th.borderRight,
+#MulasztasokNaploNezetGrid.k-grid td.borderRight {
+  border-right: 1px solid #e0e0e0;
+}
+
+#MulasztasokTanuloNezetGrid.k-grid th.borderLeft,
+#MulasztasokTanuloNezetGrid.k-grid td.borderLeft,
+#MulasztasokNaploNezetGrid.k-grid th.borderLeft,
+#MulasztasokNaploNezetGrid.k-grid td.borderLeft {
+  border-left: 1px solid #e0e0e0;
+}
+
+#MulasztasokNaploNezetGrid.k-grid th.kozepre,
+#MulasztasokNaploNezetGrid.k-grid td.kozepre {
+  text-align: center;
+}
+
+#MulasztasokTanuloNezetGrid.k-grid th.bold,
+#MulasztasokTanuloNezetGrid.k-grid td.bold {
+  font-weight: bold;
+}
+
+.hianyzasImage {
+  display: block;
+  width: 0;
+  height: 0;
+  outline: none;
+  padding: 12px 12px 12px 12px;
+  margin: 0 auto 0 auto;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+}
+
+.igazolandoHianyzas {
+  background-image: url('../KRATA_NEWUI_IMG/ImagesKRETA/MulasztasImages/icon_pending_hianyzas.png');
+}
+
+.igazolandoHianyzasModified {
+  background-image: url('../KRATA_NEWUI_IMG/ImagesKRETA/MulasztasImages/icon_pending_hianyzas_modified.png');
+}
+
+.igazoltHianyzas {
+  background-image: url('../KRATA_NEWUI_IMG/ImagesKRETA/MulasztasImages/icon_igazolt_hianyzas.png');
+}
+
+.igazolatlanHianyzas {
+  background-image: url('../KRATA_NEWUI_IMG/ImagesKRETA/MulasztasImages/icon_igazolatlan_hianyzas.png');
+}
+
+.igazolandoKeses {
+  background-image: url('../KRATA_NEWUI_IMG/ImagesKRETA/MulasztasImages/icon_pending_keses.png');
+}
+
+.igazoltKeses {
+  background-image: url('../KRATA_NEWUI_IMG/ImagesKRETA/MulasztasImages/icon_igazolt_keses.png');
+}
+
+.igazolatlanKeses {
+  background-image: url('../KRATA_NEWUI_IMG/ImagesKRETA/MulasztasImages/icon_igazolatlan_keses.png');
+}
+
+.megtartottOra {
+  background-image: url('../KRATA_NEWUI_IMG/ImagesKRETA/MulasztasImages/icon_jelenlet.png');
+}
+
+.megtartottOraModified {
+  background-image: url('../KRATA_NEWUI_IMG/ImagesKRETA/MulasztasImages/icon_jelenlet_modified.png');
+}

@@ -1,0 +1,191 @@
+﻿.importInsert {
+  background-color: #c1ffc1;
+}
+
+.importUpdate {
+  background-color: #ffffe0;
+}
+
+.importDelete {
+  background-color: #ffb3b3;
+}
+
+td.Sortores {
+  white-space: pre;
+}
+
+.k-grid-norecords {
+  height: 99%;
+}
+
+.k-grid-content > .k-grid-norecords > .k-grid-norecords-template {
+  top: 5%;
+  left: 14%;
+}
+
+.k-pager-numbers .k-link,
+.k-pager-numbers .k-state-selected {
+  border-radius: 0;
+  border-style: solid;
+  border-width: 1px;
+}
+
+.k-pager-wrap .k-pager-numbers .k-state-selected {
+  border-color: #54a5d1;
+}
+
+.k-pager-wrap .k-pager-numbers .k-state-selected,
+.k-grid .k-pager-wrap > .k-link {
+  border-radius: 0;
+  padding: 0;
+  min-width: 2.429em;
+  height: 2.429em;
+  line-height: 2.429em;
+  margin-top: 0;
+}
+
+.k-grid-header-wrap {
+  border-width: 0;
+}
+
+.k-grid .k-pager-wrap > .k-link {
+  float: left;
+}
+
+.k-pager-wrap .k-pager-nav span {
+  margin-top: -2px;
+}
+
+.k-grid-content {
+  overflow-y: auto;
+}
+
+#exportButton,
+.exportButton,
+.exportButton:hover {
+  background-color: #54a5d1;
+}
+
+/*NOTE: Ez azért kell, mert alapból vannak a grid-eken scrollok és ha ezt nem állítjuk be, akkor 1 másodpercre felugrik a scrollbar,
+            amikor tab-ot váltunk(ez a kendo ui hibája).*/
+.k-window div.k-window-content div.k-content {
+  overflow: hidden;
+}
+
+.firstImportBox {
+  padding: 0 30px 0 30px;
+  height: 300px;
+}
+
+.importBox {
+  border-left: 1px solid gray;
+  padding: 0 30px 0 30px;
+  height: 300px;
+}
+
+.topImportBox {
+  border-bottom: 1px solid gray;
+}
+
+.k-checkbox-label:before,
+.k-radio-label:before {
+  top: 1px;
+}
+
+.k-radio:checked + .k-radio-label:after,
+.k-checkbox:checked + .k-checkbox-label:after {
+  top: 5px;
+}
+
+.k-radio-label {
+  line-height: initial;
+  padding-left: 2em;
+  font-weight: initial;
+}
+
+div.details > div.settings,
+div.details > div.types {
+  background-color: #e5e9ec;
+  border: 2px solid silver;
+}
+
+div.details > div.settings ul {
+  background-color: #e5e9ec;
+}
+
+div.details > div.types {
+  padding: 20px;
+  margin-top: 20px;
+}
+
+div.details > div.types > ul#importExportPanelbar > li > span {
+  background-color: #54a5d1 !important;
+  color: #ffffff;
+}
+
+div.details
+  > div.types
+  > ul#importExportPanelbar
+  > li
+  > div.k-content
+  .k-upload,
+div.details > div.types > ul#importExportPanelbar > li > div.k-content .k-file {
+  background-color: #e5e9ec;
+  border: 1px solid silver;
+}
+
+div.details
+  > div.types
+  > ul#importExportPanelbar
+  > li
+  > div.k-content
+  > .k-upload
+  .k-button.k-upload-button {
+  color: #ffffff;
+  background-color: #f0ad4e;
+  border-color: #eea236;
+  display: inline-block;
+}
+
+div.details
+  > div.types
+  > ul#importExportPanelbar
+  > li
+  > div.k-content
+  > .k-upload
+  .k-button.k-upload-button:hover {
+  background-color: #ec971f;
+  border-color: #d58512;
+}
+
+div.details
+  > div.types
+  > ul#importExportPanelbar
+  > li
+  > div.k-content
+  > .k-upload
+  .k-button.k-upload-selected {
+  color: #ffffff;
+  background-color: #5cb85c;
+  border-color: #4cae4c;
+  display: inline-block;
+}
+
+div.details
+  > div.types
+  > ul#importExportPanelbar
+  > li
+  > div.k-content
+  > .k-upload
+  .k-button.k-upload-selected:hover {
+  background-color: #449d44;
+  border-color: #398439;
+}
+
+p.info {
+  padding-left: 10px;
+}
+
+ul li label.k-radio-label {
+  flex-direction: column;
+}

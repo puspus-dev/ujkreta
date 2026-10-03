@@ -1,0 +1,140 @@
+﻿.courses {
+  display: flex;
+  flex-direction: column;
+  min-width: 280px;
+  max-width: 890px;
+}
+
+.course {
+  display: flex;
+  flex: 1;
+  border: 3px solid #dedede;
+  margin-bottom: 2rem;
+  padding: 10px;
+}
+.course .image {
+  min-width: 100px;
+}
+
+.course .image img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+}
+
+.course .details {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex-grow: 1;
+  padding: 0 1rem 0 1rem;
+}
+
+.course .details .description {
+  text-align: justify;
+  height: 40px;
+  overflow: hidden;
+}
+
+.course .details > .title {
+  font-size: 16px;
+  color: #0497bb;
+}
+
+.course .details .results {
+  display: flex;
+  flex-direction: row;
+}
+
+.course .details .results .left,
+.course .details .results .right {
+  display: flex;
+  flex-direction: column;
+}
+.course .details .results .right {
+  padding-left: 3rem;
+}
+
+.course .details .results .progression,
+.course .details .results .result {
+  display: flex;
+}
+
+.course .details .results .progression .result-title,
+.course .details .results .result .result-title {
+  min-width: 100px;
+}
+
+.course .details .results .statusLineContent {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+  width: 100px;
+  height: 10px;
+  margin: 4px;
+  border: 1px solid #999;
+}
+
+.course .details .results .statusLineContent .statusLine {
+  width: 0;
+  height: 100%;
+  background-color: #0497bb;
+}
+
+.course .details .results .statusLineValue {
+  padding-right: 2px;
+  color: #999;
+  flex: 0.1;
+}
+
+.course .buttons {
+  flex: 0 0 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.course .buttons .coursebutton_container,
+.course .buttons .coursestatus_container {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.course .buttons > div > button {
+  color: #fff;
+  width: 100%;
+  outline: 0;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.42857143;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  touch-action: manipulation;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+.course .buttons .coursestatus_container button {
+  color: #000;
+  background-color: #dedede;
+  cursor: initial;
+}
+
+.course .buttons .coursebutton_container button {
+  background-color: #0497bb;
+}
+
+.course .buttons .coursebutton_container button:hover {
+  background-color: #04aad4;
+}
+
+.kretaLogo {
+  background-image: url(content/images/kreta.png);
+  background-repeat: no-repeat;
+  background-size: 90px 60px;
+  background-position: center;
+}

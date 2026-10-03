@@ -1,0 +1,301 @@
+﻿body {
+  /*padding-top: 50px;*/
+  /*padding-bottom: 20px;*/
+}
+
+/* Set padding to keep content from hitting the edges */
+.body-content {
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+/* Set width on the form input elements since they're 100% wide by default */
+input,
+select,
+textarea {
+  max-width: 100%;
+}
+
+#Menu {
+  background-color: transparent;
+  background-image: none;
+  border-color: transparent;
+  color: white;
+}
+
+.disabledMenuItem,
+.disabledItem,
+.disabledGrid {
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+.disabledComboItem {
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.ertesites {
+  border-bottom: 1px solid #e5e9ec;
+  border-top: 1px solid #e5e9ec;
+  padding: 5px 0px;
+  position: relative;
+  cursor: pointer;
+}
+
+.ertesitesikon {
+  width: 30px;
+  float: left;
+  text-align: center;
+  font-size: 16px;
+  margin-top: -5px;
+}
+
+.ertesites > div > .cim {
+  padding-left: 36px;
+}
+
+.ertesites > div > .cim > p {
+  font-weight: normal;
+  /*font-size: 16px;*/
+  font-family: 'Roboto Condensed';
+  line-height: 1em;
+}
+
+.ertesites > div > .cim > span {
+  font-size: 12px;
+  color: #999999;
+}
+
+.ertesites > .kuka {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 12px;
+  color: #666666;
+  padding-top: 2px;
+}
+
+.kretapirosbetuszin {
+  color: #ff4444;
+}
+
+.favoriteIconContainer {
+  padding-top: 7px;
+}
+
+.displayNone {
+  display: none;
+}
+
+.main-content .content-content .fullCalendar hr {
+  margin: 0px 0px;
+}
+
+.fc-orasorszam {
+  text-align: center;
+  font-size: 50px;
+  opacity: 0.3;
+}
+
+.fc-orasorszam:hover {
+  opacity: 0;
+}
+
+.fc-bg2 {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 1;
+  z-index: 1;
+  height: 8%;
+}
+
+.hasCalendarIcon {
+  position: absolute;
+  right: 0;
+  top: 0;
+  margin-top: 2px;
+  margin-right: 2px;
+}
+
+.orgnamesmallscreen {
+  color: white;
+  font-size: 13.5px;
+  margin: 8px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  width: 100%;
+}
+
+@media (min-width: 1100px) {
+  .orgnamesmallscreen {
+    display: none;
+  }
+
+  .main-header2 {
+    display: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .school-title.pull-left,
+  .main-header {
+    display: none;
+  }
+
+  .main-header2 {
+    height: 48px;
+    background-color: white;
+  }
+
+  #layout_userMenu {
+    padding-top: 4px;
+    background-color: white;
+    float: right;
+  }
+
+  #layout_userMenu2 .usermenu {
+    padding-top: 4px;
+    display: flex;
+    flex-direction: row-reverse;
+  }
+}
+
+.headeruserNameSpan {
+  display: contents;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  float: left;
+}
+
+@media (min-width: 1000px) {
+  .xs-username {
+    max-width: 70px;
+  }
+}
+@media (min-width: 1300px) {
+  .sm-userName {
+    max-width: 170px;
+  }
+}
+@media (min-width: 1600px) {
+  .md-userName {
+    max-width: 310px;
+  }
+}
+@media (min-width: 1900px) {
+  .lg-userName {
+    max-width: 470px;
+  }
+}
+
+@media (min-width: 1000px) {
+  .xs-username {
+    max-width: 70px;
+  }
+}
+@media (min-width: 1300px) {
+  .sm-userName {
+    max-width: 170px;
+  }
+}
+@media (min-width: 1600px) {
+  .md-userName {
+    max-width: 310px;
+  }
+}
+@media (min-width: 1900px) {
+  .lg-userName {
+    max-width: 470px;
+  }
+}
+
+.middle-button {
+  margin: 0 5px 0 5px;
+}
+
+.defaultCursor {
+  cursor: default !important;
+}
+
+.k-grid table > tbody > tr > td div.gridSelect ul li,
+.k-grid table > thead > tr > th div.gridSelect ul li {
+  border: 1px solid #c5d3e2 !important;
+}
+
+.k-webkit .k-pager-wrap,
+.k-ff .k-pager-wrap,
+.k-ie11 .k-pager-wrap,
+.k-safari .k-pager-wrap {
+  white-space: nowrap;
+}
+
+.initialBorder {
+  border: initial !important;
+}
+
+.initialBackgroundColor {
+  background-color: initial !important;
+}
+
+.initialMinHeight {
+  min-height: initial !important;
+}
+
+.kretaEllipsis {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 0;
+}
+
+.ugyfelszolgalat_icon {
+  cursor: pointer;
+  background-image: url('../Content/content/images/ugyfelszolgalat_icon.png');
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.fa-ugyfelszolgalaticon:before {
+  content: url('../Content/content/images/ugyfelszolgalat_icon.png');
+  height: 15px;
+  max-width: 15px;
+  display: block;
+  margin-left: -3px;
+}
+
+body .k-textbox span.k-icon.k-i-clock {
+  margin: 0;
+  position: initial;
+}
+
+.IntezmenyFeltoltottsege-GridHeaderText {
+  margin-top: 15px;
+  font-weight: bold;
+  font-size: 24px;
+}
+
+.fullCalendar .fc-prev-button .fc-icon-left-single-arrow {
+  text-align: right;
+}
+
+.fullCalendar .fc-prev-button .fc-icon:after {
+  margin: auto;
+}
+
+.fullCalendar .fc-next-button .fc-icon-right-single-arrow {
+  text-align: right;
+}
+
+.fullCalendar .fc-next-button .fc-icon:after {
+  margin: auto;
+}
+
+.amiKepzesiAdatokTitleContainer {
+  margin: 20px 0px;
+}

@@ -1,0 +1,55 @@
+﻿.kendoNyomtatvanyokTabla a[href$='.pdf'] {
+  height: 36px;
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  background-size: 200% 100% !important;
+  background-position: right top !important;
+  background: #fff;
+  -moz-transition: none;
+  -o-transition: none;
+  -webkit-transition: none;
+  transition: none;
+  font-family: 'Open Sans';
+  display: inline-block;
+  margin-bottom: 0;
+  font-weight: normal;
+  text-align: center;
+  vertical-align: middle;
+  -ms-touch-action: manipulation;
+  touch-action: manipulation;
+  cursor: pointer;
+  background-image: none;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  padding: 6px 12px;
+  font-size: 14px;
+  line-height: 1.42857143;
+  border-radius: 4px;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  color: #333;
+  background-color: #fff;
+  border-color: #ccc;
+}
+
+.kendoNyomtatvanyokTabla a[href*='.pdf']:before {
+  content: none !important;
+  font-family: 'FontAwesome';
+  margin-right: 10px;
+  font-weight: 400;
+}
+
+.kendoNyomtatvanyokTabla a[href*='.pdf']:hover {
+  text-decoration: none;
+  -moz-transition: none;
+  -o-transition: none;
+  -webkit-transition: none;
+  transition: none;
+  background: #e6e6e6 !important;
+  color: #333;
+  background-color: #e6e6e6 !important;
+  border-color: #adadad;
+}

@@ -14,6 +14,7 @@ const PAGE_META = {
   grade: "Jegy beírása",
   naplo: "Óra naplózása",
   grades: "Beírt jegyek",
+  eugy: "e-Ügyintézés",
   absences: "Mulasztások",
   students: "Tanulók",
   timetable: "Órarend",
@@ -879,6 +880,7 @@ const RENDERERS = {
   grade: renderGradeForm,
   grades: renderGrades,
   absences: renderAbsences,
+  eugy: renderEUGY,
   students: renderStudents,
   timetable: renderTimetable,
   homework: renderHomework,
@@ -1131,4 +1133,9 @@ function renderHomeworkForm() {
     <h3 style="margin-top:20px;font-size:15px">Meglévő házik</h3>
     ${existing}
   </div>`;
+
+  function renderEUGY() {
+  return `<div class="k-panel"><p>Üzenetek az <a href="https://puspus-dev.github.io/ujkreta/eugyintezes/">E-ügyintézés</a> oldalon.</p>
+    <p><a class="k-logout" href="https://puspus-dev.github.io/ujkreta/eugyintezes/">Megnyitás →</a></p></div>`;
+}
 }

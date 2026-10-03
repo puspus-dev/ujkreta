@@ -7,6 +7,7 @@ const PAGE_META = {
   naplo: renderNaplo,
   grade: "Jegy beírása",
   grades: "Beírt jegyek",
+  eugy: "e-Ügyintézés",
   absences: "Mulasztások",
   students: "Tanulók",
   studentNew: "Új diák",
@@ -540,6 +541,7 @@ const RENDERERS = {
   absences: renderAbsences,
   students: renderStudents,
   studentNew: renderStudentNew,
+  eugy: renderEUGY,
   timetable: renderTimetable,
   homework: renderHomework,
   profile: renderProfile
@@ -683,4 +685,9 @@ function renderNaplo() {
       </div>
     </div>
   </div>`;
+
+  function renderEUGY() {
+  return `<div class="k-panel"><p>Üzenetek az <a href="https://puspus-dev.github.io/ujkreta/eugyintezes/">E-ügyintézés</a> oldalon.</p>
+    <p><a class="k-logout" href="https://puspus-dev.github.io/ujkreta/eugyintezes/">Megnyitás →</a></p></div>`;
+}
 }

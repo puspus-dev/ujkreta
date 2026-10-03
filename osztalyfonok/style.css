@@ -34,7 +34,7 @@
   object-fit: contain;
   display: block;
   margin: 0 auto 4px;
-  filter: brightness(0) invert(1);
+  /* színes eKRÉTA ikonok – nem invertáljuk */ filter: none;
 }
 .m-ico-img {
   width: 18px;
@@ -42,7 +42,7 @@
   object-fit: contain;
   display: block;
   margin: 0 auto 2px;
-  filter: brightness(0) invert(1);
+  /* színes eKRÉTA ikonok – nem invertáljuk */ filter: none;
 }
 .k-nav-item .menu-ico,
 .n-nav-item .menu-ico {
@@ -418,5 +418,5 @@ input:focus, select:focus, textarea:focus, .e-search:focus { outline: 0; border-
 
 .main-menu .menu-ico, .main-menu .n-nav-item .menu-ico, .main-menu .k-nav-item .menu-ico {
   width: 22px; height: 22px; object-fit: contain; display: block; margin: 0 auto 3px;
-  filter: brightness(0) invert(1);
+  /* színes eKRÉTA ikonok – nem invertáljuk */ filter: none;
 }

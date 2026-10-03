@@ -3,11 +3,11 @@ const API_BASE = "https://ujkreta.onrender.com";
 const LOGIN_URL = "https://puspus-dev.github.io/ujkreta/";
 const TOKEN_KEYS = ["access_token", "ujkreta_access_token", "of_access_token"];
 const PAGE_META = {
+  eugy: "e-Ügyintézés",
   dashboard: "Kezdőlap",
   naplo: renderNaplo,
   grade: "Jegy beírása",
   grades: "Beírt jegyek",
-  eugy: "e-Ügyintézés",
   absences: "Mulasztások",
   students: "Tanulók",
   studentNew: "Új diák",
@@ -539,6 +539,7 @@ function renderProfile() {
 }
 
 const RENDERERS = {
+  eugy: renderEUGY,
   dashboard: renderDashboard,
   grade: renderGradeForm,
   grades: renderGrades,
@@ -549,6 +550,13 @@ const RENDERERS = {
   homework: renderHomework,
   profile: renderProfile
 };
+
+
+function renderEUGY() {
+  window.location.href = "https://puspus-dev.github.io/ujkreta/eugyintezes/";
+  return `<div class="n-panel"><div class="n-panel-body">Átirányítás az e-Ügyintézéshez…
+    <a class="k-logout" href="https://puspus-dev.github.io/ujkreta/eugyintezes/">Megnyitás →</a></div></div>`;
+}
 
 function navigate(page) {
   if (page === "eugy") {

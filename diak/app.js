@@ -333,6 +333,21 @@ function renderTests() {
     </div>`;
 }
 
+
+function absenceIcon(a) {
+  const t = ((a.Tipus && (a.Tipus.Nev || a.Tipus.nev)) || a.TipusNev || "").toLowerCase();
+  const ig = ((a.IgazolasAllapota && (a.IgazolasAllapota.Nev || a.IgazolasAllapota.nev)) || "").toLowerCase();
+  if (t.indexOf("késés") >= 0 || t.indexOf("keses") >= 0) {
+    if (ig.indexOf("igazolatlan") >= 0) return "icons/icon_igazolatlan_keses.png";
+    if (ig.indexOf("igazolt") >= 0) return "icons/icon_igazolt_keses.png";
+    return "icons/icon_pending_keses.png";
+  }
+  if (ig.indexOf("igazolatlan") >= 0) return "icons/icon_igazolatlan_hianyzas.png";
+  if (ig.indexOf("igazolt") >= 0) return "icons/icon_igazolt_hianyzas.png";
+  if (ig.indexOf("pending") >= 0 || ig.indexOf("függő") >= 0) return "icons/icon_pending_hianyzas.png";
+  return "icons/icon_jelenlet.png";
+}
+
 function renderAbsences() {
   const list = Array.isArray(cache.absences) ? cache.absences : [];
   if (!list.length) return `<div class="n-panel"><div class="n-panel-body">${empty("Nincsenek mulasztások.")}</div></div>`;

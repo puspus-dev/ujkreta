@@ -30,7 +30,7 @@
 .menu-ico {
   width: 18px; height: 18px; object-fit: contain;
   vertical-align: middle; margin-right: 6px;
-  filter: brightness(0) invert(1);
+  /* színes eKRÉTA ikonok – nem invertáljuk */ filter: none;
 }
 /* KRÁTA – eKRÉTA stílus (sima CSS, build nélkül) */
 /* KRÁTA e-Ügyintézés – hivatalos modul kinézet */
@@ -419,5 +419,5 @@ input:focus, select:focus, textarea:focus, .e-search:focus { outline: 0; border-
 }
 .e-nav-item .menu-ico {
   width: 16px; height: 16px; margin: 0;
-  filter: brightness(0) invert(1);
+  /* színes eKRÉTA ikonok – nem invertáljuk */ filter: none;
 }

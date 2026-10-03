@@ -5,6 +5,7 @@ const TOKEN_KEYS = ["access_token", "ujkreta_access_token", "of_access_token"];
 const PAGE_META = {
   dashboard: "Kezdőlap",
   naplo: renderNaplo,
+  eugy: "e-Ügyintézés",
   grade: "Jegy beírása",
   grades: "Beírt jegyek",
   absences: "Mulasztások",
@@ -538,6 +539,7 @@ const RENDERERS = {
   grade: renderGradeForm,
   grades: renderGrades,
   absences: renderAbsences,
+  eugy: renderEUGY,
   students: renderStudents,
   studentNew: renderStudentNew,
   timetable: renderTimetable,
@@ -683,4 +685,9 @@ function renderNaplo() {
       </div>
     </div>
   </div>`;
+
+  function renderEUGY() {
+  return `<div class="k-panel"><p>Üzenetek az <a href="https://puspus-dev.github.io/ujkreta/eugyintezes/">E-ügyintézés</a> oldalon.</p>
+    <p><a class="k-logout" href="https://puspus-dev.github.io/ujkreta/eugyintezes/">Megnyitás →</a></p></div>`;
+}
 }

@@ -411,7 +411,7 @@ function renderProfile() {
   return `
     <div class="n-panel" style="margin-bottom:12px;">
       <div class="n-panel-body" style="display:flex;align-items:center;gap:16px;">
-        <img src="icons/noprofilepic.png" alt="Profilkép" class="profile-pic" width="72" height="72"
+        <img src="icons/nopfp.png" alt="Profilkép" class="profile-pic" width="72" height="72"
           style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid var(--ek-line,#c5d3e2);background:#f4f4f4;">
         <div>
           <div style="font-size:18px;font-weight:700;">${esc(s.Nev || "—")}</div>

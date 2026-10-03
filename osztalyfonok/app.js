@@ -528,7 +528,7 @@ function renderProfile() {
   const t = cache.teacher || {};
   return `<div class="n-panel"><div class="n-panel-head">Profil</div>
     <div class="n-panel-body" style="display:flex;align-items:center;gap:16px;">
-      <img src="icons/noprofilepic.png" alt="Profilkép" class="profile-pic" width="72" height="72"
+      <img src="icons/nopfp.png" alt="Profilkép" class="profile-pic" width="72" height="72"
         style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid #c5d3e2;background:#f4f4f4;">
       <div>
         <p style="margin:0;"><strong>${esc(t.Nev||"Osztályfőnök")}</strong></p>

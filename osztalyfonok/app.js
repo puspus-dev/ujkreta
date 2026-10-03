@@ -5,7 +5,7 @@ const TOKEN_KEYS = ["access_token", "ujkreta_access_token", "of_access_token"];
 const PAGE_META = {
   eugy: "e-Ügyintézés",
   documents: "Digitális dokumentumok",
-  dkt: "DKT",
+  dkt: "DKT – Digitális Kollaborációs Tér",
   dashboard: "Kezdőlap",
   naplo: renderNaplo,
   grade: "Jegy beírása",
@@ -171,156 +171,476 @@ async function loadAllData() {
 }
 
 function renderDashboard() {
-  const st = cache.students || [];
-  const gr = cache.grades || [];
-  const hw = cache.homework || [];
+  const st = Array.isArray(cache.students) ? cache.students : [];
+  const gr = Array.isArray(cache.grades) ? cache.grades : [];
+  const hw = Array.isArray(cache.homework) ? cache.homework : [];
+  const ab = Array.isArray(cache.absences) ? cache.absences : [];
+  const groups = Array.isArray(cache.groups) ? cache.groups : [];
   return `
     <div class="n-stats">
       <div class="n-stat"><div class="n-stat-label">Tanulók</div><div class="n-stat-value">${st.length}</div></div>
-      <div class="n-stat"><div class="n-stat-label">Jegyek</div><div class="n-stat-value">${Array.isArray(gr)?gr.length:0}</div></div>
-      <div class="n-stat"><div class="n-stat-label">Házik</div><div class="n-stat-value">${Array.isArray(hw)?hw.length:0}</div></div>
+      <div class="n-stat"><div class="n-stat-label">Jegyek</div><div class="n-stat-value">${gr.length}</div></div>
+      <div class="n-stat"><div class="n-stat-label">Házik</div><div class="n-stat-value">${hw.length}</div></div>
+      <div class="n-stat"><div class="n-stat-label">Mulasztások</div><div class="n-stat-value">${ab.length}</div></div>
     </div>
-    <div class="n-panel"><div class="n-panel-head">Gyors műveletek</div><div class="n-panel-body" style="display:flex;flex-wrap:wrap;gap:8px;">
-      <button type="button" class="n-btn" data-go="grade">Jegy beírása</button>
-      <button type="button" class="n-btn" data-go="studentNew">Új diák</button>
-      <button type="button" class="n-btn" data-go="homework">Házi</button>
-      <button type="button" class="n-btn" data-go="timetable">Órarend</button>
-      <button type="button" class="n-btn" data-go="absences">Mulasztás</button>
-    </div></div>
-    <div class="n-panel"><div class="n-panel-body" style="font-size:13px;color:var(--n-muted);">
-      Osztályfőnök: diák + diák-login, jegy, mulasztás, házi, órarend.
-      <strong>Nem</strong> kezel iskolát, tanárt és rendszerszintű konfigot.
-    </div></div>`;
+    <div class="n-panel">
+      <div class="n-panel-head">Gyors műveletek</div>
+      <div class="n-panel-body" style="display:flex;flex-wrap:wrap;gap:8px;">
+        <button type="button" class="n-btn n-btn-primary" data-go="grade">Jegy beírása</button>
+        <button type="button" class="n-btn" data-go="grades">Beírt jegyek</button>
+        <button type="button" class="n-btn" data-go="absences">Mulasztások</button>
+        <button type="button" class="n-btn" data-go="students">Tanulók</button>
+        <button type="button" class="n-btn" data-go="studentNew">Új diák</button>
+        <button type="button" class="n-btn" data-go="homework">Házi</button>
+        <button type="button" class="n-btn" data-go="timetable">Órarend</button>
+      </div>
+    </div>
+    <div class="n-panel">
+      <div class="n-panel-head">Osztályok</div>
+      <div class="n-panel-body">${groups.length ? groups.map(g => `<span class="n-badge" style="margin:2px">${esc(g.Nev || g.Uid)}</span>`).join(" ") : "—"}</div>
+    </div>`;
 }
-
-function studentGrades(uid, subjectUid) {
+function studentGrades(studentUid, subjectUid) {
   const grades = Array.isArray(cache.grades) ? cache.grades : [];
-  return grades.filter(g => {
+  return grades.filter((g) => {
     const su = String(g.TanuloUid || g.Tanulo?.Uid || "");
-    if (su && su !== String(uid)) return false;
-    const sub = g.Tantargy?.Uid || "";
-    if (subjectUid && sub && sub !== subjectUid) return false;
-    return true;
+    const matchStudent = !su || su === String(studentUid);
+    // teacher API grades may not always include TanuloUid on older entries
+    const sub = g.Tantargy?.Uid || g.TantargyUid || "";
+    const matchSub = !subjectUid || !sub || sub === subjectUid;
+    // Prefer explicit student match when present
+    if (g.TanuloUid || g.Tanulo?.Uid) {
+      return String(g.TanuloUid || g.Tanulo?.Uid) === String(studentUid) && matchSub;
+    }
+    return matchSub;
   });
 }
+
 function avgOf(list) {
-  const nums = list.map(g => Number(g.SzamErtek)).filter(n => n > 0);
+  const nums = list.map((g) => Number(g.SzamErtek)).filter((n) => n > 0);
   if (!nums.length) return "—";
-  return (nums.reduce((a,b)=>a+b,0)/nums.length).toFixed(2);
+  return (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2);
+}
+
+function studentGrades(studentUid, subjectUid) {
+  const grades = Array.isArray(cache.grades) ? cache.grades : [];
+  return grades.filter((g) => {
+    const su = String(g.TanuloUid || g.Tanulo?.Uid || "");
+    if (su && su !== String(studentUid)) return false;
+    const sub = g.Tantargy?.Uid || g.TantargyUid || "";
+    if (subjectUid && sub && sub !== subjectUid) return false;
+    if (g.TanuloUid || g.Tanulo?.Uid) {
+      return String(g.TanuloUid || g.Tanulo.Uid) === String(studentUid);
+    }
+    return !subjectUid || !sub || sub === subjectUid;
+  });
+}
+
+function avgOf(list) {
+  const nums = list.map((g) => Number(g.SzamErtek)).filter((n) => n > 0);
+  if (!nums.length) return "—";
+  return (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2);
 }
 
 function renderGradeForm() {
   pendingGrades = {};
-  const subjects = Array.isArray(cache.teacher?.Tantargyak) ? cache.teacher.Tantargyak : [];
-  const students = cache.students || [];
+  const t = cache.teacher || {};
+  const subjects = Array.isArray(t.Tantargyak) ? t.Tantargyak : [];
+  const students = Array.isArray(cache.students) ? cache.students : [];
   const groups = Array.isArray(cache.groups) ? cache.groups : [];
+
+  const groupOpts = groups.map((g) =>
+    `<option value="${esc(g.Uid)}">${esc(g.Nev)}</option>`
+  ).join("");
+  const subjOpts = subjects.map((s) =>
+    `<option value="${esc(s.Uid)}">${esc(s.Nev)}</option>`
+  ).join("");
+
   const defaultGroup = groups[0]?.Uid || "";
   const defaultSubj = subjects[0]?.Uid || "";
-  const rows = students.map((s, idx) => {
-    const gs = studentGrades(s.Uid, defaultSubj);
-    const chips = gs.map(g => `<span class="k-g k-g-${esc(g.SzamErtek)}" data-guid="${esc(g.Uid)}">${esc(g.SzamErtek)}</span>`).join(" ") || "—";
-    return `<tr data-uid="${esc(s.Uid)}" data-group="${esc(s.OsztalyCsoport?.Uid||defaultGroup)}">
-      <td class="k-num">${idx+1}</td><td>${esc(s.Nev)}</td>
-      <td class="k-grades-cell">${chips}</td><td class="k-avg">${avgOf(gs)}</td>
-      <td><div class="k-quick">
-        <button type="button" class="k-q" data-v="5">5</button>
-        <button type="button" class="k-q" data-v="4">4</button>
-        <button type="button" class="k-q" data-v="3">3</button>
-        <button type="button" class="k-q" data-v="2">2</button>
-        <button type="button" class="k-q" data-v="1">1</button>
-        <button type="button" class="k-q" data-v="x">x</button>
-      </div></td></tr>`;
-  }).join("") || `<tr><td colspan="5" class="n-empty">Nincs tanuló a listában.</td></tr>`;
+
+  const filtered = students.filter((s) => {
+    if (!defaultGroup) return true;
+    return !s.OsztalyCsoport?.Uid || s.OsztalyCsoport.Uid === defaultGroup;
+  });
+
+  const groupName = groups.find((g) => g.Uid === defaultGroup)?.Nev || "Osztály";
+  const subjName = subjects.find((s) => s.Uid === defaultSubj)?.Nev || "Tantárgy";
+
+  const rows = filtered.length === 0
+    ? `<tr><td colspan="5" class="n-empty">Nincs tanuló. (Backend: telepítsd a teacher_students_fix.go-t, hogy az összes diák látszódjon.)</td></tr>`
+    : filtered.map((s, idx) => {
+        const gs = studentGrades(s.Uid, defaultSubj);
+        const chips = gs.map((g) => {
+          const v = g.SzamErtek ?? g.SzovegesErtek ?? "?";
+          return `<span class="k-g k-g-${esc(g.SzamErtek)}" data-guid="${esc(g.Uid)}" title="${esc(g.Tema || "")} – kattints a törléshez">${esc(v)}</span>`;
+        }).join(" ") || `<span style="color:#90a4ae;">—</span>`;
+        return `
+          <tr data-uid="${esc(s.Uid)}" data-group="${esc(s.OsztalyCsoport?.Uid || defaultGroup)}">
+            <td class="k-num">${idx + 1}</td>
+            <td>${esc(s.Nev)}</td>
+            <td class="k-grades-cell" data-grades-for="${esc(s.Uid)}">${chips}</td>
+            <td class="k-avg" data-avg-for="${esc(s.Uid)}">${avgOf(gs)}</td>
+            <td>
+              <div class="k-quick">
+                <button type="button" class="k-q" data-v="5">5</button>
+                <button type="button" class="k-q" data-v="4">4</button>
+                <button type="button" class="k-q" data-v="3">3</button>
+                <button type="button" class="k-q" data-v="2">2</button>
+                <button type="button" class="k-q" data-v="1">1</button>
+                <button type="button" class="k-q" data-v="x" title="Mégsem">x</button>
+              </div>
+            </td>
+          </tr>`;
+      }).join("");
 
   return `
     <div class="k-filters">
-      <div><label>Osztály</label><select id="kbGroup">${groups.map(g=>`<option value="${esc(g.Uid)}">${esc(g.Nev)}</option>`).join("")||"<option value=''>—</option>"}</select></div>
-      <div><label>Tantárgy</label><select id="kbSubject">${subjects.map(s=>`<option value="${esc(s.Uid)}">${esc(s.Nev)}</option>`).join("")||"<option value=''>—</option>"}</select></div>
-      <div><label>Feljegyzés</label><input id="kbTema" type="text" placeholder="pl. Szódolgozat" /></div>
+      <div>
+        <label for="kbGroup">Osztály</label>
+        <select id="kbGroup">${groupOpts || '<option value="">—</option>'}</select>
+      </div>
+      <div>
+        <label for="kbSubject">Tantárgy</label>
+        <select id="kbSubject">${subjOpts || '<option value="">—</option>'}</select>
+      </div>
+      <div>
+        <label for="kbTema">Értékelés feljegyzése</label>
+        <input id="kbTema" type="text" placeholder="pl. Dicséret / Szódolgozat" style="min-width:220px;" />
+      </div>
+      <div>
+        <label for="kbWeight">Súly %</label>
+        <input id="kbWeight" type="number" value="100" min="1" max="400" style="min-width:90px;" />
+      </div>
     </div>
+
     <div class="k-toolbar">
       <button type="button" class="k-btn k-btn-primary" id="kbSave">+ Mentés</button>
-      <button type="button" class="k-btn" id="kbClearSel">Elölről</button>
+      <button type="button" class="k-btn k-btn-type active" data-type="1|Írásbeli|Írásbeli felelet">Osztályzat</button>
+      <button type="button" class="k-btn k-btn-type" data-type="2|Szóbeli|Szóbeli felelet">Szöveges</button>
+      <button type="button" class="k-btn k-btn-type" data-type="3|Dolgozat|Témazáró dolgozat">Százalékos</button>
+      <button type="button" class="k-btn k-btn-danger" id="kbClearSel">Elölről</button>
+      <div class="k-title" id="kbContext">${esc(groupName)} – ${esc(subjName)} – jegy / értékelés</div>
     </div>
-    <div class="k-book"><table class="k-table"><thead><tr>
-      <th>#</th><th>Név</th><th>Jegyek</th><th>Átlag</th><th>Új</th>
-    </tr></thead><tbody id="kbBody">${rows}</tbody></table></div>
-    <div class="k-status" id="kbStatus">Válassz jegyet, majd Mentés.</div>`;
+
+    <div class="k-book">
+      <table class="k-table" id="kbTable">
+        <thead>
+          <tr>
+            <th style="width:36px;">#</th>
+            <th class="k-name">Név</th>
+            <th>Jegyek</th>
+            <th style="width:56px;">Átlag</th>
+            <th style="width:170px;">
+              <span style="display:inline-flex;gap:2px;">
+                <span class="k-q" style="pointer-events:none;opacity:.7">5</span>
+                <span class="k-q" style="pointer-events:none;opacity:.7">4</span>
+                <span class="k-q" style="pointer-events:none;opacity:.7">3</span>
+                <span class="k-q" style="pointer-events:none;opacity:.7">2</span>
+                <span class="k-q" style="pointer-events:none;opacity:.7">1</span>
+                <span class="k-q" style="pointer-events:none;opacity:.7">x</span>
+              </span>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="kbBody">${rows}</tbody>
+      </table>
+    </div>
+    <div class="k-status" id="kbStatus">Válassz jegyet a sor végén (csak egy / diák), majd kattints a <strong>Mentés</strong> gombra. Meglévő jegyre kattintva törölhető.</div>
+  `;
+}
+
+function rebuildGradeRows() {
+  pendingGrades = {};
+  const groupUid = document.getElementById("kbGroup")?.value || "";
+  const subjectUid = document.getElementById("kbSubject")?.value || "";
+  const students = Array.isArray(cache.students) ? cache.students : [];
+  const groups = Array.isArray(cache.groups) ? cache.groups : [];
+  const subjects = Array.isArray(cache.teacher?.Tantargyak) ? cache.teacher.Tantargyak : [];
+
+  const filtered = students.filter((s) => {
+    if (!groupUid) return true;
+    return !s.OsztalyCsoport?.Uid || s.OsztalyCsoport.Uid === groupUid;
+  });
+
+  const body = document.getElementById("kbBody");
+  if (!body) return;
+
+  body.innerHTML = filtered.length === 0
+    ? `<tr><td colspan="5" class="n-empty">Nincs tanuló ebben az osztályban.</td></tr>`
+    : filtered.map((s, idx) => {
+        const gs = studentGrades(s.Uid, subjectUid);
+        const chips = gs.map((g) => {
+          const v = g.SzamErtek ?? g.SzovegesErtek ?? "?";
+          return `<span class="k-g k-g-${esc(g.SzamErtek)}" data-guid="${esc(g.Uid)}" title="Törléshez kattints">${esc(v)}</span>`;
+        }).join(" ") || `<span style="color:#90a4ae;">—</span>`;
+        return `
+          <tr data-uid="${esc(s.Uid)}" data-group="${esc(s.OsztalyCsoport?.Uid || groupUid)}">
+            <td class="k-num">${idx + 1}</td>
+            <td>${esc(s.Nev)}</td>
+            <td class="k-grades-cell" data-grades-for="${esc(s.Uid)}">${chips}</td>
+            <td class="k-avg" data-avg-for="${esc(s.Uid)}">${avgOf(gs)}</td>
+            <td>
+              <div class="k-quick">
+                <button type="button" class="k-q" data-v="5">5</button>
+                <button type="button" class="k-q" data-v="4">4</button>
+                <button type="button" class="k-q" data-v="3">3</button>
+                <button type="button" class="k-q" data-v="2">2</button>
+                <button type="button" class="k-q" data-v="1">1</button>
+                <button type="button" class="k-q" data-v="x" title="Mégsem">x</button>
+              </div>
+            </td>
+          </tr>`;
+      }).join("");
+
+  const groupName = groups.find((g) => g.Uid === groupUid)?.Nev || "Osztály";
+  const subjName = subjects.find((s) => s.Uid === subjectUid)?.Nev || "Tantárgy";
+  const ctx = document.getElementById("kbContext");
+  if (ctx) ctx.textContent = `${groupName} – ${subjName} – jegy / értékelés`;
+
+  bindGradeClicks();
+}
+
+function bindGradeClicks() {
+  // Select grade (does NOT save yet)
+  document.querySelectorAll("#kbBody .k-q").forEach((btn) => {
+    btn.onclick = () => {
+      const v = btn.dataset.v;
+      const row = btn.closest("tr");
+      const uid = row.dataset.uid;
+      const status = document.getElementById("kbStatus");
+
+      row.querySelectorAll(".k-q").forEach((b) => b.classList.remove("k-selected"));
+
+      if (v === "x") {
+        delete pendingGrades[uid];
+        if (status) {
+          status.className = "k-status";
+          status.textContent = "Kijelölés törölve. Válassz jegyet, majd Mentés.";
+        }
+        return;
+      }
+
+      btn.classList.add("k-selected");
+      pendingGrades[uid] = { value: Number(v), group: row.dataset.group };
+      if (status) {
+        status.className = "k-status";
+        status.textContent = `Kijelölve: ${row.children[1]?.textContent || uid} → ${v}. Nyomd meg a Mentés gombot.`;
+      }
+    };
+  });
+
+  // Click existing grade chip → delete
+  document.querySelectorAll("#kbBody .k-g[data-guid]").forEach((chip) => {
+    chip.style.cursor = "pointer";
+    chip.onclick = async () => {
+      const guid = chip.dataset.guid;
+      if (!guid || !confirm("Törlöd ezt a jegyet?")) return;
+      const status = document.getElementById("kbStatus");
+      try {
+        await apiDelete("/naplo/v3/sajat/Ertekelesek?uid=" + encodeURIComponent(guid));
+        cache.grades = await apiGet("/naplo/v3/sajat/Ertekelesek");
+        rebuildGradeRows();
+        if (status) {
+          status.className = "k-status ok";
+          status.textContent = "Jegy törölve.";
+        }
+      } catch (err) {
+        if (status) {
+          status.className = "k-status err";
+          status.textContent = "Törlés sikertelen: " + (err.message || err) +
+            " — telepítsd a teacher_students_fix.go-t (DELETE grades).";
+        }
+      }
+    };
+  });
+}
+
+async function apiDelete(path) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: "application/json"
+    }
+  });
+  if (res.status === 401) {
+    goLogin();
+    throw new Error("401");
+  }
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch (_) {}
+  if (!res.ok) {
+    const msg = data?.error_description || data?.error || data?.message || `Hiba (${res.status})`;
+    throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+  }
+  return data;
 }
 
 function bindGradeForm() {
-  document.querySelectorAll("#kbBody .k-q").forEach(btn => {
-    btn.onclick = () => {
-      const row = btn.closest("tr");
-      const uid = row.dataset.uid;
-      const v = btn.dataset.v;
-      row.querySelectorAll(".k-q").forEach(b => b.classList.remove("k-selected"));
-      if (v === "x") { delete pendingGrades[uid]; return; }
-      btn.classList.add("k-selected");
-      pendingGrades[uid] = { value: Number(v), group: row.dataset.group };
-      document.getElementById("kbStatus").textContent = `Kijelölve → ${v}. Mentés kell.`;
-    };
+  const groupSel = document.getElementById("kbGroup");
+  const subjSel = document.getElementById("kbSubject");
+  if (!groupSel) return;
+
+  groupSel.addEventListener("change", rebuildGradeRows);
+  subjSel.addEventListener("change", rebuildGradeRows);
+
+  document.querySelectorAll(".k-btn-type").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".k-btn-type").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+    });
   });
+
   document.getElementById("kbClearSel")?.addEventListener("click", () => {
     pendingGrades = {};
-    document.querySelectorAll(".k-q").forEach(b => b.classList.remove("k-selected"));
+    document.querySelectorAll("#kbBody .k-q").forEach((b) => b.classList.remove("k-selected"));
+    document.getElementById("kbTema").value = "";
+    const status = document.getElementById("kbStatus");
+    if (status) {
+      status.className = "k-status";
+      status.textContent = "Kijelölések törölve. Válassz jegyet, majd Mentés.";
+    }
   });
+
   document.getElementById("kbSave")?.addEventListener("click", async () => {
     const status = document.getElementById("kbStatus");
     const subjectUid = document.getElementById("kbSubject").value;
     const groupUid = document.getElementById("kbGroup").value;
     const tema = document.getElementById("kbTema").value.trim() || "Értékelés";
+    const weight = Number(document.getElementById("kbWeight").value) || 100;
+    const typeBtn = document.querySelector(".k-btn-type.active");
+    const typeRaw = (typeBtn?.dataset?.type || "1|Írásbeli|Írásbeli felelet").split("|");
     const entries = Object.entries(pendingGrades);
-    if (!entries.length) { status.textContent = "Nincs kijelölés."; status.className = "k-status err"; return; }
+
+    if (!entries.length) {
+      if (status) {
+        status.className = "k-status err";
+        status.textContent = "Nincs kijelölt jegy. Előbb válassz 5–1-et a sor végén.";
+      }
+      return;
+    }
+    if (!subjectUid || !groupUid) {
+      if (status) {
+        status.className = "k-status err";
+        status.textContent = "Válassz osztályt és tantárgyat.";
+      }
+      return;
+    }
+
+    const btn = document.getElementById("kbSave");
+    btn.disabled = true;
+    btn.textContent = "Mentés...";
     let ok = 0;
-    for (const [uid, sel] of entries) {
+    let fail = 0;
+
+    for (const [studentUid, sel] of entries) {
       try {
         await apiPost("/naplo/v3/sajat/Ertekelesek", {
-          TantargyUid: subjectUid, Tema: tema, SzamErtek: sel.value,
+          TantargyUid: subjectUid,
+          Tema: tema,
+          SzamErtek: sel.value,
           SzovegesErtek: GRADE_TEXT[sel.value] || String(sel.value),
-          SulySzazalekErteke: 100,
-          OsztalyCsoportUid: sel.group || groupUid, TanuloUid: uid
+          SulySzazalekErteke: weight,
+          Tipus: {
+            Uid: typeRaw[0] || "1",
+            Nev: typeRaw[1] || "Írásbeli",
+            Leiras: typeRaw[2] || "Írásbeli felelet"
+          },
+          OsztalyCsoportUid: sel.group || groupUid,
+          TanuloUid: studentUid
         });
         ok++;
-      } catch (_) {}
+      } catch (_) {
+        fail++;
+      }
     }
+
     cache.grades = await apiGet("/naplo/v3/sajat/Ertekelesek");
     pendingGrades = {};
-    status.className = "k-status ok";
-    status.textContent = `Mentve: ${ok} jegy.`;
-    navigate("grade");
+    rebuildGradeRows();
+    btn.disabled = false;
+    btn.textContent = "+ Mentés";
+    if (status) {
+      status.className = fail ? "k-status err" : "k-status ok";
+      status.textContent = `Mentve: ${ok} jegy` + (fail ? `, sikertelen: ${fail}` : "") + ".";
+    }
   });
+
+  bindGradeClicks();
 }
 
 function renderGrades() {
   const grades = Array.isArray(cache.grades) ? cache.grades : [];
-  if (!grades.length) return `<div class="n-panel"><div class="n-panel-body">${empty("Nincs jegy.")}</div></div>`;
-  return `<div class="n-panel"><div class="n-panel-head">Jegyek (${grades.length})</div>
-    <div class="n-panel-body" style="padding:0;"><div class="n-table-wrap"><table class="n-table">
-    <thead><tr><th>Dátum</th><th>Jegy</th><th>Tantárgy</th><th>Diák</th><th></th></tr></thead>
-    <tbody>${[...grades].reverse().map(g => {
-      const st = (cache.students||[]).find(s => String(s.Uid)===String(g.TanuloUid));
-      return `<tr><td>${fmtDate(g.KeszitesDatuma||g.RogzitesDatuma)}</td>
-        <td><span class="n-grade ${gradeClass(g.SzamErtek)}">${esc(g.SzamErtek)}</span></td>
-        <td>${esc(subjectName(g))}</td><td>${esc(st?.Nev||g.TanuloUid||"—")}</td>
-        <td><button type="button" class="n-btn n-btn-secondary del-grade" data-uid="${esc(g.Uid)}">Törlés</button></td></tr>`;
-    }).join("")}</tbody></table></div></div></div>`;
-}
+  if (!grades.length) {
+    return `<div class="n-panel"><div class="n-panel-body">${empty("Még nincs beírt értékelés.")}</div></div>`;
+  }
 
+  const sorted = [...grades].sort(
+    (a, b) => new Date(b.KeszitesDatuma || b.RogzitesDatuma || 0) - new Date(a.KeszitesDatuma || a.RogzitesDatuma || 0)
+  );
+
+  return `
+    <div class="n-panel">
+      <div class="n-panel-head">Összes beírt jegy (${grades.length})</div>
+      <div class="n-panel-body" style="padding:0;">
+        <div class="n-table-wrap"><table class="n-table">
+          <thead>
+            <tr>
+              <th>Dátum</th>
+              <th>Jegy</th>
+              <th>Tantárgy</th>
+              <th>Téma</th>
+              <th>Típus</th>
+              <th>Tanuló</th>
+              <th>Súly</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sorted.map((g) => {
+              const st = studentByUid(g.TanuloUid || g.Tanulo?.Uid);
+              return `<tr>
+                <td>${fmtDate(g.KeszitesDatuma || g.RogzitesDatuma)}</td>
+                <td><span class="n-grade ${gradeClass(g.SzamErtek)}">${esc(g.SzamErtek ?? g.SzovegesErtek ?? "?")}</span></td>
+                <td>${esc(subjectName(g))}</td>
+                <td>${esc(g.Tema || "—")}</td>
+                <td>${esc(g.Tipus?.Nev || "—")}</td>
+                <td>${esc(st?.Nev || g.TanuloUid || "—")}</td>
+                <td>${g.SulySzazalekErteke != null ? esc(g.SulySzazalekErteke) + "%" : "—"}</td>
+                <td><button type="button" class="n-btn n-btn-secondary del-grade" data-uid="${esc(g.Uid)}" style="color:#c62828;border-color:#ef9a9a;">Törlés</button></td>
+              </tr>`;
+            }).join("")}
+          </tbody>
+        </table></div>
+      </div>
+    </div>`;
+}
 function renderStudents() {
-  const st = cache.students || [];
-  return `<div class="n-panel"><div class="n-panel-head">Tanulók (${st.length})
-    <button type="button" class="n-btn" data-go="studentNew" style="float:right;margin-top:-2px;">+ Új diák</button></div>
-    <div class="n-panel-body" style="padding:0;"><div class="n-table-wrap"><table class="n-table">
-    <thead><tr><th>UID</th><th>Név</th><th>Osztály</th><th></th></tr></thead>
-    <tbody>${st.map(s => `<tr>
-      <td>${esc(s.Uid)}</td><td>${esc(s.Nev)}</td>
-      <td>${esc(s.OsztalyCsoport?.Nev||s.OsztalyCsoport?.Uid||"—")}</td>
-      <td><button type="button" class="n-btn n-btn-secondary" data-go="grade">Jegy</button></td>
-    </tr>`).join("") || `<tr><td colspan="4">${empty("Nincs diák.")}</td></tr>`}
-    </tbody></table></div></div></div>`;
-}
+  const students = Array.isArray(cache.students) ? cache.students : [];
+  if (!students.length) {
+    return `<div class="n-panel"><div class="n-panel-body">${empty("Nincs tanuló a listában.")}</div></div>`;
+  }
 
+  return `
+    <div class="n-panel">
+      <div class="n-panel-head">Tanulók (${students.length})</div>
+      <div class="n-panel-body" style="padding:0;">
+        <div class="n-table-wrap"><table class="n-table">
+          <thead><tr><th>Név</th><th>UID</th><th>Osztály</th><th>E-mail</th><th></th></tr></thead>
+          <tbody>${students.map((s) => `
+            <tr>
+              <td>${esc(s.Nev)}</td>
+              <td>${esc(s.Uid)}</td>
+              <td>${esc(s.OsztalyCsoport?.Nev || "—")}</td>
+              <td>${esc(s.EmailCim || "—")}</td>
+              <td><button type="button" class="n-btn n-btn-secondary grade-for" data-uid="${esc(s.Uid)}">Jegy beírása</button></td>
+            </tr>`).join("")}</tbody>
+        </table></div>
+      </div>
+    </div>`;
+}
 function renderStudentNew() {
   const uid = genUid();
   const groups = Array.isArray(cache.groups) ? cache.groups : [];
@@ -377,57 +697,42 @@ function bindStudentNew() {
 
 function renderTimetable() {
   const lessons = Array.isArray(cache.timetable) ? cache.timetable : [];
-  const groups = Array.isArray(cache.groups) ? cache.groups : [];
-  const subjects = Array.isArray(cache.teacher?.Tantargyak) ? cache.teacher.Tantargyak : [];
-  const listHtml = !lessons.length ? empty("Nincs órarend.") :
-    lessons.slice(0, 80).map(l => `
-      <div class="n-lesson">
-        <div class="n-lesson-num">${esc(l.Oraszam??"")}.</div>
-        <div class="n-lesson-time">${fmtTime(l.KezdetIdopont)}–${fmtTime(l.VegIdopont)}</div>
-        <div><div class="n-lesson-subj">${esc(subjectName(l)||l.Nev)}</div>
-        <div class="n-lesson-meta">${fmtDate(l.Datum)} · ${esc(l.OsztalyCsoport?.Nev||"")}</div></div>
-        <div class="n-lesson-meta">${esc(l.TeremNeve||"")}</div>
-      </div>`).join("");
+  if (!lessons.length) {
+    return `<div class="n-panel"><div class="n-panel-body">${empty("Nincs órarend adat.")}</div></div>`;
+  }
 
-  return `
-    <div class="n-panel"><div class="n-panel-head">Órarend elemek</div>
-      <div class="n-panel-body">${listHtml}</div></div>
-    <div class="n-panel"><div class="n-panel-head">Megjegyzés</div>
-      <div class="n-panel-body" style="font-size:13px;color:var(--n-muted);">
-        Az órarend lista a napló API-ból jön. Új óra / törlés a szerveren jelenleg GET-orientált;
-        házi és jegy teljes körűen kezelhető. Órarend szerkesztés bővíthető, ha a backend POST/DELETE-et kap.
-      </div></div>`;
+  const by = {};
+  lessons.forEach((l) => {
+    const k = (l.Datum || "").slice(0, 10) || "ismeretlen";
+    (by[k] ||= []).push(l);
+  });
+
+  return Object.entries(by)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, list]) => {
+      const sorted = [...list].sort((a, b) => (a.Oraszam || 0) - (b.Oraszam || 0));
+      return `
+        <div class="n-panel">
+          <div class="n-panel-head">${esc(weekdayName(date))} · ${fmtDate(date)}</div>
+          <div class="n-panel-body" style="padding:0;">
+            ${sorted.map((l) => `
+              <div class="n-lesson">
+                <div class="n-lesson-num">${esc(l.Oraszam ?? "")}.</div>
+                <div class="n-lesson-time">${fmtTime(l.KezdetIdopont)}–${fmtTime(l.VegIdopont)}</div>
+                <div>
+                  <div class="n-lesson-subj">${esc(subjectName(l) || l.Nev)}</div>
+                  <div class="n-lesson-meta">${esc(l.OsztalyCsoport?.Nev || "")}${l.Allapot?.Nev ? " · " + esc(l.Allapot.Nev) : ""}</div>
+                </div>
+                <div class="n-lesson-meta">${esc(l.TeremNeve || "")}</div>
+              </div>`).join("")}
+          </div>
+        </div>`;
+    })
+    .join("");
 }
-
 function renderHomework() {
-  const list = Array.isArray(cache.homework) ? cache.homework : [];
-  const groups = Array.isArray(cache.groups) ? cache.groups : [];
-  const subjects = Array.isArray(cache.teacher?.Tantargyak) ? cache.teacher.Tantargyak : [];
-  return `
-    <div class="n-panel"><div class="n-panel-head">Új házi</div>
-      <div class="n-panel-body">
-        <div id="hwMsg" style="display:none;"></div>
-        <form id="hwForm" class="n-form-grid">
-          <label>Tantárgy</label>
-          <select id="hwSubj" required>${subjects.map(s=>`<option value="${esc(s.Uid)}">${esc(s.Nev)}</option>`).join("")||"<option value=''>—</option>"}</select>
-          <label>Osztály</label>
-          <select id="hwGroup" required>${groups.map(g=>`<option value="${esc(g.Uid)}">${esc(g.Nev)}</option>`).join("")||"<option value=''>—</option>"}</select>
-          <label>Feladat</label><input id="hwText" required placeholder="Szöveg" />
-          <label>Határidő</label><input id="hwDue" type="date" required />
-          <div class="n-form-actions"><button type="submit" class="n-btn">Házi mentése</button></div>
-        </form>
-      </div></div>
-    <div class="n-panel"><div class="n-panel-head">Házi feladatok (${list.length})</div>
-      <div class="n-panel-body" style="padding:0;"><div class="n-table-wrap"><table class="n-table">
-        <thead><tr><th>Tantárgy</th><th>Feladat</th><th>Határidő</th><th></th></tr></thead>
-        <tbody>${list.map(h => `<tr>
-          <td>${esc(subjectName(h))}</td><td>${esc(h.Szoveg||"—")}</td>
-          <td>${fmtDate(h.HataridoDatuma||h.Hatarido)}</td>
-          <td><button type="button" class="n-btn n-btn-secondary del-hw" data-uid="${esc(h.Uid)}">Törlés</button></td>
-        </tr>`).join("") || `<tr><td colspan="4">${empty("Nincs házi.")}</td></tr>`}
-        </tbody></table></div></div></div>`;
+  return renderHomeworkForm();
 }
-
 function bindHomework() {
   document.getElementById("hwForm")?.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -464,96 +769,127 @@ function bindHomework() {
 
 function renderAbsences() {
   const list = Array.isArray(cache.absences) ? cache.absences : [];
-  const students = cache.students || [];
+  const students = Array.isArray(cache.students) ? cache.students : [];
   const groups = Array.isArray(cache.groups) ? cache.groups : [];
+
+  const studOpts = students.map((s) =>
+    `<option value="${esc(s.Uid)}" data-group="${esc(s.OsztalyCsoport?.Uid || "")}">${esc(s.Nev)}</option>`
+  ).join("");
+  const groupOpts = groups.map((g) =>
+    `<option value="${esc(g.Uid)}">${esc(g.Nev)}</option>`
+  ).join("");
+
+  const rows = list.length === 0
+    ? `<tr><td colspan="6">${empty("Nincs mulasztás.")}</td></tr>`
+    : [...list].reverse().map((o) => {
+        const st = studentByUid(o.TanuloUid);
+        return `<tr>
+          <td>${fmtDate(o.Datum || o.KeszitesDatuma)}</td>
+          <td>${esc(st?.Nev || o.TanuloUid || "—")}</td>
+          <td>${esc(o.Tipus?.Nev || "Hiányzás")}</td>
+          <td>${o.KesesPercben ? esc(o.KesesPercben) + " perc" : "—"}</td>
+          <td>${esc(o.IgazolasAllapota || "—")}</td>
+          <td><button type="button" class="n-btn n-btn-secondary del-absence" data-uid="${esc(o.Uid)}" style="color:#c62828;border-color:#ef9a9a;">Törlés</button></td>
+        </tr>`;
+      }).join("");
+
   return `
-    <div class="n-panel"><div class="n-panel-head">Új mulasztás</div>
+    <div class="n-panel">
+      <div class="n-panel-head">Új mulasztás</div>
       <div class="n-panel-body">
         <div id="absMsg" style="display:none;"></div>
         <form id="absForm" class="n-form-grid">
-          <label>Diák</label>
-          <select id="absStudent" required>${students.map(s=>`<option value="${esc(s.Uid)}">${esc(s.Nev)}</option>`).join("")}</select>
-          <label>Osztály</label>
-          <select id="absGroup">${groups.map(g=>`<option value="${esc(g.Uid)}">${esc(g.Nev)}</option>`).join("")||"<option value=''>—</option>"}</select>
-          <label>Dátum</label><input id="absDate" type="date" required />
-          <label>Típus</label>
-          <select id="absType"><option value="1|Hiányzás|Hiányzás">Hiányzás</option><option value="2|Késés|Késés">Késés</option></select>
-          <div class="n-form-actions"><button type="submit" class="n-btn">Mentés</button></div>
+          <label for="absStudent">Tanuló</label>
+          <select id="absStudent" required>
+            <option value="">— válasszon —</option>
+            ${studOpts}
+          </select>
+          <label for="absGroup">Osztály</label>
+          <select id="absGroup" required>
+            <option value="">— válasszon —</option>
+            ${groupOpts}
+          </select>
+          <label for="absDate">Dátum</label>
+          <input id="absDate" type="date" required />
+          <label for="absType">Típus</label>
+          <select id="absType">
+            <option value="1|Hiányzás|Hiányzás">Hiányzás</option>
+            <option value="2|Késés|Késés">Késés</option>
+          </select>
+          <label for="absLate">Késés (perc)</label>
+          <input id="absLate" type="number" min="0" value="0" />
+          <div class="n-form-actions">
+            <button type="submit" class="n-btn">Mulasztás mentése</button>
+          </div>
         </form>
-      </div></div>
-    <div class="n-panel"><div class="n-panel-head">Mulasztások</div>
-      <div class="n-panel-body" style="padding:0;"><div class="n-table-wrap"><table class="n-table">
-        <thead><tr><th>Dátum</th><th>Diák</th><th>Típus</th><th></th></tr></thead>
-        <tbody>${(list||[]).map(o => {
-          const st = students.find(s => String(s.Uid)===String(o.TanuloUid));
-          return `<tr><td>${fmtDate(o.Datum)}</td><td>${esc(st?.Nev||o.TanuloUid)}</td>
-            <td>${esc(o.Tipus?.Nev||"Hiányzás")}</td>
-            <td><button type="button" class="n-btn n-btn-secondary del-abs" data-uid="${esc(o.Uid)}">Törlés</button></td></tr>`;
-        }).join("") || `<tr><td colspan="4">${empty("Nincs.")}</td></tr>`}
-        </tbody></table></div></div></div>`;
+      </div>
+    </div>
+    <div class="n-panel">
+      <div class="n-panel-head">Mulasztások (${list.length})</div>
+      <div class="n-panel-body" style="padding:0;">
+        <div class="n-table-wrap"><table class="n-table">
+          <thead><tr><th>Dátum</th><th>Tanuló</th><th>Típus</th><th>Késés</th><th>Igazolás</th><th></th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>
+      </div>
+    </div>`;
 }
 
 function bindAbsences() {
-  const d = document.getElementById("absDate");
-  if (d && !d.value) d.value = new Date().toISOString().slice(0,10);
+  const stud = document.getElementById("absStudent");
+  const grp = document.getElementById("absGroup");
+  stud?.addEventListener("change", () => {
+    const opt = stud.selectedOptions[0];
+    if (opt?.dataset?.group) grp.value = opt.dataset.group;
+  });
+  const dateEl = document.getElementById("absDate");
+  if (dateEl && !dateEl.value) {
+    dateEl.value = new Date().toISOString().slice(0, 10);
+  }
+
   document.getElementById("absForm")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const msg = document.getElementById("absMsg");
     const typeRaw = document.getElementById("absType").value.split("|");
+    const late = Number(document.getElementById("absLate").value) || 0;
     try {
       await apiPost("/naplo/v3/sajat/Mulasztasok", {
         TanuloUid: document.getElementById("absStudent").value,
         Datum: document.getElementById("absDate").value + "T00:00:00",
         Tipus: { Uid: typeRaw[0], Nev: typeRaw[1], Leiras: typeRaw[2] },
+        KesesPercben: late,
         OsztalyCsoportUid: document.getElementById("absGroup").value
       });
       cache.absences = await apiGet("/naplo/v3/sajat/Mulasztasok");
+      msg.className = "n-msg n-msg-ok";
+      msg.style.display = "block";
+      msg.textContent = "Mulasztás mentve.";
       navigate("absences");
     } catch (err) {
-      msg.className = "n-msg n-msg-err"; msg.style.display = "block";
-      msg.textContent = err.message || String(err);
+      msg.className = "n-msg n-msg-err";
+      msg.style.display = "block";
+      msg.textContent = err.message || "Hiba";
     }
   });
-  document.querySelectorAll(".del-abs").forEach(btn => {
+
+  document.querySelectorAll(".del-absence").forEach((btn) => {
     btn.addEventListener("click", async () => {
-      if (!confirm("Törlés?")) return;
+      if (!confirm("Törlöd a mulasztást?")) return;
       try {
         await apiDelete("/naplo/v3/sajat/Mulasztasok?uid=" + encodeURIComponent(btn.dataset.uid));
         cache.absences = await apiGet("/naplo/v3/sajat/Mulasztasok");
         navigate("absences");
-      } catch (err) { alert(err.message); }
+      } catch (err) {
+        alert("Törlés sikertelen: " + (err.message || err) + "\nTelepítsd a teacher_students_fix.go-t.");
+      }
     });
   });
 }
 
-function renderProfile() {
-  const t = cache.teacher || {};
-  return `<div class="n-panel"><div class="n-panel-head">Profil</div>
-    <div class="n-panel-body" style="display:flex;align-items:center;gap:16px;">
-      <img src="icons/noprofilepic.png" alt="Profilkép" class="profile-pic" width="72" height="72"
-        style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid #c5d3e2;background:#f4f4f4;">
-      <div>
-        <p style="margin:0;"><strong>${esc(t.Nev||"Osztályfőnök")}</strong></p>
-        <p style="margin:4px 0;color:var(--n-muted);">${esc(t.EmailCim||"")}</p>
-        <p style="margin:0;">Szerepkör: Osztályfőnök / tanári napló</p>
-      </div>
-    </div></div>`;
-}
 
-const RENDERERS = {
-  eugy: renderEUGY,
-  documents: renderDocuments,
-  dkt: renderDKT,
-  dashboard: renderDashboard,
-  grade: renderGradeForm,
-  grades: renderGrades,
-  absences: renderAbsences,
-  students: renderStudents,
-  studentNew: renderStudentNew,
-  timetable: renderTimetable,
-  homework: renderHomework,
-  profile: renderProfile
-};
+
+
+
 
 
 
@@ -725,51 +1061,320 @@ function bindDKT() {
   });
 }
 
+
+
+/* ===== Digitális dokumentumok – szerver/FTP API (nem localStorage) ===== */
+const DIGIDOCS_BASE = "/api/digidocs";
+
+function docsIsTeacher() {
+  const r = (localStorage.getItem("ujkreta_role") || "").toLowerCase();
+  return r.indexOf("tanar") !== -1 || r.indexOf("osztalyfonok") !== -1 || r === "teacher" || r === "of";
+}
+function docsCurrentUser() {
+  return localStorage.getItem("local_usr") ||
+    (cache.student && cache.student.Nev) ||
+    (cache.teacher && cache.teacher.Nev) || "Felhasználó";
+}
+function docsToken() {
+  for (const k of (typeof TOKEN_KEYS !== "undefined" ? TOKEN_KEYS : ["access_token", "ujkreta_access_token", "of_access_token", "teacher_access_token"])) {
+    const v = localStorage.getItem(k);
+    if (v) return v;
+  }
+  return localStorage.getItem("access_token");
+}
+function docsApiBase() {
+  return (typeof API_BASE !== "undefined" ? API_BASE : "https://ujkreta.onrender.com");
+}
+async function docsFetch(path, opts = {}) {
+  const token = docsToken();
+  const res = await fetch(docsApiBase() + path, {
+    ...opts,
+    headers: {
+      Accept: "application/json",
+      Authorization: "Bearer " + token,
+      ...(opts.headers || {})
+    }
+  });
+  if (res.status === 401) throw new Error("Nincs bejelentkezve / lejárt token");
+  return res;
+}
+async function docsList() {
+  const res = await docsFetch(DIGIDOCS_BASE);
+  if (!res.ok) {
+    const t = await res.text();
+    let msg = t;
+    try { msg = JSON.parse(t).error || t; } catch {}
+    throw new Error(msg || ("HTTP " + res.status));
+  }
+  const data = await res.json();
+  return Array.isArray(data) ? data.filter((d) => d.type !== "folder") : [];
+}
+async function docsUploadFile(file, name, note) {
+  const fd = new FormData();
+  fd.append("file", file, file.name);
+  if (name) fd.append("name", name);
+  if (note) fd.append("note", note);
+  const token = docsToken();
+  const res = await fetch(docsApiBase() + DIGIDOCS_BASE, {
+    method: "POST",
+    headers: { Authorization: "Bearer " + token },
+    body: fd
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    let msg = t;
+    try { msg = JSON.parse(t).error || t; } catch {}
+    throw new Error(msg || ("HTTP " + res.status));
+  }
+  return res.json();
+}
+async function docsDelete(name) {
+  const res = await docsFetch(DIGIDOCS_BASE + "/" + encodeURIComponent(name), { method: "DELETE" });
+  if (!res.ok) {
+    const t = await res.text();
+    let msg = t;
+    try { msg = JSON.parse(t).error || t; } catch {}
+    throw new Error(msg || ("HTTP " + res.status));
+  }
+}
+async function docsDownload(name) {
+  const token = docsToken();
+  const res = await fetch(docsApiBase() + DIGIDOCS_BASE + "/" + encodeURIComponent(name), {
+    headers: { Authorization: "Bearer " + token }
+  });
+  if (!res.ok) throw new Error("Letöltés sikertelen (" + res.status + ")");
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function gradeValue(g) {
+  if (g == null) return null;
+  if (typeof g === "number") return g;
+  if (g.SzamErtek != null) return Number(g.SzamErtek);
+  if (g.Ertek != null && !isNaN(Number(g.Ertek))) return Number(g.Ertek);
+  const s = String(g.SzovegesErtekelesSzoveg || g.ErtekelesSzoveg || g.Ertek || "").trim();
+  const map = { "jeles": 5, "jó": 4, "jo": 4, "közepes": 3, "kozepes": 3, "elégséges": 2, "elegseges": 2, "elégtelen": 1, "elegtelen": 1 };
+  const low = s.toLowerCase();
+  if (map[low] != null) return map[low];
+  const m = s.match(/[1-5]/);
+  return m ? Number(m[0]) : null;
+}
+function subjectAverages() {
+  const grades = Array.isArray(cache.grades) ? cache.grades : [];
+  const by = {};
+  grades.forEach((g) => {
+    const sub = (typeof subjectName === "function" ? subjectName(g) : null) ||
+      (g.Tantargy && (g.Tantargy.Nev || g.Tantargy.nev)) || g.TantargyNev || "Egyéb";
+    const v = gradeValue(g);
+    if (v == null || !isFinite(v)) return;
+    if (!by[sub]) by[sub] = [];
+    by[sub].push(v);
+  });
+  return Object.keys(by).sort((a, b) => a.localeCompare(b, "hu")).map((sub) => {
+    const arr = by[sub];
+    const avg = arr.reduce((s, x) => s + x, 0) / arr.length;
+    return { subject: sub, avg, count: arr.length };
+  });
+}
+function buildCertificateHtml() {
+  const s = cache.student || {};
+  const name = s.Nev || docsCurrentUser();
+  const om = s.OktatasiAzonosito || s.Uid || "—";
+  const school = s.IntezmenyNev || document.getElementById("instName")?.textContent || "KRÁTA";
+  const group = (Array.isArray(cache.groups) && cache.groups[0] && (cache.groups[0].Nev || cache.groups[0].nev)) || "—";
+  const tanev = s.TanevUid || document.getElementById("tanev")?.textContent || "";
+  const rows = subjectAverages();
+  const rowHtml = rows.length
+    ? rows.map((r) => `<tr><td>${esc(r.subject)}</td><td style="text-align:center">${r.avg.toFixed(2)}</td><td style="text-align:center">${r.count}</td></tr>`).join("")
+    : `<tr><td colspan="3" style="text-align:center">Nincs értékelés az adatbázisban.</td></tr>`;
+  const now = new Date().toLocaleDateString("hu-HU");
+  return `<!DOCTYPE html><html lang="hu"><head><meta charset="UTF-8"><title>Bizonyítvány – ${esc(name)}</title>
+<style>
+  body { font-family: Georgia, "Times New Roman", serif; max-width: 800px; margin: 40px auto; color: #222; }
+  h1 { text-align: center; font-size: 28px; letter-spacing: .08em; margin-bottom: 4px; }
+  h2 { text-align: center; font-weight: normal; font-size: 16px; color: #444; margin-top: 0; }
+  .meta { margin: 24px 0; line-height: 1.6; }
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  th, td { border: 1px solid #333; padding: 8px 10px; }
+  th { background: #eee; }
+  .foot { margin-top: 48px; display: flex; justify-content: space-between; }
+  .sign { text-align: center; width: 40%; }
+  .line { border-top: 1px solid #333; margin-top: 48px; padding-top: 6px; font-size: 13px; }
+  @media print { body { margin: 12mm; } .no-print { display: none; } }
+</style></head><body>
+  <p class="no-print" style="text-align:right"><button onclick="window.print()">Nyomtatás / PDF mentés</button></p>
+  <h1>BIZONYÍTVÁNY</h1>
+  <h2>${esc(school)}</h2>
+  <div class="meta">
+    <div><strong>Tanuló neve:</strong> ${esc(name)}</div>
+    <div><strong>Oktatási azonosító / UID:</strong> ${esc(om)}</div>
+    <div><strong>Osztály:</strong> ${esc(group)}</div>
+    <div><strong>Tanév:</strong> ${esc(tanev || "—")}</div>
+    <div><strong>Kiállítás dátuma:</strong> ${esc(now)}</div>
+  </div>
+  <table>
+    <thead><tr><th>Tantárgy</th><th>Átlag</th><th>Értékelések száma</th></tr></thead>
+    <tbody>${rowHtml}</tbody>
+  </table>
+  <div class="foot">
+    <div class="sign"><div class="line">Osztályfőnök</div></div>
+    <div class="sign"><div class="line">Igazgató</div></div>
+  </div>
+  <p style="margin-top:32px;font-size:12px;color:#666">KRÁTA – digitális másolat.</p>
+</body></html>`;
+}
+function downloadCertificate() {
+  const html = buildCertificateHtml();
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const name = (cache.student && cache.student.Nev) || docsCurrentUser();
+  a.href = url;
+  a.download = "Bizonyitvany_" + String(name).replace(/\s+/g, "_") + ".html";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  const w = window.open("", "_blank");
+  if (w) { w.document.write(html); w.document.close(); }
+}
+
 function renderDocuments() {
-  const dkt = Array.isArray(cache.dkt) ? cache.dkt : [];
-  const hw = Array.isArray(cache.homework) ? cache.homework : [];
-  const workspaceRows = dkt.length
-    ? dkt.map((d) => {
-        const subj = d.tantargyNev || d.TantargyNev || "Tantárgy";
-        const teacher = d.alkalmazottNev || d.AlkalmazottNev || "—";
-        const group = d.osztalyCsoportNev || d.OsztalyCsoportNev || "—";
-        return `<tr>
-          <td><img src="icons/OktatasIgenyles.png" alt="" class="doc-row-ico"> ${esc(subj)}</td>
-          <td>${esc(teacher)}</td>
-          <td>${esc(group)}</td>
-          <td><span class="n-badge n-badge-ok">Munkatér</span></td>
-        </tr>`;
-      }).join("")
-    : `<tr><td colspan="4" class="k-card-empty">Nincs DKT munkatér adat.</td></tr>`;
-  const docs = hw.slice(0, 15).map((h) => {
-    const subj = (typeof subjectName === "function" ? subjectName(h) : null) || h.TantargyNev || h.Tantargy?.Nev || "Házi";
-    return `<tr>
-      <td><img src="icons/HaziFeladatHiany.png" alt="" class="doc-row-ico"> ${esc(subj)} – feladat</td>
-      <td>Házi feladat</td>
-      <td>${typeof fmtDate === "function" ? fmtDate(h.FeladasDatuma || h.HataridoDatuma || "") : (h.FeladasDatuma || "—")}</td>
-      <td class="k-grade-meta">${esc(String(h.Szoveg || "").slice(0, 80))}</td>
-    </tr>`;
-  }).join("") || `<tr><td colspan="4" class="k-card-empty">Nincs megjeleníthető dokumentum.</td></tr>`;
-  return `
+  const teacher = docsIsTeacher();
+  const certBlock = !teacher ? `
     <div class="n-panel">
-      <div class="n-panel-head">Digitális Kollaborációs Tér</div>
-      <div class="n-panel-body" style="padding:0;">
-        <div class="n-table-wrap"><table class="n-table">
-          <thead><tr><th>Tantárgy</th><th>Tanár</th><th>Csoport</th><th>Státusz</th></tr></thead>
-          <tbody>${workspaceRows}</tbody>
-        </table></div>
+      <div class="n-panel-head">Bizonyítvány</div>
+      <div class="n-panel-body">
+        <p>A jelenlegi jegyek alapján digitális bizonyítvány-másolat generálható.</p>
+        <button type="button" class="k-btn k-btn-primary" id="btnCert">📄 Bizonyítvány letöltése / nyomtatása</button>
       </div>
-    </div>
+    </div>` : `
     <div class="n-panel">
-      <div class="n-panel-head">Digitális dokumentumok</div>
-      <div class="n-panel-body" style="padding:0;">
-        <div class="n-table-wrap"><table class="n-table">
-          <thead><tr><th>Dokumentum</th><th>Típus</th><th>Dátum</th><th>Megjegyzés</th></tr></thead>
-          <tbody>${docs}</tbody>
-        </table></div>
+      <div class="n-panel-head">Dokumentumtár (FTP)</div>
+      <div class="n-panel-body"><p>A fájlok a szerveren tárolódnak (FTP). A diákok letölthetnek; feltölteni csak tanár / osztályfőnök tud.</p></div>
+    </div>`;
+
+  const uploadBlock = teacher ? `
+    <div class="n-panel">
+      <div class="n-panel-head">Dokumentum feltöltése (FTP)</div>
+      <div class="n-panel-body">
+        <div class="n-form" style="max-width:520px">
+          <label>Fájl (PDF, DOCX, ZIP, kép, bármi – max 10 MB)</label>
+          <input type="file" id="docFile" accept="*/*" />
+          <label style="margin-top:8px;display:block">Megjelenő név (opcionális)</label>
+          <input type="text" id="docName" placeholder="Pl. Ertesito_2026.zip" style="width:100%;padding:8px;border:1px solid #c5d3e2" />
+          <label style="margin-top:8px;display:block">Megjegyzés</label>
+          <input type="text" id="docNote" placeholder="Rövid leírás" style="width:100%;padding:8px;border:1px solid #c5d3e2" />
+          <button type="button" class="k-btn k-btn-primary" id="docUpload" style="margin-top:12px">Feltöltés FTP-re</button>
+          <p id="docStatus" class="k-grade-meta" style="margin-top:8px"></p>
+        </div>
+      </div>
+    </div>` : "";
+
+  return `
+    ${certBlock}
+    ${uploadBlock}
+    <div class="n-panel">
+      <div class="n-panel-head">Közös digitális dokumentumtár
+        <button type="button" class="k-logout" id="docRefresh" style="float:right">Frissítés</button>
+      </div>
+      <div class="n-panel-body" style="padding:0">
+        <div id="docTableWrap" class="n-table-wrap">
+          <p class="k-card-empty" style="padding:16px">Betöltés…</p>
+        </div>
       </div>
     </div>`;
 }
+
+async function docsRenderTable() {
+  const wrap = document.getElementById("docTableWrap");
+  if (!wrap) return;
+  const teacher = docsIsTeacher();
+  try {
+    const list = await docsList();
+    if (!list.length) {
+      wrap.innerHTML = `<p class="k-card-empty" style="padding:16px">Még nincs dokumentum az FTP tárban.</p>`;
+      return;
+    }
+    const rows = list.map((d) => {
+      const ext = (d.name || "").split(".").pop() || "";
+      const size = d.size != null ? (d.size < 1024 ? d.size + " B" : (d.size / 1024).toFixed(1) + " KB") : "—";
+      return `<tr>
+        <td><i class="fa fa-file-text-o"></i> ${esc(d.name)}</td>
+        <td>${esc(ext.toUpperCase() || d.type || "Fájl")}</td>
+        <td>${esc(size)}</td>
+        <td style="white-space:nowrap">
+          <button type="button" class="k-logout doc-dl" data-name="${esc(d.name)}">Letöltés</button>
+          ${teacher ? `<button type="button" class="k-logout doc-del" data-name="${esc(d.name)}">Törlés</button>` : ""}
+        </td>
+      </tr>`;
+    }).join("");
+    wrap.innerHTML = `<table class="n-table">
+      <thead><tr><th>Név</th><th>Típus</th><th>Méret</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+    wrap.querySelectorAll(".doc-dl").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        try {
+          btn.disabled = true;
+          await docsDownload(btn.getAttribute("data-name"));
+        } catch (e) { alert(e.message || e); }
+        finally { btn.disabled = false; }
+      });
+    });
+    wrap.querySelectorAll(".doc-del").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Törlöd FTP-ről: " + btn.getAttribute("data-name") + " ?")) return;
+        try {
+          await docsDelete(btn.getAttribute("data-name"));
+          await docsRenderTable();
+        } catch (e) { alert(e.message || e); }
+      });
+    });
+  } catch (e) {
+    wrap.innerHTML = `<div class="e-error" style="margin:12px;padding:12px;background:#fdecea;color:#c62828">
+      Dokumentumtár hiba: ${esc(e.message || e)}<br>
+      <small>Állítsd be a szerveren: FTP_HOST, FTP_USER, FTP_PASS (GitHub Secrets / Render env), majd deploy.</small>
+    </div>`;
+  }
+}
+
+function bindDocuments() {
+  document.getElementById("btnCert")?.addEventListener("click", () => {
+    try { downloadCertificate(); }
+    catch (e) { alert("Bizonyítvány hiba: " + (e.message || e)); }
+  });
+  document.getElementById("docRefresh")?.addEventListener("click", () => docsRenderTable());
+  document.getElementById("docUpload")?.addEventListener("click", async () => {
+    const fileInput = document.getElementById("docFile");
+    const file = fileInput && fileInput.files && fileInput.files[0];
+    const nameOverride = (document.getElementById("docName")?.value || "").trim();
+    const note = (document.getElementById("docNote")?.value || "").trim();
+    const st = document.getElementById("docStatus");
+    if (!file) { alert("Válassz fájlt."); return; }
+    if (file.size > 10 * 1024 * 1024) { alert("Max. 10 MB."); return; }
+    try {
+      if (st) st.textContent = "Feltöltés…";
+      await docsUploadFile(file, nameOverride || file.name, note);
+      if (st) st.textContent = "Kész: " + (nameOverride || file.name);
+      if (fileInput) fileInput.value = "";
+      await docsRenderTable();
+    } catch (e) {
+      if (st) st.textContent = "";
+      alert("Feltöltés sikertelen: " + (e.message || e));
+    }
+  });
+  docsRenderTable();
+}
+
+
 
 function renderEUGY() {
   window.location.href = "https://puspus-dev.github.io/ujkreta/eugyintezes/";
@@ -777,7 +1382,36 @@ function renderEUGY() {
     <a class="k-logout" href="https://puspus-dev.github.io/ujkreta/eugyintezes/">Megnyitás →</a></div></div>`;
 }
 
-function navigate(page) {
+
+const RENDERERS = {
+  eugy: renderEUGY,
+  documents: renderDocuments,
+  dkt: renderDKT,
+  dashboard: renderDashboard,
+  grade: renderGradeForm,
+  grades: renderGrades,
+  absences: renderAbsences,
+  students: renderStudents,
+  studentNew: renderStudentNew,
+  timetable: renderTimetable,
+  homework: renderHomework,
+  profile: renderProfile
+};
+
+function closeSidebar() {
+  document.getElementById("sidebar")?.classList.remove("open");
+  const o = document.getElementById("overlay");
+  if (o) o.style.display = "none";
+}
+function fillHeader() {
+  const t = cache.teacher || {};
+  document.getElementById("userName").textContent = t.Nev || localStorage.getItem("local_usr") || "Osztályfőnök";
+  document.getElementById("userCode").textContent = t.Uid ? ("UID: " + t.Uid) : "";
+  document.getElementById("instName").textContent = t.IntezmenyNev || "KRÁTA";
+  const ty = document.getElementById("tanev");
+  if (ty) ty.textContent = t.TanevUid || "";
+}
+function navigate(page, opts = {}) {
   if (page === "eugy") {
     window.location.href = "https://puspus-dev.github.io/ujkreta/eugyintezes/";
     return;
@@ -796,143 +1430,125 @@ function navigate(page) {
       if (el && currentPage === "documents") el.innerHTML = renderDocuments();
     })();
   }
-
+  if (!RENDERERS[page]) page = "dashboard";
   currentPage = page;
-  document.querySelectorAll(".k-nav-item").forEach(b => {
+  document.getElementById("pageTitle").textContent = PAGE_META[page];
+  document.getElementById("bcPage").textContent = PAGE_META[page];
+  document.querySelectorAll(".n-nav-item").forEach((b) => {
     b.classList.toggle("active", b.dataset.page === page);
   });
-  (document.getElementById("pageTitle")||{}).textContent = PAGE_META[page] || page;
-  (document.getElementById("bcPage")||{}).textContent = PAGE_META[page] || page;
-  document.getElementById("pageContent").innerHTML = (RENDERERS[page] || renderDashboard)();
-  if (page === "dkt") bindDKT();
-  document.querySelectorAll("[data-go]").forEach(btn => {
-    btn.addEventListener("click", () => navigate(btn.dataset.go));
+  document.querySelectorAll(".m-tab[data-page]").forEach((b) => {
+    b.classList.toggle("active", b.dataset.page === page);
   });
-  if (page === "naplo") { el.innerHTML = renderNaplo(); return; }
+  const el = document.getElementById("pageContent");
+  try {
+    el.innerHTML = RENDERERS[page]();
+    if (page === "dkt") bindDKT();
+    if (page === "documents") bindDocuments();
+  if (page === "grade") {
+    if (typeof bindGradeForm === "function") bindGradeForm();
+    if (typeof bindGradeClicks === "function") bindGradeClicks();
+  }
+  if (page === "absences" && typeof bindAbsences === "function") bindAbsences();
+  if (page === "studentNew" && typeof bindStudentNew === "function") bindStudentNew();
+  if (page === "homework" && typeof bindHomework === "function") bindHomework();
+  document.querySelectorAll("[data-go]").forEach((b) => {
+    b.onclick = () => navigate(b.getAttribute("data-go"));
+  });
+  } catch (e) {
+    console.error(e);
+    el.innerHTML = `<div class="n-panel"><div class="n-panel-body">${empty("Hiba a nézet megjelenítésekor.")}</div></div>`;
+  }
+
   if (page === "grade") bindGradeForm();
-  if (page === "studentNew") bindStudentNew();
-  if (page === "homework") bindHomework();
   if (page === "absences") bindAbsences();
-  if (page === "grades") {
-    document.querySelectorAll(".del-grade").forEach(btn => {
+  if (page === "naplo") html = renderNaplo();
+  else if (page === "grades") {
+    document.querySelectorAll(".del-grade").forEach((btn) => {
       btn.addEventListener("click", async () => {
-        if (!confirm("Törlöd?")) return;
+        if (!confirm("Törlöd a jegyet?")) return;
         try {
           await apiDelete("/naplo/v3/sajat/Ertekelesek?uid=" + encodeURIComponent(btn.dataset.uid));
           cache.grades = await apiGet("/naplo/v3/sajat/Ertekelesek");
           navigate("grades");
-        } catch (err) { alert(err.message); }
+        } catch (err) {
+          alert("Törlés sikertelen: " + (err.message || err));
+        }
       });
     });
   }
+  if (page === "dashboard") {
+    document.getElementById("goGradeBtn")?.addEventListener("click", () => navigate("grade"));
+  }
+  if (page === "students") {
+    document.querySelectorAll(".grade-for").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        navigate("grade");
+        const sel = document.getElementById("gStudent");
+        if (sel) {
+          sel.value = btn.dataset.uid;
+          sel.dispatchEvent(new Event("change"));
+        }
+      });
+    });
+  }
+
+  // optional preselect student
+  if (page === "grade" && opts.studentUid) {
+    const sel = document.getElementById("gStudent");
+    if (sel) {
+      sel.value = opts.studentUid;
+      sel.dispatchEvent(new Event("change"));
+    }
+  }
+
+  closeSidebar();
 }
 
-async function bootApp() {
-  document.getElementById("loginScreen").style.display = "none";
-  document.getElementById("appShell").style.display = "block";
-  const bm = document.getElementById("bootMsg");
-  if (bm) bm.style.display = "none";
-  try {
-    await loadAllData();
-  } catch (_) {}
-  navigate("dashboard");
+function fillHeader() {
+  const t = cache.teacher || {};
+  document.getElementById("userName").textContent = t.Nev || localStorage.getItem("local_usr") || "Tanár";
+  document.getElementById("userCode").textContent = t.Uid ? `UID: ${t.Uid}` : "";
+  document.getElementById("instName").textContent = t.IntezmenyNev || "KRÁTA";
 }
 
-function init() {
-  // Belépés a FŐ login oldalon történik; ide tokennel jön.
+async function boot() {
   accessToken = getStoredToken();
   if (!accessToken) {
-    goLogin();
+    window.location.href = LOGIN_URL;
     return;
   }
 
-  document.getElementById("loginScreen").style.display = "none";
-  const un = document.getElementById("userName");
-  if (un) un.textContent = localStorage.getItem("local_usr") || "OF";
-  document.getElementById("logoutBtn")?.addEventListener("click", goLogin);
-  document.getElementById("menuBtn")?.addEventListener("click", () => {
-    document.getElementById("sidebar")?.classList.toggle("open");
-    document.getElementById("overlay")?.classList.toggle("show");
+  document.getElementById("logoutBtn").addEventListener("click", goLogin);
+  document.getElementById("menuBtn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.add("open");
+    document.getElementById("overlay").style.display = "block";
   });
-  document.getElementById("overlay")?.addEventListener("click", () => {
-    document.getElementById("sidebar")?.classList.remove("open");
-    document.getElementById("overlay")?.classList.remove("show");
-  });
-  document.querySelectorAll(".k-nav-item").forEach(btn => {
+  document.getElementById("overlay").addEventListener("click", closeSidebar);
+  document.querySelectorAll(".n-nav-item").forEach((btn) => {
     btn.addEventListener("click", () => navigate(btn.dataset.page));
   });
 
-  bootApp();
+  document.querySelectorAll(".m-tab[data-page]").forEach((btn) => {
+    btn.addEventListener("click", () => navigate(btn.dataset.page));
+  });
+  document.getElementById("moreBtn")?.addEventListener("click", () => {
+    document.getElementById("sidebar").classList.add("open");
+    document.getElementById("overlay").style.display = "block";
+  });
+
+  try {
+    await loadAllData();
+    document.getElementById("bootMsg").style.display = "none";
+    document.getElementById("appShell").style.display = "block";
+    fillHeader();
+    navigate("dashboard");
+  } catch (e) {
+    console.error(e);
+    const bm = document.getElementById("bootMsg");
+    if (bm) bm.innerHTML = '<img src="loading.gif" class="boot-spinner" width="60" height="60"><div class="boot-text">Nem sikerült betölteni. Átirányítás…</div>';
+    setTimeout(goLogin, 1200);
+  }
 }
 
-document.addEventListener("DOMContentLoaded", init);
-
-
-function renderNaplo() {
-  const students = Array.isArray(cache.students) ? cache.students : [];
-  const rows = students.map((s, i) => {
-    const uid = s.Uid || s.uid;
-    return `<tr data-uid="${esc(uid)}">
-      <td>${i + 1}</td>
-      <td>${esc(s.Nev || uid)}</td>
-      <td>0%</td>
-      <td><span class="seg" data-uid="${esc(uid)}">
-        <button type="button" class="att-j on-j" data-v="jelen">Jelenlét</button>
-        <button type="button" class="att-h" data-v="hianyzas">Hiányzás</button>
-      </span></td>
-      <td><input type="number" min="0" max="45" style="width:56px" class="late-inp" data-uid="${esc(uid)}" /></td>
-      <td class="ico-row">🏠 📚</td>
-    </tr>`;
-  }).join("") || `<tr><td colspan="6">Nincs diák.</td></tr>`;
-
-  setTimeout(() => {
-    document.querySelectorAll(".seg button").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const seg = btn.parentElement;
-        seg.querySelectorAll("button").forEach(b => b.classList.remove("on-j", "on-h"));
-        btn.classList.add(btn.dataset.v === "jelen" ? "on-j" : "on-h");
-      });
-    });
-    document.getElementById("btnSaveNaplo")?.addEventListener("click", async () => {
-      const msg = document.getElementById("naploMsg");
-      try {
-        let n = 0;
-        for (const seg of document.querySelectorAll(".seg")) {
-          if (seg.querySelector(".att-h.on-h")) {
-            await apiPost("/naplo/v3/sajat/Mulasztasok", {
-              TanuloUid: seg.dataset.uid,
-              Datum: new Date().toISOString().slice(0, 10),
-              Tipus: { Uid: "1", Nev: "Hiányzás" }
-            });
-            n++;
-          }
-        }
-        msg.className = "msg ok";
-        msg.textContent = "Naplózva. Hiányzások: " + n;
-        await loadAllData();
-      } catch (e) {
-        msg.className = "msg bad";
-        msg.textContent = e.message || String(e);
-      }
-    });
-  }, 0);
-
-  return `<div class="naplo-layout">
-    <div class="naplo-side">
-      <button type="button" class="active">Naplózás</button>
-      <button type="button" onclick="navigate('grade')">Értékelések</button>
-      <button type="button" onclick="navigate('homework')">Házi</button>
-    </div>
-    <div class="naplo-main">
-      <div class="naplo-title">Tanóra naplózása (osztályfőnök)</div>
-      <table class="att-table">
-        <thead><tr><th>#</th><th>Tanuló</th><th>%</th><th>Jelenlét</th><th>Késés</th><th></th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-      <div class="att-actions">
-        <span class="msg" id="naploMsg"></span>
-        <button type="button" class="k-btn k-btn-primary" id="btnSaveNaplo">ÓRA NAPLÓZÁSA</button>
-      </div>
-    </div>
-  </div>`;
-}
+boot();

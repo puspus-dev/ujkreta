@@ -1,3 +1,25 @@
+
+.boot-msg {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 40px;
+  text-align: center;
+  color: var(--k-muted, var(--e-muted, #5a6a70));
+}
+.boot-spinner {
+  width: 60px;
+  height: 60px;
+  display: block;
+}
+.boot-text {
+  font-size: 14px;
+  font-weight: 600;
+}
+
 /* ===== eKRÉTA helyi betűtípusok + menüikonok ===== */
 @font-face {
   font-family: 'DejaVu Sans';
@@ -34,7 +56,7 @@
   object-fit: contain;
   display: block;
   margin: 0 auto 4px;
-  filter: brightness(0) invert(1);
+  /* színes eKRÉTA ikonok – nem invertáljuk */ filter: none;
 }
 .m-ico-img {
   width: 18px;
@@ -42,7 +64,7 @@
   object-fit: contain;
   display: block;
   margin: 0 auto 2px;
-  filter: brightness(0) invert(1);
+  /* színes eKRÉTA ikonok – nem invertáljuk */ filter: none;
 }
 .k-nav-item .menu-ico,
 .n-nav-item .menu-ico {
@@ -69,7 +91,7 @@
 html, body { margin: 0; min-height: 100%; font-family: var(--font); background: var(--k-bg); color: var(--k-text); }
 button, input, select, textarea { font-family: inherit; }
 
-.boot-msg { padding: 40px; text-align: center; color: var(--k-muted); }
+
 
 .k-top {
   background: #fff; border-bottom: 1px solid var(--k-border);
@@ -418,5 +440,5 @@ input:focus, select:focus, textarea:focus, .e-search:focus { outline: 0; border-
 
 .main-menu .menu-ico, .main-menu .n-nav-item .menu-ico, .main-menu .k-nav-item .menu-ico {
   width: 22px; height: 22px; object-fit: contain; display: block; margin: 0 auto 3px;
-  filter: brightness(0) invert(1);
+  /* színes eKRÉTA ikonok – nem invertáljuk */ filter: none;
 }

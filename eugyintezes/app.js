@@ -131,8 +131,10 @@ function setFolder(f) {
   });
   const titles = { inbox: "Beérkezett üzenetek", unread: "Olvasatlan üzenetek", compose: "Új üzenet", surveys: "Kérdőívek" };
   document.getElementById("pageTitle").textContent = titles[folder] || "Üzenetek";
+  if (bootEl) bootEl.style.display = "none";
   render();
 }
+
 
 function render() {
   const root = document.getElementById("appRoot");
@@ -295,6 +297,7 @@ async function openDetail(id) {
 }
 
 async function boot() {
+  const bootEl = document.getElementById("bootMsg");
   accessToken = getToken();
   if (!accessToken) { goLogin(); return; }
   const role = localStorage.getItem("ujkreta_role") || "";
@@ -322,6 +325,10 @@ async function boot() {
   catch (e) {
     flash("Postafiók betöltése sikertelen: " + (e.message || e) + " (messages.go deploy kell)", false);
   }
+  if (bootEl) bootEl.style.display = "none";
+  document.querySelectorAll(".e-topbar, .e-nav, .e-body").forEach((el) => {
+    el.style.display = "";
+  });
   render();
 }
 document.addEventListener("DOMContentLoaded", boot);

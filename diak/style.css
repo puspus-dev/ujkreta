@@ -1,3 +1,25 @@
+
+.boot-msg {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 40px;
+  text-align: center;
+  color: var(--k-muted, var(--e-muted, #5a6a70));
+}
+.boot-spinner {
+  width: 60px;
+  height: 60px;
+  display: block;
+}
+.boot-text {
+  font-size: 14px;
+  font-weight: 600;
+}
+
 /* ===== eKRÉTA helyi betűtípusok + menüikonok ===== */
 @font-face {
   font-family: 'DejaVu Sans';
@@ -71,7 +93,7 @@
 html, body { margin: 0; min-height: 100%; font-family: var(--font); background: var(--k-bg); color: var(--k-text); }
 button, input, select, textarea { font-family: inherit; }
 
-.boot-msg { padding: 40px; text-align: center; color: var(--k-muted); }
+
 
 /* felső sáv – iskola + user */
 .k-top {

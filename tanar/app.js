@@ -10,6 +10,7 @@ const TOKEN_KEYS = ["access_token", "ujkreta_access_token"];
 const REFRESH_KEYS = ["refresh_token", "ujkreta_refresh_token"];
 
 const PAGE_META = {
+  eugy: "e-Ügyintézés",
   dashboard: "Kezdőlap",
   grade: "Jegy beírása",
   naplo: "Óra naplózása",
@@ -885,6 +886,7 @@ function bindAbsences() {
 
 
 const RENDERERS = {
+  eugy: renderEUGY,
   dashboard: renderDashboard,
   grade: renderGradeForm,
   grades: renderGrades,
@@ -898,6 +900,13 @@ const RENDERERS = {
 function closeSidebar() {
   document.getElementById("sidebar").classList.remove("open");
   document.getElementById("overlay").style.display = "none";
+}
+
+
+function renderEUGY() {
+  window.location.href = "https://puspus-dev.github.io/ujkreta/eugyintezes/";
+  return `<div class="n-panel"><div class="n-panel-body">Átirányítás az e-Ügyintézéshez…
+    <a class="k-logout" href="https://puspus-dev.github.io/ujkreta/eugyintezes/">Megnyitás →</a></div></div>`;
 }
 
 function navigate(page, opts = {}) {
@@ -1008,7 +1017,8 @@ async function boot() {
     navigate("dashboard");
   } catch (e) {
     console.error(e);
-    document.getElementById("bootMsg").textContent = "Nem sikerült betölteni. Átirányítás...";
+    const bm = document.getElementById("bootMsg");
+    if (bm) bm.innerHTML = '<img src="loading.gif" class="boot-spinner" width="60" height="60"><div class="boot-text">Nem sikerült betölteni. Átirányítás…</div>';
     setTimeout(goLogin, 1200);
   }
 }

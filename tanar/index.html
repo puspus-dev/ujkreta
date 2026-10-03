@@ -9,7 +9,10 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="bootMsg" class="boot-msg">Betöltés…</div>
+  <div id="bootMsg" class="boot-msg">
+    <img src="loading.gif" alt="Betöltés" class="boot-spinner" width="60" height="60">
+    <div class="boot-text">Betöltés…</div>
+  </div>
   <div id="loginScreen" style="display:none;"></div>
   <div id="appShell" style="display:none;">
     <header class="main-header">
@@ -30,9 +33,9 @@
       <button type="button" class="n-nav-item" data-page="grades"><img class="menu-ico" src="icons/note_text_p.png" alt="">Beírt jegyek</button>
       <button type="button" class="n-nav-item" data-page="absences"><img class="menu-ico" src="icons/icon_igazolt_hianyzas.png" alt="">Mulasztások</button>
       <button type="button" class="n-nav-item" data-page="students"><img class="menu-ico" src="icons/no_picture.png" alt="">Tanulók</button>
-      <button type="button" class="n-nav-item" data-page="timetable"><img class="menu-ico" src="icons/sprite.png" alt="">Órarend</button>
-      <button type="button" class="n-nav-item" data-page="homework"><img class="menu-ico" src="icons/Hibajegy.png" alt="">Házi feladatok</button>
-      <button type="button" class="n-nav-item" data-page="messages" data-href="https://puspus-dev.github.io/ujkreta/eugyintezes/"><img class="menu-ico" src="icons/ugyfelszolgalat_icon.png" alt="">e-Ügyintézés</button>
+      <button type="button" class="n-nav-item" data-page="timetable"><img class="menu-ico" src="icons/OktatasIgenyles.png" alt="">Órarend</button>
+      <button type="button" class="n-nav-item" data-page="homework"><img class="menu-ico" src="icons/HaziFeladatHiany.png" alt="">Házi feladatok</button>
+      <button type="button" class="n-nav-item" data-page="eugy"><img class="menu-ico" src="icons/ugyfelszolgalat_icon.png" alt="">e-Ügyintézés</button>
       <button type="button" class="n-nav-item" data-page="profile"><img class="menu-ico" src="icons/nopfp.png" alt="">Profil</button>
     </nav>
 

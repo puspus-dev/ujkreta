@@ -2,7 +2,7 @@
 const API_BASE = "https://ujkreta.onrender.com";
 const LOGIN_URL = "https://puspus-dev.github.io/ujkreta/";
 const DIAK_URL = "https://puspus-dev.github.io/ujkreta/diak/";
-const TOKEN_KEYS = ["access_token", "ujkreta_access_token", "of_access_token", "teacher_access_token", "tanar_access_token"];
+const TOKEN_KEYS = ["access_token", "ujkreta_access_token", "of_access_token", "teacher_access_token", "tanar_access_token", "diak_access_token"];
 const MSG_BASE = "/integration-kretamobile-api/v1/kommunikacio";
 
 let accessToken = null;
@@ -49,16 +49,22 @@ function flash(msg, ok) {
 }
 
 async function api(path, opts = {}) {
+  const skipLogin = opts.skipLoginRedirect === true;
+  const fetchOpts = { ...opts };
+  delete fetchOpts.skipLoginRedirect;
   const res = await fetch(API_BASE + path, {
-    ...opts,
+    ...fetchOpts,
     headers: {
       Accept: "application/json",
       Authorization: "Bearer " + accessToken,
-      ...(opts.body ? { "Content-Type": "application/json" } : {}),
-      ...(opts.headers || {})
+      ...(fetchOpts.body ? { "Content-Type": "application/json" } : {}),
+      ...(fetchOpts.headers || {})
     }
   });
-  if (res.status === 401) { goLogin(); throw new Error("401"); }
+  if (res.status === 401) {
+    if (!skipLogin) goLogin();
+    throw new Error("401 – nincs jogosultság / lejárt token");
+  }
   const text = await res.text();
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch {
@@ -346,13 +352,13 @@ function isTeacher() {
 }
 
 async function loadSurveyList() {
-  return api(SURVEY_BASE);
+  return api(SURVEY_BASE, { skipLoginRedirect: true });
 }
 async function loadSurvey(id) {
-  return api(SURVEY_BASE + "/" + id);
+  return api(SURVEY_BASE + "/" + id, { skipLoginRedirect: true });
 }
 async function loadSurveyResponses(id) {
-  return api(SURVEY_BASE + "/" + id + "/responses");
+  return api(SURVEY_BASE + "/" + id + "/responses", { skipLoginRedirect: true });
 }
 
 function renderSurveys() {
@@ -453,7 +459,11 @@ function renderSurveys() {
       });
     });
   }).catch((e) => {
-    root.innerHTML = `<div class="e-error">${esc(e.message)} — telepítsd a surveys.go-t + registerSurveyRoutes</div>`;
+    root.innerHTML = `<div class="e-error">
+      <strong>Kérdőívek betöltése sikertelen</strong><br>
+      ${esc(e.message || e)}<br>
+      <small>Ha 401: a szerveren a survey route-okat <code>requireAuthSession</code>-nel kell regisztrálni (surveys.go), majd újra deploy.</small>
+    </div>`;
   });
 }
 

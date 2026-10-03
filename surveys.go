@@ -89,13 +89,13 @@ func (s *Store) ensureSurveySchema() {
 func (s *Server) registerSurveyRoutes(mux *http.ServeMux) {
 	s.store.ensureSurveySchema()
 
-	// list / create
-	mux.HandleFunc("/integration-kretamobile-api/v1/kerdoivek", s.handleSurveysRoot)
-	mux.HandleFunc("/integration-kretamobile-api/v1/kerdoivek/", s.handleSurveyByID)
+	// list / create – Bearer session kötelező (különben sessionUser mindig fail → 401 → login redirect)
+	mux.HandleFunc("/integration-kretamobile-api/v1/kerdoivek", s.requireAuthSession(s.handleSurveysRoot))
+	mux.HandleFunc("/integration-kretamobile-api/v1/kerdoivek/", s.requireAuthSession(s.handleSurveyByID))
 
 	// alias shorter paths
-	mux.HandleFunc("/api/surveys", s.handleSurveysRoot)
-	mux.HandleFunc("/api/surveys/", s.handleSurveyByID)
+	mux.HandleFunc("/api/surveys", s.requireAuthSession(s.handleSurveysRoot))
+	mux.HandleFunc("/api/surveys/", s.requireAuthSession(s.handleSurveyByID))
 }
 
 func (s *Server) handleSurveysRoot(w http.ResponseWriter, r *http.Request) {

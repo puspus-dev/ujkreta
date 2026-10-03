@@ -49,182 +49,160 @@
   font-style: normal;
   font-display: swap;
 }
-
 .menu-ico {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-  display: block;
-  margin: 0 auto 4px;
+  width: 18px; height: 18px; object-fit: contain;
+  vertical-align: middle; margin-right: 6px;
   /* színes eKRÉTA ikonok – nem invertáljuk */ filter: none;
 }
-.m-ico-img {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-  display: block;
-  margin: 0 auto 2px;
-  /* színes eKRÉTA ikonok – nem invertáljuk */ filter: none;
-}
-.k-nav-item .menu-ico,
-.n-nav-item .menu-ico {
-  margin-bottom: 4px;
-}
-
 /* KRÁTA – eKRÉTA stílus (sima CSS, build nélkül) */
-/* KRÁTA diák – hivatalos e-KRÉTA kinézet */
+/* KRÁTA e-Ügyintézés – hivatalos modul kinézet */
 :root {
-  --k-teal: #1a6b7c;
-  --k-teal-dark: #145a69;
-  --k-teal-mid: #2a8a9e;
-  --k-nav: #1e7385;
-  --k-bg: #e9eef1;
-  --k-panel: #fff;
-  --k-border: #c5d0d4;
-  --k-text: #222;
-  --k-muted: #5a6a70;
-  --k-link: #1a6b7c;
-  --k-grade: #1a6b7c;
-  --header-h: 48px;
-  --nav-h: 56px;
+  --e-header: #1a6b7c;
+  --e-header-dark: #145a69;
+  --e-accent: #218094;
+  --e-bg: #e9eef1;
+  --e-panel: #fff;
+  --e-border: #c5d0d4;
+  --e-text: #222;
+  --e-muted: #5a6a70;
+  --e-unread-bg: #e3f2fd;
+  --e-link: #1565c0;
   --font: "DejaVu Sans", Arial, sans-serif;
 }
 *, *::before, *::after { box-sizing: border-box; }
-html, body { margin: 0; min-height: 100%; font-family: var(--font); background: var(--k-bg); color: var(--k-text); }
-button, input, select, textarea { font-family: inherit; }
+html, body { margin: 0; min-height: 100%; font-family: var(--font); background: var(--e-bg); color: var(--e-text); }
 
-
-
-/* felső sáv – iskola + user */
-.k-top {
+/* felső sáv – mint a KRÉTA */
+.e-topbar {
   background: #fff;
-  border-bottom: 1px solid var(--k-border);
-  padding: 10px 16px 8px;
-  display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
-  flex-wrap: wrap;
+  border-bottom: 1px solid var(--e-border);
+  padding: 10px 16px;
+  display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
 }
-.k-school { font-size: 18px; font-weight: 700; color: #1a3a44; line-height: 1.25; }
-.k-year { font-size: 13px; color: var(--k-muted); margin-top: 2px; }
-.k-userbox { text-align: right; font-size: 13px; color: #333; }
-.k-userbox .name { font-weight: 650; }
-.k-userbox .meta { color: var(--k-muted); font-size: 12px; }
+.e-topbar .brand { font-size: 18px; font-weight: 800; color: #1a3a44; letter-spacing: .04em; }
+.e-topbar .brand small { display: block; font-size: 11px; font-weight: 600; color: var(--e-muted); letter-spacing: .08em; }
+.e-user { font-size: 13px; text-align: right; }
+.e-user button {
+  margin-left: 8px; border: 1px solid var(--e-border); background: #fff;
+  padding: 4px 10px; font-size: 12px; cursor: pointer;
+}
 
-/* teal nav */
-.k-nav {
-  background: linear-gradient(180deg, #218094 0%, var(--k-teal) 100%);
-  display: flex; align-items: stretch; overflow-x: auto;
-  min-height: var(--nav-h);
-  box-shadow: 0 1px 3px rgba(0,0,0,.15);
+.e-nav {
+  background: linear-gradient(180deg, #218094, var(--e-header));
+  color: #fff; min-height: 48px;
+  display: flex; align-items: center; padding: 0 12px; gap: 4px; overflow-x: auto;
 }
-.k-nav-logo {
-  display: flex; align-items: center; justify-content: center;
-  padding: 0 14px; background: rgba(0,0,0,.12);
-  color: #fff; font-weight: 800; letter-spacing: .04em; font-size: 14px;
-  white-space: nowrap; flex-shrink: 0;
-}
-.k-nav-logo span { font-size: 10px; display: block; opacity: .85; letter-spacing: .15em; }
-.k-nav-item {
+.e-nav-item {
   border: none; background: transparent; color: #fff;
-  padding: 8px 14px; cursor: pointer; font-size: 12px; font-weight: 600;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 4px; min-width: 72px; white-space: nowrap; opacity: .92;
+  padding: 10px 14px; font-size: 13px; font-weight: 650; cursor: pointer; white-space: nowrap;
 }
-.k-nav-item:hover { background: rgba(255,255,255,.12); }
-.k-nav-item.active { background: rgba(0,0,0,.18); opacity: 1; }
-.k-nav-item .ico { font-size: 18px; line-height: 1; }
+.e-nav-item:hover, .e-nav-item.active { background: rgba(0,0,0,.18); }
 
-.k-main { padding: 16px 18px 40px; max-width: 1400px; margin: 0 auto; }
-.k-page-title { margin: 0 0 12px; font-size: 20px; color: #1a3a44; }
-
-/* dashboard grid */
-.k-dash {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
+.e-body { display: flex; min-height: calc(100vh - 100px); max-width: 1280px; margin: 0 auto; }
+.e-sidebar {
+  width: 200px; flex-shrink: 0; background: #f4f8f8; border-right: 1px solid var(--e-border);
+  padding: 12px 0;
 }
-@media (max-width: 1100px) { .k-dash { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 600px) { .k-dash { grid-template-columns: 1fr; } }
-
-.k-card {
-  background: var(--k-panel);
-  border: 1px solid var(--k-border);
-  border-radius: 2px;
-  overflow: hidden;
-  min-height: 140px;
+.e-side-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--e-muted); padding: 6px 14px; font-weight: 700;
 }
-.k-card-h {
-  padding: 8px 12px;
-  font-size: 13px; font-weight: 650; color: var(--k-teal);
-  border-bottom: 1px solid var(--k-border);
-  background: #f7fafb;
+.e-nav-btn {
+  display: flex; width: 100%; align-items: center; justify-content: space-between;
+  border: none; background: transparent; text-align: left;
+  padding: 10px 14px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--e-text);
 }
-.k-card-b { padding: 0; max-height: 280px; overflow-y: auto; }
-.k-card-empty { padding: 16px 12px; font-size: 13px; color: var(--k-muted); }
-
-.k-grade-row {
-  display: flex; align-items: center; gap: 12px;
-  padding: 8px 12px; border-bottom: 1px solid #eef2f3;
-  font-size: 13px;
+.e-nav-btn:hover { background: #e8f0f0; }
+.e-nav-btn.active {
+  background: #dceef0; color: var(--e-header-dark);
+  border-left: 3px solid var(--e-accent); padding-left: 11px;
 }
-.k-grade-num {
-  font-size: 22px; font-weight: 800; color: var(--k-grade);
-  min-width: 28px; text-align: center;
-}
-.k-grade-meta { color: var(--k-muted); font-size: 12px; line-height: 1.3; }
-
-/* faliújság timeline */
-.k-timeline {
-  background: #fff; border: 1px solid var(--k-border);
-  position: relative; margin-top: 8px;
-}
-.k-tl-bar {
-  background: var(--k-teal-mid); color: #fff;
-  padding: 10px 14px; font-weight: 650; font-size: 14px;
-}
-.k-tl-body { padding: 16px 18px 20px; min-height: 80px; color: var(--k-muted); font-size: 14px; }
-.k-tl-item {
-  border-left: 3px solid var(--k-teal-mid);
-  padding: 8px 0 8px 14px; margin: 8px 0;
-}
-.k-tl-item .t { font-weight: 650; color: #1a3a44; }
-.k-tl-item .d { font-size: 12px; color: var(--k-muted); }
-
-/* tables */
-.k-table { width: 100%; border-collapse: collapse; background: #fff; font-size: 13px; }
-.k-table th {
-  background: #f0f5f6; text-align: left; padding: 8px 10px;
-  border: 1px solid var(--k-border); font-weight: 650; color: #1a3a44;
-}
-.k-table td { padding: 8px 10px; border: 1px solid var(--k-border); }
-.k-table tr:nth-child(even) td { background: #fafcfc; }
-
-.k-panel {
-  background: #fff; border: 1px solid var(--k-border); padding: 14px;
-  margin-bottom: 12px;
-}
-.k-logout {
-  border: 1px solid var(--k-border); background: #fff; padding: 4px 10px;
-  font-size: 12px; cursor: pointer; margin-left: 8px;
+.e-badge {
+  background: var(--e-accent); color: #fff; font-size: 11px; font-weight: 700;
+  min-width: 18px; height: 18px; border-radius: 9px; display: inline-flex;
+  align-items: center; justify-content: center; padding: 0 5px;
 }
 
-/* mobile bottom */
-.m-bottom-nav {
-  display: none; position: fixed; bottom: 0; left: 0; right: 0;
-  background: var(--k-teal); border-top: 1px solid var(--k-teal-dark);
-  z-index: 40; padding-bottom: env(safe-area-inset-bottom, 0);
+.e-main { flex: 1; padding: 14px 16px 32px; min-width: 0; }
+.e-page-title { margin: 0 0 12px; font-size: 20px; color: #1a3a44; font-weight: 700; }
+
+.e-panel {
+  background: var(--e-panel); border: 1px solid var(--e-border);
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
 }
-.m-tab {
-  flex: 1; border: none; background: transparent; color: #fff;
-  padding: 8px 4px; font-size: 10px; display: flex; flex-direction: column;
-  align-items: center; gap: 2px; opacity: .85;
+.e-toolbar {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  padding: 10px 12px; border-bottom: 1px solid var(--e-border); background: #f7fafb;
 }
-.m-tab.active { opacity: 1; background: rgba(0,0,0,.15); }
-.m-ico { font-size: 16px; }
-@media (max-width: 700px) {
-  .m-bottom-nav { display: flex; }
-  .k-main { padding-bottom: 72px; }
-  .k-nav-item .lbl-full { display: none; }
+.e-search {
+  flex: 1; min-width: 160px; padding: 8px 10px; border: 1px solid var(--e-border); font-size: 13px;
+}
+.e-btn {
+  border: 1px solid var(--e-border); background: #fff; padding: 8px 12px;
+  font-size: 13px; font-weight: 650; cursor: pointer;
+}
+.e-btn-primary { background: var(--e-header); border-color: var(--e-header); color: #fff; }
+.e-btn-primary:hover { background: var(--e-header-dark); }
+
+/* táblázatos lista – mint a KRÉTA üzenetek */
+.e-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.e-table th {
+  background: #eef4f5; text-align: left; padding: 9px 12px;
+  border-bottom: 1px solid var(--e-border); font-weight: 700; color: #1a3a44;
+  cursor: pointer; user-select: none;
+}
+.e-table td {
+  padding: 10px 12px; border-bottom: 1px solid #e8eeee; vertical-align: top;
+}
+.e-table tr { cursor: pointer; }
+.e-table tr:hover td { background: #f0f7f6; }
+.e-table tr.unread td { background: var(--e-unread-bg); font-weight: 650; }
+.e-table tr.active td { background: #dceef0; }
+.e-table .subj { color: var(--e-link); }
+.e-table .date { color: var(--e-muted); white-space: nowrap; width: 140px; }
+.e-table .from { min-width: 120px; }
+
+.e-empty { padding: 28px 16px; text-align: center; color: var(--e-muted); font-size: 14px; }
+.e-error {
+  margin: 10px 0; padding: 10px 12px; background: #ffebee; border: 1px solid #ef9a9a;
+  color: #c62828; font-size: 13px;
+}
+.e-ok {
+  margin: 10px 0; padding: 10px 12px; background: #e8f5e9; border: 1px solid #a5d6a7;
+  color: #2e7d32; font-size: 13px;
+}
+
+/* üzenet részlet – modal-szerű panel */
+.e-detail-wrap { margin-top: 14px; }
+.e-detail {
+  background: #fff; border: 1px solid var(--e-border); padding: 16px 18px 20px;
+}
+.e-detail-subj { margin: 0 0 10px; font-size: 18px; font-weight: 700; color: #1a3a44; }
+.e-meta { font-size: 13px; color: var(--e-muted); line-height: 1.55; margin-bottom: 14px; }
+.e-meta strong { color: var(--e-text); }
+.e-detail-text {
+  font-size: 14px; line-height: 1.55; white-space: pre-wrap;
+  padding: 14px; background: #f7fbfb; border: 1px solid var(--e-border);
+}
+.e-detail-actions {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; padding-top: 12px;
+  border-top: 1px solid var(--e-border);
+}
+
+.e-form { display: grid; gap: 8px; padding: 14px; max-width: 640px; }
+.e-form label { font-size: 12px; font-weight: 700; color: var(--e-muted); }
+.e-form input, .e-form textarea {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--e-border); font-size: 14px;
+}
+.e-form textarea { min-height: 140px; resize: vertical; }
+
+@media (max-width: 800px) {
+  .e-body { flex-direction: column; }
+  .e-sidebar { width: 100%; display: flex; overflow-x: auto; padding: 0; border-right: none; border-bottom: 1px solid var(--e-border); }
+  .e-side-label { display: none; }
+  .e-nav-btn { white-space: nowrap; border-left: none !important; }
+  .e-nav-btn.active { border-bottom: 3px solid var(--e-accent); }
+  .e-table .from { max-width: 100px; overflow: hidden; text-overflow: ellipsis; }
 }
 
 /* ===== eKRÉTA skin – csak megjelenés (diák / tanár / osztályfőnök / e-Ügyintézés) =====
@@ -456,53 +434,105 @@ input:focus, select:focus, textarea:focus, .e-search:focus { outline: 0; border-
 @media (min-width: 901px) { .n-overlay, .n-overlay.show { display: none !important; } }
 @media (max-width: 700px) { .main-content { padding-bottom: 76px; } }
 
-.main-menu .menu-ico, .main-menu .n-nav-item .menu-ico, .main-menu .k-nav-item .menu-ico {
-  width: 22px; height: 22px; object-fit: contain; display: block; margin: 0 auto 3px;
+/* e-nav ikonok */
+.e-nav { display: flex; flex-wrap: wrap; align-items: stretch; }
+.e-nav-item {
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.e-nav-item .menu-ico {
+  width: 16px; height: 16px; margin: 0;
   /* színes eKRÉTA ikonok – nem invertáljuk */ filter: none;
 }
 
-.doc-row-ico {
-  width: 18px; height: 18px; object-fit: contain;
-  vertical-align: middle; margin-right: 6px;
-}
 
-
-/* DKT layout */
-.dkt-layout {
+/* DKT standalone page */
+.dkt-page {
   display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 12px;
-  align-items: start;
+  grid-template-columns: 300px 1fr;
+  min-height: calc(100vh - 120px);
+  background: var(--e-bg, #e5e9ec);
 }
 @media (max-width: 800px) {
-  .dkt-layout { grid-template-columns: 1fr; }
+  .dkt-page { grid-template-columns: 1fr; }
 }
-.dkt-side { min-width: 0; }
-.dkt-cards {
-  display: flex; flex-direction: column; gap: 0;
-  border: 1px solid var(--ek-line, #c5d3e2);
+.dkt-side {
   background: #fff;
-  max-height: 70vh; overflow-y: auto;
+  border-right: 1px solid var(--e-border, #c5d3e2);
+  overflow-y: auto;
+  max-height: calc(100vh - 120px);
 }
+.side-label {
+  padding: 12px 14px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--e-muted, #7c8a99);
+}
+.dkt-cards { display: flex; flex-direction: column; }
 .dkt-card {
   display: block; width: 100%; text-align: left;
-  border: 0; border-bottom: 1px solid var(--ek-line, #c5d3e2);
+  border: 0; border-bottom: 1px solid var(--e-border, #c5d3e2);
   background: #fff; padding: 12px 14px; cursor: pointer;
-  color: var(--ek-text, #445261);
+  color: var(--e-text, #445261);
 }
 .dkt-card:hover { background: #e0f7fa; }
-.dkt-card-active {
+.dkt-card.active {
   background: #e0f7fa;
-  border-left: 3px solid var(--ek-blue, #54a5d1);
+  border-left: 3px solid var(--e-accent, #54a5d1);
 }
 .dkt-card-ico {
   width: 22px; height: 22px; object-fit: contain;
   vertical-align: middle; margin-right: 8px;
 }
 .dkt-card-title { font-weight: 700; font-size: 13px; margin-top: 4px; }
-.dkt-card-meta { font-size: 12px; color: var(--ek-mute, #7c8a99); margin-top: 2px; }
-.dkt-files-head {
+.dkt-card-meta { font-size: 12px; color: var(--e-muted, #7c8a99); margin-top: 2px; }
+.dkt-main {
+  padding: 16px 20px 40px;
+  min-width: 0;
+}
+.dkt-toolbar {
   display: flex; justify-content: space-between; align-items: center;
   gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
 }
-.dkt-main { min-width: 0; }
+.e-panel {
+  background: #fff;
+  border: 1px solid var(--e-border, #c5d3e2);
+  margin-bottom: 12px;
+}
+.e-panel-head {
+  padding: 10px 14px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--e-border, #c5d3e2);
+}
+.e-panel-body { padding: 14px; }
+.e-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.e-table th {
+  background: var(--e-accent, #54a5d1); color: #fff;
+  text-align: left; padding: 8px 10px; font-weight: 600;
+}
+.e-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--e-border, #c5d3e2);
+}
+.e-table tr:nth-child(even) td { background: #f4f4f4; }
+.doc-row-ico {
+  width: 18px; height: 18px; object-fit: contain;
+  vertical-align: middle; margin-right: 6px;
+}
+.e-btn {
+  border: 1px solid #c5d3e2; background: #f4f4f4;
+  padding: 6px 12px; cursor: pointer; font-weight: 600; font-size: 13px;
+}
+.e-btn-primary {
+  background: var(--e-accent, #54a5d1); border-color: var(--e-accent, #54a5d1); color: #fff;
+}
+.e-btn-primary:hover { filter: brightness(.95); }
+.e-ok { background: #e8f5e9; color: #2e7d32; padding: 8px 12px; margin-bottom: 10px; }
+.e-error { background: #fdecea; color: #c62828; padding: 8px 12px; margin-bottom: 10px; }
+.e-empty { color: var(--e-muted, #7c8a99); padding: 20px; text-align: center; }
+.e-nav-item:disabled { opacity: .45; cursor: not-allowed; }
+.menu-ico {
+  width: 16px; height: 16px; object-fit: contain;
+  vertical-align: middle; margin-right: 6px;
+}

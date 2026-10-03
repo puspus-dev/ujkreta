@@ -15,6 +15,8 @@ const PAGE_META = {
   timetable: "Órarend",
   homework: "Házi feladatok",
   eugy: "e-Ügyintézés",
+  documents: "Digitális dokumentumok",
+  dkt: "DKT",
   tests: "Számonkérések",
   absences: "Mulasztások",
   notices: "Faliújság",
@@ -86,7 +88,8 @@ async function loadAllData() {
     absences: "/ellenorzo/v3/sajat/Mulasztasok",
     notes: "/ellenorzo/v3/sajat/Feljegyzesek",
     notices: "/ellenorzo/v3/sajat/FaliujsagElemek",
-    groups: "/ellenorzo/v3/sajat/OsztalyCsoportok"
+    groups: "/ellenorzo/v3/sajat/OsztalyCsoportok",
+    dkt: "/dktapi/intezmenyek/munkaterek/tanulok"
   };
   const keys = Object.keys(map);
   const vals = await Promise.all(keys.map((k) => apiGet(map[k]).catch(() => null)));
@@ -481,6 +484,8 @@ const RENDERERS = {
   notices: renderNotices,
   notes: renderNotes,
   eugy: renderEUGY,
+  documents: renderDocuments,
+  dkt: renderDKT,
   profile: renderProfile
 };
 
@@ -495,6 +500,10 @@ function navigate(page) {
     window.location.href = "https://puspus-dev.github.io/ujkreta/eugyintezes/";
     return;
   }
+  if (page === "dkt") {
+    window.location.href = "https://puspus-dev.github.io/ujkreta/dkt/";
+    return;
+  }
 
   if (!RENDERERS[page]) page = "dashboard";
   currentPage = page;
@@ -507,6 +516,7 @@ function navigate(page) {
   const el = document.getElementById("pageContent");
   try {
     el.innerHTML = RENDERERS[page]();
+    if (page === "dkt") bindDKT();
   } catch (e) {
     console.error(e);
     el.innerHTML = `<div class="k-panel">Hiba a nézet megjelenítésekor.</div>`;
@@ -607,6 +617,266 @@ async function boot() {
 
 boot();
 
+
+
+
+/* ===== DKT – Digitális Kollaborációs Tér ===== */
+let dktSelected = null;
+
+function dktStorageKey() {
+  const uid = (cache.student && (cache.student.Uid || cache.student.uid)) ||
+    (cache.teacher && (cache.teacher.Uid || cache.teacher.uid)) ||
+    localStorage.getItem("local_usr") || "anon";
+  return "krata_dkt_files_" + uid;
+}
+
+function dktLoadFiles() {
+  try { return JSON.parse(localStorage.getItem(dktStorageKey()) || "{}"); }
+  catch { return {}; }
+}
+function dktSaveFiles(map) {
+  localStorage.setItem(dktStorageKey(), JSON.stringify(map));
+}
+
+function dktWorkspaces() {
+  let list = Array.isArray(cache.dkt) ? cache.dkt.slice() : [];
+  if (!list.length) {
+    // API üres: tantárgyak a jegyekből / órarendből / tanári profilból
+    const names = new Set();
+    (Array.isArray(cache.grades) ? cache.grades : []).forEach((g) => {
+      const n = (g.Tantargy && (g.Tantargy.Nev || g.Tantargy.nev)) || g.TantargyNev;
+      if (n) names.add(n);
+    });
+    (Array.isArray(cache.timetable) ? cache.timetable : []).forEach((l) => {
+      const n = (typeof subjectName === "function" ? subjectName(l) : null) || l.TantargyNev || l.Nev;
+      if (n && n !== "?") names.add(n);
+    });
+    const tSubs = cache.teacher && Array.isArray(cache.teacher.Tantargyak) ? cache.teacher.Tantargyak : [];
+    tSubs.forEach((s) => { if (s.Nev) names.add(s.Nev); });
+    if (!names.size) {
+      ["Matematika", "Magyar nyelv és irodalom", "Történelem", "Informatika"].forEach((n) => names.add(n));
+    }
+    list = [...names].sort((a, b) => a.localeCompare(b, "hu")).map((n, i) => ({
+      tantargyId: i + 1,
+      tantargyNev: n,
+      alkalmazottNev: (cache.teacher && cache.teacher.Nev) || "Szaktanár",
+      osztalyCsoportNev: (Array.isArray(cache.groups) && cache.groups[0] && cache.groups[0].Nev) || "Osztály",
+      tipusId: 0,
+      _local: true
+    }));
+  }
+  return list;
+}
+
+function dktEnsureSeed(wsId, subj) {
+  const map = dktLoadFiles();
+  const key = String(wsId);
+  if (!map[key] || !map[key].length) {
+    map[key] = [
+      { id: key + "-1", name: subj + " – tematika.pdf", type: "PDF", size: "245 KB", date: new Date().toISOString(), note: "Év eleji tematika" },
+      { id: key + "-2", name: subj + " – órai jegyzet.docx", type: "DOCX", size: "88 KB", date: new Date().toISOString(), note: "Közös jegyzet" },
+      { id: key + "-3", name: "Házi feladatok mappa", type: "Mappa", size: "—", date: new Date().toISOString(), note: "Digitális beadandók" }
+    ];
+    dktSaveFiles(map);
+  }
+  return map[key];
+}
+
+function renderDKT() {
+  window.location.href = "https://puspus-dev.github.io/ujkreta/dkt/";
+  return `<div class="n-panel"><div class="n-panel-body">Átirányítás a DKT oldalra…
+    <a href="https://puspus-dev.github.io/ujkreta/dkt/">Megnyitás →</a></div></div>`;
+}
+function renderDKT_legacy() {
+  const list = dktWorkspaces();
+  if (dktSelected == null && list.length) {
+    const first = list[0];
+    dktSelected = String(first.tantargyId || first.TantargyId || first.tantargyNev || 0);
+  }
+  const cards = list.map((d) => {
+    const id = String(d.tantargyId || d.TantargyId || d.tantargyNev || "");
+    const subj = d.tantargyNev || d.TantargyNev || "Tantárgy";
+    const teacher = d.alkalmazottNev || d.AlkalmazottNev || "—";
+    const group = d.osztalyCsoportNev || d.OsztalyCsoportNev || "—";
+    const active = id === String(dktSelected) ? " dkt-card-active" : "";
+    return `<button type="button" class="dkt-card${active}" data-dkt-id="${esc(id)}" data-dkt-name="${esc(subj)}">
+      <img src="icons/OktatasIgenyles.png" alt="" class="dkt-card-ico">
+      <div class="dkt-card-title">${esc(subj)}</div>
+      <div class="dkt-card-meta">${esc(teacher)} · ${esc(group)}</div>
+    </button>`;
+  }).join("");
+
+  let filesHtml = `<div class="k-card-empty">Válassz munkateret a bal oldalon.</div>`;
+  if (dktSelected != null) {
+    const ws = list.find((d) => String(d.tantargyId || d.TantargyId || d.tantargyNev || "") === String(dktSelected));
+    const subj = (ws && (ws.tantargyNev || ws.TantargyNev)) || "Munkatér";
+    const files = dktEnsureSeed(dktSelected, subj);
+    filesHtml = `
+      <div class="dkt-files-head">
+        <div>
+          <strong>${esc(subj)}</strong>
+          <span class="k-grade-meta"> · ${files.length} elem</span>
+        </div>
+        <button type="button" class="k-btn k-btn-primary" id="dktAddBtn">＋ Új dokumentum</button>
+      </div>
+      <div class="n-table-wrap"><table class="n-table">
+        <thead><tr><th>Név</th><th>Típus</th><th>Méret</th><th>Dátum</th><th>Megjegyzés</th><th></th></tr></thead>
+        <tbody>
+          ${files.map((f) => `<tr>
+            <td><img src="icons/${f.type === "Mappa" ? "Egyeb" : "note_text_f"}.png" class="doc-row-ico" alt=""> ${esc(f.name)}</td>
+            <td>${esc(f.type)}</td>
+            <td>${esc(f.size || "—")}</td>
+            <td>${typeof fmtDate === "function" ? fmtDate(f.date) : (f.date || "—").slice(0, 10)}</td>
+            <td class="k-grade-meta">${esc(f.note || "")}</td>
+            <td><button type="button" class="k-logout dkt-del" data-id="${esc(f.id)}">Törlés</button></td>
+          </tr>`).join("")}
+        </tbody>
+      </table></div>`;
+  }
+
+  return `
+    <div class="dkt-layout">
+      <aside class="dkt-side">
+        <div class="n-panel-head" style="border:1px solid var(--ek-line,#c5d3e2);border-bottom:0;background:#fff;">Munkaterek</div>
+        <div class="dkt-cards">${cards || `<div class="k-card-empty">Nincs munkatér.</div>`}</div>
+      </aside>
+      <section class="dkt-main n-panel" style="margin:0;">
+        <div class="n-panel-head">Dokumentumok a munkatérben</div>
+        <div class="n-panel-body">${filesHtml}</div>
+      </section>
+    </div>`;
+}
+
+function bindDKT() {
+  document.querySelectorAll(".dkt-card").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      dktSelected = btn.getAttribute("data-dkt-id");
+      const el = document.getElementById("pageContent");
+      if (el) { el.innerHTML = renderDKT(); bindDKT(); }
+    });
+  });
+  document.getElementById("dktAddBtn")?.addEventListener("click", () => {
+    const name = prompt("Dokumentum neve (pl. beadandó.pdf):");
+    if (!name || !name.trim()) return;
+    const map = dktLoadFiles();
+    const key = String(dktSelected);
+    const arr = map[key] || [];
+    arr.unshift({
+      id: key + "-" + Date.now(),
+      name: name.trim(),
+      type: name.toLowerCase().endsWith(".pdf") ? "PDF" : (name.toLowerCase().endsWith(".docx") ? "DOCX" : "Fájl"),
+      size: "—",
+      date: new Date().toISOString(),
+      note: "Helyben hozzáadva"
+    });
+    map[key] = arr;
+    dktSaveFiles(map);
+    const el = document.getElementById("pageContent");
+    if (el) { el.innerHTML = renderDKT(); bindDKT(); }
+  });
+  document.querySelectorAll(".dkt-del").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (!confirm("Törlöd ezt az elemet?")) return;
+      const map = dktLoadFiles();
+      const key = String(dktSelected);
+      map[key] = (map[key] || []).filter((f) => f.id !== btn.getAttribute("data-id"));
+      dktSaveFiles(map);
+      const el = document.getElementById("pageContent");
+      if (el) { el.innerHTML = renderDKT(); bindDKT(); }
+    });
+  });
+}
+
+function renderDocuments() {
+  const dkt = Array.isArray(cache.dkt) ? cache.dkt : [];
+  const hw = Array.isArray(cache.homework) ? cache.homework : [];
+  const tests = Array.isArray(cache.tests) ? cache.tests : [];
+
+  // DKT munkaterek (tantárgyanként)
+  const workspaceRows = dkt.length
+    ? dkt.map((d) => {
+        const subj = d.tantargyNev || d.TantargyNev || "Tantárgy";
+        const teacher = d.alkalmazottNev || d.AlkalmazottNev || "—";
+        const group = d.osztalyCsoportNev || d.OsztalyCsoportNev || "—";
+        return `<tr>
+          <td><img src="icons/OktatasIgenyles.png" alt="" class="doc-row-ico"> ${esc(subj)}</td>
+          <td>${esc(teacher)}</td>
+          <td>${esc(group)}</td>
+          <td><span class="n-badge n-badge-ok">Munkatér</span></td>
+        </tr>`;
+      }).join("")
+    : "";
+
+  // Mintadokumentumok a meglévő adatokból (házi / dolgozat mint "digitális anyag")
+  const docs = [];
+  hw.slice(0, 12).forEach((h, i) => {
+    docs.push({
+      name: (subjectName(h) || "Házi") + " – feladat",
+      type: "Házi feladat",
+      date: h.FeladasDatuma || h.RogzitesIdopontja || h.HataridoDatuma || "",
+      meta: (h.Szoveg || "").slice(0, 80),
+      icon: "icons/HaziFeladatHiany.png"
+    });
+  });
+  tests.slice(0, 8).forEach((t) => {
+    docs.push({
+      name: (subjectName(t) || "Számonkérés") + (t.Temaja || t.Tema ? " – " + (t.Temaja || t.Tema) : ""),
+      type: "Számonkérés",
+      date: t.Datum || t.BejelentesDatuma || "",
+      meta: t.Modja?.Nev || "",
+      icon: "icons/Hibajegy.png"
+    });
+  });
+  // Ha üres, demo sorok a DKT-ból
+  if (!docs.length && dkt.length) {
+    dkt.forEach((d) => {
+      const subj = d.tantargyNev || d.TantargyNev || "Tantárgy";
+      docs.push({
+        name: subj + " – tematika.pdf",
+        type: "PDF",
+        date: "",
+        meta: "Digitális tananyag (minta)",
+        icon: "icons/note_text_f.png"
+      });
+      docs.push({
+        name: subj + " – órai jegyzet.docx",
+        type: "Dokumentum",
+        date: "",
+        meta: "Munkatér fájl (minta)",
+        icon: "icons/note_text_p.png"
+      });
+    });
+  }
+
+  const docRows = docs.length
+    ? docs.map((d) => `<tr>
+        <td><img src="${d.icon}" alt="" class="doc-row-ico"> ${esc(d.name)}</td>
+        <td>${esc(d.type)}</td>
+        <td>${fmtDate(d.date)}</td>
+        <td class="k-grade-meta">${esc(d.meta || "—")}</td>
+      </tr>`).join("")
+    : `<tr><td colspan="4" class="k-card-empty">Nincs megjeleníthető digitális dokumentum.</td></tr>`;
+
+  return `
+    <div class="n-panel">
+      <div class="n-panel-head">Digitális Kollaborációs Tér (DKT) – munkaterek</div>
+      <div class="n-panel-body" style="padding:0;">
+        <div class="n-table-wrap"><table class="n-table">
+          <thead><tr><th>Tantárgy</th><th>Tanár</th><th>Csoport</th><th>Státusz</th></tr></thead>
+          <tbody>${workspaceRows || `<tr><td colspan="4" class="k-card-empty">Nincs DKT munkatér.</td></tr>`}</tbody>
+        </table></div>
+      </div>
+    </div>
+    <div class="n-panel">
+      <div class="n-panel-head">Digitális dokumentumok</div>
+      <div class="n-panel-body" style="padding:0;">
+        <div class="n-table-wrap"><table class="n-table">
+          <thead><tr><th>Dokumentum</th><th>Típus</th><th>Dátum</th><th>Megjegyzés</th></tr></thead>
+          <tbody>${docRows}</tbody>
+        </table></div>
+      </div>
+    </div>`;
+}
 
 function renderEUGY() {
   window.location.href = "https://puspus-dev.github.io/ujkreta/eugyintezes/";

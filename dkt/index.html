@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KRÁTA – DKT</title>
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="bootMsg" class="boot-msg">
+    <img src="loading.gif" alt="Betöltés" class="boot-spinner" width="60" height="60">
+    <div class="boot-text">Betöltés…</div>
+  </div>
+
+  <div id="appShell" style="display:none;">
+    <div class="e-topbar">
+      <div class="brand">
+        <img src="krata-logo.png" alt="KRÁTA" style="height:28px;vertical-align:middle;margin-right:8px">
+        <small style="display:inline">DKT</small>
+      </div>
+      <div class="e-user">
+        <span id="userLabel">—</span>
+        <button type="button" id="btnBack">← Vissza a naplóba</button>
+        <button type="button" id="logoutBtn">Kijelentkezés</button>
+      </div>
+    </div>
+
+    <nav class="e-nav">
+      <button type="button" class="e-nav-item active" data-view="workspaces">
+        <img class="menu-ico" src="icons/OktatasIgenyles.png" alt="">Munkaterek
+      </button>
+      <button type="button" class="e-nav-item" data-view="files" id="navFiles" disabled>
+        <img class="menu-ico" src="icons/note_text_f.png" alt="">Dokumentumok
+      </button>
+      <button type="button" class="e-nav-item" id="btnRefresh">
+        <img class="menu-ico" src="icons/AdatbazisVissza.png" alt="">Frissítés
+      </button>
+    </nav>
+
+    <div class="dkt-page">
+      <aside class="dkt-side">
+        <div class="side-label">Munkaterek</div>
+        <div id="wsList" class="dkt-cards"></div>
+      </aside>
+      <main class="dkt-main">
+        <h1 class="e-page-title" id="pageTitle">Válassz munkateret</h1>
+        <div id="flash"></div>
+        <div id="appRoot"></div>
+      </main>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

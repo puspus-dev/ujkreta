@@ -442,3 +442,49 @@ input:focus, select:focus, textarea:focus, .e-search:focus { outline: 0; border-
   width: 22px; height: 22px; object-fit: contain; display: block; margin: 0 auto 3px;
   /* színes eKRÉTA ikonok – nem invertáljuk */ filter: none;
 }
+
+.doc-row-ico {
+  width: 18px; height: 18px; object-fit: contain;
+  vertical-align: middle; margin-right: 6px;
+}
+
+
+/* DKT layout */
+.dkt-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+@media (max-width: 800px) {
+  .dkt-layout { grid-template-columns: 1fr; }
+}
+.dkt-side { min-width: 0; }
+.dkt-cards {
+  display: flex; flex-direction: column; gap: 0;
+  border: 1px solid var(--ek-line, #c5d3e2);
+  background: #fff;
+  max-height: 70vh; overflow-y: auto;
+}
+.dkt-card {
+  display: block; width: 100%; text-align: left;
+  border: 0; border-bottom: 1px solid var(--ek-line, #c5d3e2);
+  background: #fff; padding: 12px 14px; cursor: pointer;
+  color: var(--ek-text, #445261);
+}
+.dkt-card:hover { background: #e0f7fa; }
+.dkt-card-active {
+  background: #e0f7fa;
+  border-left: 3px solid var(--ek-blue, #54a5d1);
+}
+.dkt-card-ico {
+  width: 22px; height: 22px; object-fit: contain;
+  vertical-align: middle; margin-right: 8px;
+}
+.dkt-card-title { font-weight: 700; font-size: 13px; margin-top: 4px; }
+.dkt-card-meta { font-size: 12px; color: var(--ek-mute, #7c8a99); margin-top: 2px; }
+.dkt-files-head {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.dkt-main { min-width: 0; }

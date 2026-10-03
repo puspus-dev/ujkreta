@@ -4,4 +4,4 @@ Fejlesztett KRÉTA e-napló alternatíva
 
 _API dokumentációt megtalálod a pub/docs.md-ben!_
 
-Discord szerver: https://discord.gg/Q2xGkRaq8e
+Discord szerver: [https://discord.gg/Q2xGkRaq8e](https://discord.gg/gzqmccHXWb)

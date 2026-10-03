@@ -488,3 +488,8 @@ input:focus, select:focus, textarea:focus, .e-search:focus { outline: 0; border-
   gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
 }
 .dkt-main { min-width: 0; }
+
+/* FontAwesome menü */
+.main-menu .menu-fa { color: #fff; }
+.m-bottom-nav .fa { font-size: 16px; display: block; margin: 0 auto 2px; }
+.m-tab { display: flex; flex-direction: column; align-items: center; }

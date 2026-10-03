@@ -859,7 +859,7 @@ function renderDocuments() {
 
   return `
     <div class="n-panel">
-      <div class="n-panel-head">Digitális Kollaborációs Tér (DKT) – munkaterek</div>
+      <div class="n-panel-head">Digitális Kollaborációs Tér – munkaterek</div>
       <div class="n-panel-body" style="padding:0;">
         <div class="n-table-wrap"><table class="n-table">
           <thead><tr><th>Tantárgy</th><th>Tanár</th><th>Csoport</th><th>Státusz</th></tr></thead>

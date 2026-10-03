@@ -14,7 +14,7 @@ const PAGE_META = {
   grades: "Értékelések",
   timetable: "Órarend",
   homework: "Házi feladatok",
-  messages: "Üzenetek",
+  eugy: "e-Ügyintézés",
   tests: "Számonkérések",
   absences: "Mulasztások",
   notices: "Faliújság",
@@ -409,6 +409,16 @@ function renderProfile() {
     : "—";
 
   return `
+    <div class="n-panel" style="margin-bottom:12px;">
+      <div class="n-panel-body" style="display:flex;align-items:center;gap:16px;">
+        <img src="icons/noprofilepic.png" alt="Profilkép" class="profile-pic" width="72" height="72"
+          style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid var(--ek-line,#c5d3e2);background:#f4f4f4;">
+        <div>
+          <div style="font-size:18px;font-weight:700;">${esc(s.Nev || "—")}</div>
+          <div style="color:var(--k-muted,#5a6a70);font-size:13px;">${esc(s.EmailCim || "")}</div>
+        </div>
+      </div>
+    </div>
     <div class="n-grid n-grid-2">
       <div class="n-panel">
         <div class="n-panel-head">Személyes adatok</div>
@@ -455,7 +465,7 @@ const RENDERERS = {
   absences: renderAbsences,
   notices: renderNotices,
   notes: renderNotes,
-  messages: renderMessages,
+  eugy: renderEUGY,
   profile: renderProfile
 };
 
@@ -466,6 +476,11 @@ function closeSidebar() {
 }
 
 function navigate(page) {
+  if (page === "eugy") {
+    window.location.href = "https://puspus-dev.github.io/ujkreta/eugyintezes/";
+    return;
+  }
+
   if (!RENDERERS[page]) page = "dashboard";
   currentPage = page;
   document.querySelectorAll(".k-nav-item").forEach((b) => {
@@ -563,24 +578,23 @@ async function boot() {
 
   try {
     await loadAllData();
-    document.getElementById("bootMsg").style.display = "none";
-    document.getElementById("appShell").style.display = "block";
-    fillHeader();
-    navigate("dashboard");
-    requestNotificationPermission();
-    checkNewGrades();
-    setInterval(checkNewGrades, 3 * 60 * 1000);
   } catch (e) {
-    console.error(e);
-    document.getElementById("bootMsg").textContent = "Nem sikerült betölteni. Átirányítás a bejelentkezéshez...";
-    setTimeout(goLogin, 1200);
+    console.error("loadAllData", e);
   }
+  document.getElementById("bootMsg").style.display = "none";
+  document.getElementById("appShell").style.display = "block";
+  try { fillHeader(); } catch (e) { console.warn(e); }
+  navigate("dashboard");
+  requestNotificationPermission();
+  checkNewGrades();
+  setInterval(checkNewGrades, 3 * 60 * 1000);
 }
 
 boot();
 
 
-function renderMessages() {
-  return `<div class="k-panel"><p>Üzenetek az <a href="https://puspus-dev.github.io/ujkreta/eugyintezes/">E-ügyintézés</a> oldalon.</p>
+function renderEUGY() {
+  window.location.href = "https://puspus-dev.github.io/ujkreta/eugyintezes/";
+  return `<div class="k-panel"><p>Átirányítás az e-Ügyintézéshez…</p>
     <p><a class="k-logout" href="https://puspus-dev.github.io/ujkreta/eugyintezes/">Megnyitás →</a></p></div>`;
 }

@@ -433,3 +433,8 @@ input:focus, select:focus, textarea:focus, .e-search:focus { outline: 0; border-
 }
 @media (min-width: 901px) { .n-overlay, .n-overlay.show { display: none !important; } }
 @media (max-width: 700px) { .main-content { padding-bottom: 76px; } }
+
+.main-menu .menu-ico, .main-menu .n-nav-item .menu-ico, .main-menu .k-nav-item .menu-ico {
+  width: 22px; height: 22px; object-fit: contain; display: block; margin: 0 auto 3px;
+  filter: brightness(0) invert(1);
+}

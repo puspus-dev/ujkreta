@@ -2,7 +2,7 @@
 const API_BASE = "https://ujkreta.onrender.com";
 const LOGIN_URL = "https://puspus-dev.github.io/ujkreta/";
 const DIAK_URL = "https://puspus-dev.github.io/ujkreta/diak/";
-const TOKEN_KEYS = ["access_token", "ujkreta_access_token", "of_access_token"];
+const TOKEN_KEYS = ["access_token", "ujkreta_access_token", "of_access_token", "teacher_access_token", "tanar_access_token"];
 const MSG_BASE = "/integration-kretamobile-api/v1/kommunikacio";
 
 let accessToken = null;

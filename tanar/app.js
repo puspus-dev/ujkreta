@@ -14,7 +14,6 @@ const PAGE_META = {
   grade: "Jegy beírása",
   naplo: "Óra naplózása",
   grades: "Beírt jegyek",
-  eugy: "e-Ügyintézés",
   absences: "Mulasztások",
   students: "Tanulók",
   timetable: "Órarend",
@@ -721,6 +720,16 @@ function renderProfile() {
   const classes = Array.isArray(t.OsztalyFonokOsztalyok) ? t.OsztalyFonokOsztalyok : [];
 
   return `
+    <div class="n-panel" style="margin-bottom:12px;">
+      <div class="n-panel-body" style="display:flex;align-items:center;gap:16px;">
+        <img src="icons/noprofilepic.png" alt="Profilkép" class="profile-pic" width="72" height="72"
+          style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid var(--ek-line,#c5d3e2);background:#f4f4f4;">
+        <div>
+          <div style="font-size:18px;font-weight:700;">${esc(t.Nev || "—")}</div>
+          <div style="color:var(--n-muted,#5a6a70);font-size:13px;">${esc(t.EmailCim || "")}</div>
+        </div>
+      </div>
+    </div>
     <div class="n-panel">
       <div class="n-panel-head">Oktatói adatok</div>
       <div class="n-panel-body" style="padding:0;">
@@ -880,7 +889,6 @@ const RENDERERS = {
   grade: renderGradeForm,
   grades: renderGrades,
   absences: renderAbsences,
-  eugy: renderEUGY,
   students: renderStudents,
   timetable: renderTimetable,
   homework: renderHomework,
@@ -893,6 +901,10 @@ function closeSidebar() {
 }
 
 function navigate(page, opts = {}) {
+  if (page === "eugy") {
+    window.location.href = "https://puspus-dev.github.io/ujkreta/eugyintezes/";
+    return;
+  }
   if (!RENDERERS[page]) page = "dashboard";
   currentPage = page;
   document.getElementById("pageTitle").textContent = PAGE_META[page];
@@ -1133,9 +1145,4 @@ function renderHomeworkForm() {
     <h3 style="margin-top:20px;font-size:15px">Meglévő házik</h3>
     ${existing}
   </div>`;
-
-  function renderEUGY() {
-  return `<div class="k-panel"><p>Üzenetek az <a href="https://puspus-dev.github.io/ujkreta/eugyintezes/">E-ügyintézés</a> oldalon.</p>
-    <p><a class="k-logout" href="https://puspus-dev.github.io/ujkreta/eugyintezes/">Megnyitás →</a></p></div>`;
-}
 }

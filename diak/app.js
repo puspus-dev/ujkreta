@@ -492,6 +492,50 @@ function fillHeader() {
   if (ty) ty.textContent = s.TanevUid || "";
 }
 
+
+
+/* ===== Böngésző értesítés új jegyről ===== */
+async function requestNotificationPermission() {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "default") {
+    try { await Notification.requestPermission(); } catch (_) {}
+  }
+}
+
+function gradeKey(g) {
+  return String(g.Uid || g.Id || (g.Tantargy && (g.Tantargy.Nev || g.Tantargy.nev) || "") + "|" + (g.KeszitesDatuma || g.RogzitesDatuma || "") + "|" + (g.SzamErtek ?? g.SzovegesErtek ?? ""));
+}
+
+let lastKnownGradeIds = new Set(JSON.parse(localStorage.getItem("lastGradeIds") || "[]"));
+
+async function checkNewGrades() {
+  try {
+    const grades = await apiGet("/ellenorzo/v3/sajat/Ertekelesek");
+    if (!Array.isArray(grades)) return;
+    const currentIds = new Set(grades.map(gradeKey));
+    const isFirstRun = lastKnownGradeIds.size === 0;
+    const newOnes = isFirstRun ? [] : grades.filter((g) => !lastKnownGradeIds.has(gradeKey(g)));
+    if (newOnes.length && Notification.permission === "granted") {
+      newOnes.forEach((g) => {
+        const subject = (g.Tantargy && (g.Tantargy.Nev || g.Tantargy.nev)) || g.Tema || "Ismeretlen tárgy";
+        const value = g.SzamErtek ?? g.SzovegesErtek ?? "?";
+        try {
+          new Notification("Új jegy érkezett!", {
+            body: subject + ": " + value,
+            icon: "krata-logo.png",
+            tag: "uj-jegy-" + gradeKey(g)
+          });
+        } catch (_) {}
+      });
+    }
+    lastKnownGradeIds = currentIds;
+    localStorage.setItem("lastGradeIds", JSON.stringify([...currentIds]));
+  } catch (e) {
+    console.warn("checkNewGrades", e);
+  }
+}
+
+
 async function boot() {
   accessToken = getStoredToken();
   if (!accessToken) {
@@ -523,6 +567,9 @@ async function boot() {
     document.getElementById("appShell").style.display = "block";
     fillHeader();
     navigate("dashboard");
+    requestNotificationPermission();
+    checkNewGrades();
+    setInterval(checkNewGrades, 3 * 60 * 1000);
   } catch (e) {
     console.error(e);
     document.getElementById("bootMsg").textContent = "Nem sikerült betölteni. Átirányítás a bejelentkezéshez...";

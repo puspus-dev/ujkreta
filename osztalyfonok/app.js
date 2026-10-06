@@ -7,7 +7,6 @@ const PAGE_META = {
   documents: "Digitális dokumentumok",
   dkt: "DKT – Digitális Kollaborációs Tér",
   dashboard: "Kezdőlap",
-  naplo: renderNaplo,
   grade: "Jegy beírása",
   grades: "Beírt jegyek",
   absences: "Mulasztások",
@@ -152,22 +151,30 @@ async function loadAllData() {
     homework: "/naplo/v3/sajat/HaziFeladatok",
     absences: "/naplo/v3/sajat/Mulasztasok"
   };
-  // OF multi list fallback
   const ofStudents = await apiGet("/naplo/v3/sajat/Of/Diakok").catch(() => null);
   const entries = await Promise.all(
-    Object.entries(map).map(async ([k, p]) => [k, await apiGet(p)])
+    Object.entries(map).map(async ([k, p]) => {
+      try { return [k, await apiGet(p)]; }
+      catch (e) { console.warn("load", p, e); return [k, null]; }
+    })
   );
   cache = Object.fromEntries(entries);
   if (Array.isArray(ofStudents) && ofStudents.length) {
-    // normalize to TeacherStudent-like
     cache.students = ofStudents.map(s => ({
       Uid: s.Uid,
       Nev: s.Nev,
       EmailCim: s.EmailCim,
-      OsztalyCsoport: { Uid: s.class_group_uid || "", Nev: "" }
+      OsztalyCsoport: { Uid: s.class_group_uid || s.OsztalyCsoportUid || "", Nev: s.class_group_nev || "" }
     }));
   }
   if (!Array.isArray(cache.students)) cache.students = [];
+  if (!Array.isArray(cache.grades)) cache.grades = [];
+  if (!Array.isArray(cache.groups)) cache.groups = [];
+  if (!Array.isArray(cache.homework)) cache.homework = [];
+  if (!Array.isArray(cache.absences)) cache.absences = [];
+  if (!Array.isArray(cache.timetable)) cache.timetable = [];
+  if (!cache.teacher) cache.teacher = {};
+  return cache;
 }
 
 function renderDashboard() {
@@ -1411,107 +1418,6 @@ function fillHeader() {
   const ty = document.getElementById("tanev");
   if (ty) ty.textContent = t.TanevUid || "";
 }
-function navigate(page, opts = {}) {
-  if (page === "eugy") {
-    window.location.href = "https://puspus-dev.github.io/ujkreta/eugyintezes/";
-    return;
-  }
-  if (page === "dkt") {
-    window.location.href = "https://puspus-dev.github.io/ujkreta/dkt/";
-    return;
-  }
-  if (page === "documents" && !cache.dkt) {
-    (async () => {
-      try {
-        const data = await apiGet("/dktapi/intezmenyek/munkaterek/tanulok");
-        cache.dkt = Array.isArray(data) ? data : [];
-      } catch (e) { cache.dkt = []; }
-      const el = document.getElementById("pageContent");
-      if (el && currentPage === "documents") el.innerHTML = renderDocuments();
-    })();
-  }
-  if (!RENDERERS[page]) page = "dashboard";
-  currentPage = page;
-  document.getElementById("pageTitle").textContent = PAGE_META[page];
-  document.getElementById("bcPage").textContent = PAGE_META[page];
-  document.querySelectorAll(".n-nav-item").forEach((b) => {
-    b.classList.toggle("active", b.dataset.page === page);
-  });
-  document.querySelectorAll(".m-tab[data-page]").forEach((b) => {
-    b.classList.toggle("active", b.dataset.page === page);
-  });
-  const el = document.getElementById("pageContent");
-  try {
-    el.innerHTML = RENDERERS[page]();
-    if (page === "dkt") bindDKT();
-    if (page === "documents") bindDocuments();
-  if (page === "grade") {
-    if (typeof bindGradeForm === "function") bindGradeForm();
-    if (typeof bindGradeClicks === "function") bindGradeClicks();
-  }
-  if (page === "absences" && typeof bindAbsences === "function") bindAbsences();
-  if (page === "studentNew" && typeof bindStudentNew === "function") bindStudentNew();
-  if (page === "homework" && typeof bindHomework === "function") bindHomework();
-  document.querySelectorAll("[data-go]").forEach((b) => {
-    b.onclick = () => navigate(b.getAttribute("data-go"));
-  });
-  } catch (e) {
-    console.error(e);
-    el.innerHTML = `<div class="n-panel"><div class="n-panel-body">${empty("Hiba a nézet megjelenítésekor.")}</div></div>`;
-  }
-
-  if (page === "grade") bindGradeForm();
-  if (page === "absences") bindAbsences();
-  if (page === "naplo") html = renderNaplo();
-  else if (page === "grades") {
-    document.querySelectorAll(".del-grade").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        if (!confirm("Törlöd a jegyet?")) return;
-        try {
-          await apiDelete("/naplo/v3/sajat/Ertekelesek?uid=" + encodeURIComponent(btn.dataset.uid));
-          cache.grades = await apiGet("/naplo/v3/sajat/Ertekelesek");
-          navigate("grades");
-        } catch (err) {
-          alert("Törlés sikertelen: " + (err.message || err));
-        }
-      });
-    });
-  }
-  if (page === "dashboard") {
-    document.getElementById("goGradeBtn")?.addEventListener("click", () => navigate("grade"));
-  }
-  if (page === "students") {
-    document.querySelectorAll(".grade-for").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        navigate("grade");
-        const sel = document.getElementById("gStudent");
-        if (sel) {
-          sel.value = btn.dataset.uid;
-          sel.dispatchEvent(new Event("change"));
-        }
-      });
-    });
-  }
-
-  // optional preselect student
-  if (page === "grade" && opts.studentUid) {
-    const sel = document.getElementById("gStudent");
-    if (sel) {
-      sel.value = opts.studentUid;
-      sel.dispatchEvent(new Event("change"));
-    }
-  }
-
-  closeSidebar();
-}
-
-function fillHeader() {
-  const t = cache.teacher || {};
-  document.getElementById("userName").textContent = t.Nev || localStorage.getItem("local_usr") || "Tanár";
-  document.getElementById("userCode").textContent = t.Uid ? `UID: ${t.Uid}` : "";
-  document.getElementById("instName").textContent = t.IntezmenyNev || "KRÁTA";
-}
-
 async function boot() {
   accessToken = getStoredToken();
   if (!accessToken) {
@@ -1539,15 +1445,18 @@ async function boot() {
 
   try {
     await loadAllData();
+  } catch (e) {
+    console.error("loadAllData", e);
+  }
+  try {
     document.getElementById("bootMsg").style.display = "none";
     document.getElementById("appShell").style.display = "block";
     fillHeader();
     navigate("dashboard");
   } catch (e) {
-    console.error(e);
+    console.error("boot UI", e);
     const bm = document.getElementById("bootMsg");
-    if (bm) bm.innerHTML = '<img src="loading.gif" class="boot-spinner" width="60" height="60"><div class="boot-text">Nem sikerült betölteni. Átirányítás…</div>';
-    setTimeout(goLogin, 1200);
+    if (bm) bm.innerHTML = '<div class="boot-text">Betöltési hiba: ' + (e.message || e) + '</div>';
   }
 }
 

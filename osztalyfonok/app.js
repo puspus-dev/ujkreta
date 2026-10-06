@@ -1390,6 +1390,56 @@ function renderEUGY() {
 }
 
 
+
+function renderProfile() {
+  const t = cache.teacher || {};
+  const subjects = Array.isArray(t.Tantargyak) ? t.Tantargyak : [];
+  const classes = Array.isArray(t.OsztalyFonokOsztalyok) ? t.OsztalyFonokOsztalyok : [];
+  return `
+    <div class="n-panel" style="margin-bottom:12px;">
+      <div class="n-panel-body" style="display:flex;align-items:center;gap:16px;">
+        <img src="icons/noprofilepic.png" alt="Profilkép" class="profile-pic" width="72" height="72"
+          style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid var(--ek-line,#c5d3e2);background:#f4f4f4;">
+        <div>
+          <div style="font-size:18px;font-weight:700;">${esc(t.Nev || localStorage.getItem("local_usr") || "—")}</div>
+          <div style="color:var(--n-muted,#5a6a70);font-size:13px;">${esc(t.EmailCim || "")}</div>
+          <div style="color:var(--n-muted,#5a6a70);font-size:13px;">Szerepkör: Osztályfőnök</div>
+        </div>
+      </div>
+    </div>
+    <div class="n-panel">
+      <div class="n-panel-head">Oktatói adatok</div>
+      <div class="n-panel-body" style="padding:0;">
+        <div class="n-kv">
+          <div class="k">Név</div><div>${esc(t.Nev || "—")}</div>
+          <div class="k">E-mail</div><div>${esc(t.EmailCim || "—")}</div>
+          <div class="k">Telefon</div><div>${esc(t.Telefonszam || "—")}</div>
+          <div class="k">UID</div><div>${esc(t.Uid || "—")}</div>
+          <div class="k">Intézmény</div><div>${esc(t.IntezmenyNev || "—")}</div>
+          <div class="k">Int. azonosító</div><div>${esc(t.IntezmenyAzonosito || "—")}</div>
+        </div>
+      </div>
+    </div>
+    <div class="n-grid n-grid-2">
+      <div class="n-panel">
+        <div class="n-panel-head">Tantárgyak</div>
+        <div class="n-panel-body">
+          ${subjects.length === 0 ? empty("Nincs tantárgy.") : `<ul class="n-list">${subjects.map((s) => `
+            <li><div class="n-list-title">${esc(s.Nev)}</div><div class="n-list-meta">${esc(s.Uid)}</div></li>
+          `).join("")}</ul>`}
+        </div>
+      </div>
+      <div class="n-panel">
+        <div class="n-panel-head">Osztályfőnöki osztályok</div>
+        <div class="n-panel-body">
+          ${classes.length === 0 ? empty("Nincs.") : `<ul class="n-list">${classes.map((c) => `
+            <li><div class="n-list-title">${esc(c.Nev)}</div><div class="n-list-meta">${esc(c.Uid)}</div></li>
+          `).join("")}</ul>`}
+        </div>
+      </div>
+    </div>`;
+}
+
 const RENDERERS = {
   eugy: renderEUGY,
   documents: renderDocuments,

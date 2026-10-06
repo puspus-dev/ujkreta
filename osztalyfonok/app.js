@@ -207,46 +207,85 @@ function renderDashboard() {
       <div class="n-panel-body">${groups.length ? groups.map(g => `<span class="n-badge" style="margin:2px">${esc(g.Nev || g.Uid)}</span>`).join(" ") : "—"}</div>
     </div>`;
 }
-function studentGrades(studentUid, subjectUid) {
+
+
+
+
+
+function gradesByStudent(subjectUid) {
+  const map = Object.create(null);
   const grades = Array.isArray(cache.grades) ? cache.grades : [];
-  return grades.filter((g) => {
-    const su = String(g.TanuloUid || g.Tanulo?.Uid || "");
-    const matchStudent = !su || su === String(studentUid);
-    // teacher API grades may not always include TanuloUid on older entries
-    const sub = g.Tantargy?.Uid || g.TantargyUid || "";
-    const matchSub = !subjectUid || !sub || sub === subjectUid;
-    // Prefer explicit student match when present
-    if (g.TanuloUid || g.Tanulo?.Uid) {
-      return String(g.TanuloUid || g.Tanulo?.Uid) === String(studentUid) && matchSub;
-    }
-    return matchSub;
-  });
+  for (let i = 0; i < grades.length; i++) {
+    const g = grades[i];
+    const su = g.TantargyUid || (g.Tantargy && g.Tantargy.Uid) || "";
+    if (subjectUid && su && su !== subjectUid) continue;
+    const uid = g.TanuloUid || (g.Tanulo && g.Tanulo.Uid) || "";
+    if (!uid) continue;
+    if (!map[uid]) map[uid] = [];
+    map[uid].push(g);
+  }
+  return map;
 }
-
-function avgOf(list) {
-  const nums = list.map((g) => Number(g.SzamErtek)).filter((n) => n > 0);
-  if (!nums.length) return "—";
-  return (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2);
-}
-
 function studentGrades(studentUid, subjectUid) {
-  const grades = Array.isArray(cache.grades) ? cache.grades : [];
-  return grades.filter((g) => {
-    const su = String(g.TanuloUid || g.Tanulo?.Uid || "");
-    if (su && su !== String(studentUid)) return false;
-    const sub = g.Tantargy?.Uid || g.TantargyUid || "";
-    if (subjectUid && sub && sub !== subjectUid) return false;
-    if (g.TanuloUid || g.Tanulo?.Uid) {
-      return String(g.TanuloUid || g.Tanulo.Uid) === String(studentUid);
-    }
-    return !subjectUid || !sub || sub === subjectUid;
-  });
+  const idx = gradesByStudent(subjectUid);
+  return idx[studentUid] || [];
 }
-
 function avgOf(list) {
-  const nums = list.map((g) => Number(g.SzamErtek)).filter((n) => n > 0);
-  if (!nums.length) return "—";
-  return (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2);
+  if (!list || !list.length) return "—";
+  let sum = 0, n = 0;
+  for (let i = 0; i < list.length; i++) {
+    const v = Number(list[i].SzamErtek);
+    if (v > 0) { sum += v; n++; }
+  }
+  return n ? (sum / n).toFixed(2) : "—";
+}
+function gradeChipTitle(g) {
+  const v = g.SzamErtek ?? g.SzovegesErtek ?? "?";
+  const tema = g.Tema || g.Temaja || "—";
+  const d = g.KeszitesDatuma || g.Datum || g.RogzitesDatuma || "";
+  let ds = "";
+  if (d) { try { ds = new Date(d).toLocaleDateString("hu-HU"); } catch { ds = String(d).slice(0, 10); } }
+  return "Érték: " + v + " · Téma: " + tema + (ds ? (" · " + ds) : "");
+}
+function gradeChipsHtml(gs) {
+  if (!gs || !gs.length) return '<span style="color:#90a4ae;">—</span>';
+  let html = "";
+  for (let i = 0; i < gs.length; i++) {
+    const g = gs[i];
+    const v = g.SzamErtek ?? g.SzovegesErtek ?? "?";
+    html += '<span class="k-g k-g-' + esc(g.SzamErtek) + '" data-guid="' + esc(g.Uid) +
+      '" title="' + esc(gradeChipTitle(g)) + '">' + esc(v) + "</span> ";
+  }
+  return html;
+}
+const TEMA_PRESETS = [
+  "Írásbeli felelet",
+  "Szóbeli felelet",
+  "Írásbeli témazáró",
+  "Szóbeli témazáró",
+  "Röpdolgozat",
+  "Házi feladat",
+  "Projektmunka",
+  "Órai munka",
+  "Dicséret",
+  "Intő",
+  "Egyéni…"
+];
+function temaSelectHtml(selected) {
+  return TEMA_PRESETS.map((t) => {
+    const val = t === "Egyéni…" ? "__custom__" : t;
+    const sel = selected === t ? " selected" : "";
+    return '<option value="' + esc(val) + '"' + sel + ">" + esc(t) + "</option>";
+  }).join("");
+}
+function readTema() {
+  const sel = document.getElementById("kbTema");
+  if (!sel) return "Értékelés";
+  if (sel.value === "__custom__") {
+    const c = (document.getElementById("kbTemaCustom")?.value || "").trim();
+    return c || "Értékelés";
+  }
+  return (sel.value || "").trim() || "Értékelés";
 }
 
 function renderGradeForm() {
@@ -278,10 +317,7 @@ function renderGradeForm() {
     ? `<tr><td colspan="5" class="n-empty">Nincs tanuló. (Backend: telepítsd a teacher_students_fix.go-t, hogy az összes diák látszódjon.)</td></tr>`
     : filtered.map((s, idx) => {
         const gs = studentGrades(s.Uid, defaultSubj);
-        const chips = gs.map((g) => {
-          const v = g.SzamErtek ?? g.SzovegesErtek ?? "?";
-          return `<span class="k-g k-g-${esc(g.SzamErtek)}" data-guid="${esc(g.Uid)}" title="${esc(g.Tema || "")} – kattints a törléshez">${esc(v)}</span>`;
-        }).join(" ") || `<span style="color:#90a4ae;">—</span>`;
+        const chips = gradeChipsHtml(gs);
         return `
           <tr data-uid="${esc(s.Uid)}" data-group="${esc(s.OsztalyCsoport?.Uid || defaultGroup)}">
             <td class="k-num">${idx + 1}</td>
@@ -312,8 +348,9 @@ function renderGradeForm() {
         <select id="kbSubject">${subjOpts || '<option value="">—</option>'}</select>
       </div>
       <div>
-        <label for="kbTema">Értékelés feljegyzése</label>
-        <input id="kbTema" type="text" placeholder="pl. Dicséret / Szódolgozat" style="min-width:220px;" />
+        <label for="kbTema">Téma</label>
+        <select id="kbTema" style="min-width:200px;">${temaSelectHtml("Írásbeli felelet")}</select>
+        <input id="kbTemaCustom" type="text" placeholder="Egyéni téma…" style="min-width:180px;display:none;margin-top:4px;" />
       </div>
       <div>
         <label for="kbWeight">Súly %</label>
@@ -358,12 +395,13 @@ function renderGradeForm() {
 }
 
 function rebuildGradeRows() {
-  pendingGrades = {};
   const groupUid = document.getElementById("kbGroup")?.value || "";
   const subjectUid = document.getElementById("kbSubject")?.value || "";
   const students = Array.isArray(cache.students) ? cache.students : [];
   const groups = Array.isArray(cache.groups) ? cache.groups : [];
-  const subjects = Array.isArray(cache.teacher?.Tantargyak) ? cache.teacher.Tantargyak : [];
+  const t = cache.teacher || {};
+  const subjects = Array.isArray(t.Tantargyak) ? t.Tantargyak : [];
+  const byStu = gradesByStudent(subjectUid);
 
   const filtered = students.filter((s) => {
     if (!groupUid) return true;
@@ -373,38 +411,34 @@ function rebuildGradeRows() {
   const body = document.getElementById("kbBody");
   if (!body) return;
 
-  body.innerHTML = filtered.length === 0
-    ? `<tr><td colspan="5" class="n-empty">Nincs tanuló ebben az osztályban.</td></tr>`
-    : filtered.map((s, idx) => {
-        const gs = studentGrades(s.Uid, subjectUid);
-        const chips = gs.map((g) => {
-          const v = g.SzamErtek ?? g.SzovegesErtek ?? "?";
-          return `<span class="k-g k-g-${esc(g.SzamErtek)}" data-guid="${esc(g.Uid)}" title="Törléshez kattints">${esc(v)}</span>`;
-        }).join(" ") || `<span style="color:#90a4ae;">—</span>`;
-        return `
-          <tr data-uid="${esc(s.Uid)}" data-group="${esc(s.OsztalyCsoport?.Uid || groupUid)}">
-            <td class="k-num">${idx + 1}</td>
-            <td>${esc(s.Nev)}</td>
-            <td class="k-grades-cell" data-grades-for="${esc(s.Uid)}">${chips}</td>
-            <td class="k-avg" data-avg-for="${esc(s.Uid)}">${avgOf(gs)}</td>
-            <td>
-              <div class="k-quick">
-                <button type="button" class="k-q" data-v="5">5</button>
-                <button type="button" class="k-q" data-v="4">4</button>
-                <button type="button" class="k-q" data-v="3">3</button>
-                <button type="button" class="k-q" data-v="2">2</button>
-                <button type="button" class="k-q" data-v="1">1</button>
-                <button type="button" class="k-q" data-v="x" title="Mégsem">x</button>
-              </div>
-            </td>
-          </tr>`;
-      }).join("");
+  if (!filtered.length) {
+    body.innerHTML = `<tr><td colspan="5" class="n-empty">Nincs tanuló ebben az osztályban.</td></tr>`;
+  } else {
+    body.innerHTML = filtered.map((s, idx) => {
+      const gs = byStu[s.Uid] || [];
+      return `<tr data-uid="${esc(s.Uid)}" data-group="${esc(s.OsztalyCsoport?.Uid || groupUid)}">
+        <td class="k-num">${idx + 1}</td>
+        <td>${esc(s.Nev)}</td>
+        <td class="k-grades-cell" data-grades-for="${esc(s.Uid)}">${gradeChipsHtml(gs)}</td>
+        <td class="k-avg" data-avg-for="${esc(s.Uid)}">${avgOf(gs)}</td>
+        <td>
+          <div class="k-quick">
+            <button type="button" class="k-q" data-v="5">5</button>
+            <button type="button" class="k-q" data-v="4">4</button>
+            <button type="button" class="k-q" data-v="3">3</button>
+            <button type="button" class="k-q" data-v="2">2</button>
+            <button type="button" class="k-q" data-v="1">1</button>
+            <button type="button" class="k-q" data-v="x" title="Mégsem">x</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join("");
+  }
 
   const groupName = groups.find((g) => g.Uid === groupUid)?.Nev || "Osztály";
   const subjName = subjects.find((s) => s.Uid === subjectUid)?.Nev || "Tantárgy";
   const ctx = document.getElementById("kbContext");
-  if (ctx) ctx.textContent = `${groupName} – ${subjName} – jegy / értékelés`;
-
+  if (ctx) ctx.textContent = groupName + " – " + subjName + " – jegy / értékelés";
   bindGradeClicks();
 }
 
@@ -500,10 +534,19 @@ function bindGradeForm() {
     });
   });
 
+  document.getElementById("kbTema")?.addEventListener("change", () => {
+    const custom = document.getElementById("kbTemaCustom");
+    if (!custom) return;
+    custom.style.display = document.getElementById("kbTema").value === "__custom__" ? "block" : "none";
+  });
+
   document.getElementById("kbClearSel")?.addEventListener("click", () => {
     pendingGrades = {};
     document.querySelectorAll("#kbBody .k-q").forEach((b) => b.classList.remove("k-selected"));
-    document.getElementById("kbTema").value = "";
+    const temaSel = document.getElementById("kbTema");
+    if (temaSel) temaSel.value = "Írásbeli felelet";
+    const temaCustom = document.getElementById("kbTemaCustom");
+    if (temaCustom) { temaCustom.value = ""; temaCustom.style.display = "none"; }
     const status = document.getElementById("kbStatus");
     if (status) {
       status.className = "k-status";
@@ -515,7 +558,7 @@ function bindGradeForm() {
     const status = document.getElementById("kbStatus");
     const subjectUid = document.getElementById("kbSubject").value;
     const groupUid = document.getElementById("kbGroup").value;
-    const tema = document.getElementById("kbTema").value.trim() || "Értékelés";
+    const tema = readTema();
     const weight = Number(document.getElementById("kbWeight").value) || 100;
     const typeBtn = document.querySelector(".k-btn-type.active");
     const typeRaw = (typeBtn?.dataset?.type || "1|Írásbeli|Írásbeli felelet").split("|");
@@ -1468,6 +1511,66 @@ function fillHeader() {
   const ty = document.getElementById("tanev");
   if (ty) ty.textContent = t.TanevUid || "";
 }
+
+function navigate(page, opts = {}) {
+  if (page === "eugy") {
+    window.location.href = "https://puspus-dev.github.io/ujkreta/eugyintezes/";
+    return;
+  }
+  if (page === "dkt") {
+    window.location.href = "https://puspus-dev.github.io/ujkreta/dkt/";
+    return;
+  }
+  if (!RENDERERS[page]) page = "dashboard";
+  currentPage = page;
+  const title = (PAGE_META && PAGE_META[page]) ? String(PAGE_META[page]) : page;
+  const pt = document.getElementById("pageTitle");
+  if (pt) pt.textContent = title;
+  const bc = document.getElementById("bcPage");
+  if (bc) bc.textContent = title;
+  document.querySelectorAll(".n-nav-item, .k-nav-item").forEach((b) => {
+    b.classList.toggle("active", b.dataset.page === page);
+  });
+  const el = document.getElementById("pageContent");
+  if (!el) return;
+  try {
+    el.innerHTML = (RENDERERS[page] || renderDashboard)();
+  } catch (err) {
+    console.error(err);
+    el.innerHTML = `<div class="n-panel"><div class="n-panel-body">Nézet hiba: ${esc(err.message || err)}</div></div>`;
+  }
+  try {
+    if (page === "grade") {
+      if (typeof bindGradeForm === "function") bindGradeForm();
+      if (typeof bindGradeClicks === "function") bindGradeClicks();
+    }
+    if (page === "absences" && typeof bindAbsences === "function") bindAbsences();
+    if (page === "studentNew" && typeof bindStudentNew === "function") bindStudentNew();
+    if (page === "homework" && typeof bindHomework === "function") bindHomework();
+    if (page === "documents" && typeof bindDocuments === "function") bindDocuments();
+    if (page === "grades") {
+      document.querySelectorAll(".del-grade").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          if (!confirm("Törlöd a jegyet?")) return;
+          try {
+            await apiDelete("/naplo/v3/sajat/Ertekelesek?uid=" + encodeURIComponent(btn.dataset.uid));
+            cache.grades = await apiGet("/naplo/v3/sajat/Ertekelesek");
+            navigate("grades");
+          } catch (err) {
+            alert("Törlés sikertelen: " + (err.message || err));
+          }
+        });
+      });
+    }
+    document.querySelectorAll("[data-go]").forEach((b) => {
+      b.onclick = () => navigate(b.getAttribute("data-go"));
+    });
+  } catch (err) {
+    console.error("bind page", err);
+  }
+  closeSidebar();
+}
+
 async function boot() {
   accessToken = getStoredToken();
   if (!accessToken) {

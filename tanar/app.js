@@ -276,6 +276,29 @@ function avgOf(list) {
   return (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2);
 }
 
+
+const TEMA_PRESETS = ["Írásbeli felelet","Szóbeli felelet","Írásbeli témazáró","Szóbeli témazáró","Röpdolgozat","Házi feladat","Projektmunka","Órai munka","Dicséret","Intő","Egyéni…"];
+function temaSelectHtml(selected) {
+  return TEMA_PRESETS.map((t) => {
+    const val = t === "Egyéni…" ? "__custom__" : t;
+    return `<option value="${esc(val)}"${selected===t?" selected":""}>${esc(t)}</option>`;
+  }).join("");
+}
+function readTema() {
+  const sel = document.getElementById("kbTema");
+  if (!sel) return "Értékelés";
+  if (sel.value === "__custom__") return (document.getElementById("kbTemaCustom")?.value || "").trim() || "Értékelés";
+  return (sel.value || "").trim() || "Értékelés";
+}
+function gradeChipTitle(g) {
+  const v = g.SzamErtek ?? g.SzovegesErtek ?? "?";
+  const tema = g.Tema || g.Temaja || "—";
+  const d = g.KeszitesDatuma || g.Datum || "";
+  let ds = "";
+  if (d) { try { ds = new Date(d).toLocaleDateString("hu-HU"); } catch { ds = String(d).slice(0,10); } }
+  return "Érték: " + v + " · Téma: " + tema + (ds ? (" · " + ds) : "");
+}
+
 function renderGradeForm() {
   pendingGrades = {};
   const t = cache.teacher || {};
@@ -307,7 +330,7 @@ function renderGradeForm() {
         const gs = studentGrades(s.Uid, defaultSubj);
         const chips = gs.map((g) => {
           const v = g.SzamErtek ?? g.SzovegesErtek ?? "?";
-          return `<span class="k-g k-g-${esc(g.SzamErtek)}" data-guid="${esc(g.Uid)}" title="${esc(g.Tema || "")} – kattints a törléshez">${esc(v)}</span>`;
+          return `<span class="k-g k-g-${esc(g.SzamErtek)}" data-guid="${esc(g.Uid)}" title="${esc(gradeChipTitle(g))}">${esc(v)}</span>`;
         }).join(" ") || `<span style="color:#90a4ae;">—</span>`;
         return `
           <tr data-uid="${esc(s.Uid)}" data-group="${esc(s.OsztalyCsoport?.Uid || defaultGroup)}">
@@ -340,7 +363,8 @@ function renderGradeForm() {
       </div>
       <div>
         <label for="kbTema">Értékelés feljegyzése</label>
-        <input id="kbTema" type="text" placeholder="pl. Dicséret / Szódolgozat" style="min-width:220px;" />
+        <select id="kbTema" style="min-width:200px;">${temaSelectHtml("Írásbeli felelet")}</select>
+        <input id="kbTemaCustom" type="text" placeholder="Egyéni téma…" style="min-width:180px;display:none;margin-top:4px;" />
       </div>
       <div>
         <label for="kbWeight">Súly %</label>
@@ -527,6 +551,10 @@ function bindGradeForm() {
     });
   });
 
+  document.getElementById("kbTema")?.addEventListener("change", () => {
+    const custom = document.getElementById("kbTemaCustom");
+    if (custom) custom.style.display = document.getElementById("kbTema").value === "__custom__" ? "block" : "none";
+  });
   document.getElementById("kbClearSel")?.addEventListener("click", () => {
     pendingGrades = {};
     document.querySelectorAll("#kbBody .k-q").forEach((b) => b.classList.remove("k-selected"));
@@ -542,7 +570,7 @@ function bindGradeForm() {
     const status = document.getElementById("kbStatus");
     const subjectUid = document.getElementById("kbSubject").value;
     const groupUid = document.getElementById("kbGroup").value;
-    const tema = document.getElementById("kbTema").value.trim() || "Értékelés";
+    const tema = readTema();
     const weight = Number(document.getElementById("kbWeight").value) || 100;
     const typeBtn = document.querySelector(".k-btn-type.active");
     const typeRaw = (typeBtn?.dataset?.type || "1|Írásbeli|Írásbeli felelet").split("|");

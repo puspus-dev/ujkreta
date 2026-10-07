@@ -37,6 +37,7 @@ type TeacherStudent struct {
 type createGradeRequest struct {
 	TantargyUid        string       `json:"TantargyUid"`
 	Tema               string       `json:"Tema"`
+	Megjegyzes         string       `json:"Megjegyzes,omitempty"`
 	SzamErtek          int          `json:"SzamErtek"`
 	SzovegesErtek      string       `json:"SzovegesErtek"`
 	SulySzazalekErteke int          `json:"SulySzazalekErteke"`

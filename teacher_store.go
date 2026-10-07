@@ -130,6 +130,7 @@ func (s *Store) AddGrade(req createGradeRequest) (Grade, error) {
 		KeszitesDatuma:     iso(now),
 		Tantargy:           subject,
 		Tema:               req.Tema,
+		Megjegyzes:         req.Megjegyzes,
 		Tipus:              tipus,
 		ErtekFajta:         NameUidDesc{Uid: "1", Nev: "Osztályzat", Leiras: "Osztályzat"},
 		ErtekeloTanarNeve:  teacher.Nev,

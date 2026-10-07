@@ -107,6 +107,7 @@ type Grade struct {
 	LattamozasDatuma          string       `json:"LattamozasDatuma,omitempty"`
 	Tantargy                  Subject      `json:"Tantargy"`
 	Tema                      string       `json:"Tema,omitempty"`
+	Megjegyzes                string       `json:"Megjegyzes,omitempty"`
 	Tipus                     NameUidDesc  `json:"Tipus"`
 	Mod                       *NameUidDesc `json:"Mod,omitempty"`
 	ErtekFajta                NameUidDesc  `json:"ErtekFajta"`

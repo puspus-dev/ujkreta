@@ -240,12 +240,11 @@ function avgOf(list) {
   return n ? (sum / n).toFixed(2) : "—";
 }
 function gradeChipTitle(g) {
+  /* legacy text helper */
   const v = g.SzamErtek ?? g.SzovegesErtek ?? "?";
   const tema = g.Tema || g.Temaja || "—";
-  const d = g.KeszitesDatuma || g.Datum || g.RogzitesDatuma || "";
-  let ds = "";
-  if (d) { try { ds = new Date(d).toLocaleDateString("hu-HU"); } catch { ds = String(d).slice(0, 10); } }
-  return "Érték: " + v + " · Téma: " + tema + (ds ? (" · " + ds) : "");
+  const jegyz = g.Megjegyzes || g.megjegyzes || "";
+  return "Érték: " + v + " · Téma: " + tema + (jegyz ? (" · " + jegyz) : "");
 }
 function gradeChipsHtml(gs) {
   if (!gs || !gs.length) return '<span style="color:#90a4ae;">—</span>';
@@ -253,10 +252,64 @@ function gradeChipsHtml(gs) {
   for (let i = 0; i < gs.length; i++) {
     const g = gs[i];
     const v = g.SzamErtek ?? g.SzovegesErtek ?? "?";
+    const tema = g.Tema || g.Temaja || "";
+    const jegyz = g.Megjegyzes || g.megjegyzes || "";
+    const suly = g.SulySzazalekErteke != null ? g.SulySzazalekErteke : "";
+    const d = g.KeszitesDatuma || g.Datum || g.RogzitesDatuma || "";
+    let ds = "";
+    if (d) { try { ds = new Date(d).toLocaleDateString("hu-HU"); } catch { ds = String(d).slice(0, 10); } }
+    const szov = GRADE_TEXT[v] || g.SzovegesErtek || "";
     html += '<span class="k-g k-g-' + esc(g.SzamErtek) + '" data-guid="' + esc(g.Uid) +
-      '" title="' + esc(gradeChipTitle(g)) + '">' + esc(v) + "</span> ";
+      '" data-val="' + esc(v) +
+      '" data-szov="' + esc(szov) +
+      '" data-tema="' + esc(tema) +
+      '" data-jegyz="' + esc(jegyz) +
+      '" data-suly="' + esc(suly) +
+      '" data-datum="' + esc(ds) +
+      '">' + esc(v) + "</span> ";
   }
   return html;
+}
+function ensureGradePopover() {
+  let pop = document.getElementById("kGradePop");
+  if (pop) return pop;
+  pop = document.createElement("div");
+  pop.id = "kGradePop";
+  pop.className = "k-grade-pop";
+  pop.innerHTML = '<div class="k-grade-pop-head">Értékelés</div><div class="k-grade-pop-body"></div>';
+  document.body.appendChild(pop);
+  return pop;
+}
+function showGradePopover(chip) {
+  const pop = ensureGradePopover();
+  const body = pop.querySelector(".k-grade-pop-body");
+  const v = chip.getAttribute("data-val") || "?";
+  const szov = chip.getAttribute("data-szov") || "";
+  const tema = chip.getAttribute("data-tema") || "—";
+  const jegyz = chip.getAttribute("data-jegyz") || "";
+  const suly = chip.getAttribute("data-suly") || "";
+  const datum = chip.getAttribute("data-datum") || "—";
+  body.innerHTML =
+    '<div class="k-grade-pop-val">' + esc(v) + (szov ? (' <span style="font-size:14px;font-weight:600;color:#555;">– ' + esc(szov) + "</span>") : "") + "</div>" +
+    '<div class="k-grade-pop-row"><span class="lab">Téma</span><span>' + esc(tema || "—") + "</span></div>" +
+    '<div class="k-grade-pop-row"><span class="lab">Megjegyzés</span><span>' + esc(jegyz || "—") + "</span></div>" +
+    (suly !== "" ? '<div class="k-grade-pop-row"><span class="lab">Súly</span><span>' + esc(suly) + "%</span></div>" : "") +
+    '<div class="k-grade-pop-row"><span class="lab">Dátum</span><span>' + esc(datum) + "</span></div>";
+  pop.classList.add("open");
+  const r = chip.getBoundingClientRect();
+  const pw = pop.offsetWidth || 260;
+  const ph = pop.offsetHeight || 140;
+  let left = r.left + r.width / 2 - pw / 2;
+  let top = r.bottom + 8;
+  if (left < 8) left = 8;
+  if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+  if (top + ph > window.innerHeight - 8) top = r.top - ph - 8;
+  pop.style.left = left + "px";
+  pop.style.top = top + "px";
+}
+function hideGradePopover() {
+  const pop = document.getElementById("kGradePop");
+  if (pop) pop.classList.remove("open");
 }
 const TEMA_PRESETS = [
   "Írásbeli felelet",
@@ -351,6 +404,10 @@ function renderGradeForm() {
         <label for="kbTema">Téma</label>
         <select id="kbTema" style="min-width:200px;">${temaSelectHtml("Írásbeli felelet")}</select>
         <input id="kbTemaCustom" type="text" placeholder="Egyéni téma…" style="min-width:180px;display:none;margin-top:4px;" />
+      </div>
+      <div>
+        <label for="kbJegyz">Megjegyzés</label>
+        <input id="kbJegyz" type="text" placeholder="Opcionális megjegyzés" style="min-width:200px;" />
       </div>
       <div>
         <label for="kbWeight">Súly %</label>
@@ -471,10 +528,13 @@ function bindGradeClicks() {
     };
   });
 
-  // Click existing grade chip → delete
+  // Hover → KRÉTA-stílusú popup (Téma + Megjegyzés)
   document.querySelectorAll("#kbBody .k-g[data-guid]").forEach((chip) => {
     chip.style.cursor = "pointer";
+    chip.onmouseenter = () => showGradePopover(chip);
+    chip.onmouseleave = () => hideGradePopover();
     chip.onclick = async () => {
+      hideGradePopover();
       const guid = chip.dataset.guid;
       if (!guid || !confirm("Törlöd ezt a jegyet?")) return;
       const status = document.getElementById("kbStatus");
@@ -547,6 +607,7 @@ function bindGradeForm() {
     if (temaSel) temaSel.value = "Írásbeli felelet";
     const temaCustom = document.getElementById("kbTemaCustom");
     if (temaCustom) { temaCustom.value = ""; temaCustom.style.display = "none"; }
+    const jegyInp = document.getElementById("kbJegyz"); if (jegyInp) jegyInp.value = "";
     const status = document.getElementById("kbStatus");
     if (status) {
       status.className = "k-status";
@@ -590,6 +651,7 @@ function bindGradeForm() {
         await apiPost("/naplo/v3/sajat/Ertekelesek", {
           TantargyUid: subjectUid,
           Tema: tema,
+          Megjegyzes: (document.getElementById("kbJegyz")?.value || "").trim(),
           SzamErtek: sel.value,
           SzovegesErtek: GRADE_TEXT[sel.value] || String(sel.value),
           SulySzazalekErteke: weight,

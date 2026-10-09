@@ -176,12 +176,12 @@ func cors(next http.Handler) http.Handler {
 
 		allow := allowedOrigins[origin]
 		// helyi fejlesztés: bármely localhost port
-		if !allow && (strings.HasPrefix(origin, "http://localhost") ||
-			strings.HasPrefix(origin, "http://127.0.0.1"))
-		 strings.HasPrefix(origin, "capacitor://") || 
-		 strings.HasPrefix(origin, "ionic://")) ||{
-			allow = true
-		}
+	if !allow && (strings.HasPrefix(origin, "http://localhost") ||
+	strings.HasPrefix(origin, "http://127.0.0.1") ||
+	strings.HasPrefix(origin, "capacitor://") ||
+	strings.HasPrefix(origin, "ionic://")) {
+	allow = true
+}
 
 		if allow && origin != "" {
 			w.Header().Set("Access-Control-Allow-Origin", origin)

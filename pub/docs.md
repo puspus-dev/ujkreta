@@ -233,12 +233,12 @@ Auth: Bearer, role `Tanar` vagy `Osztalyfonok`.
 **Prefix:** `/integration-kretamobile-api/v1/kommunikacio`  
 **Auth:** Bearer
 
-| Metódus | Útvonal | Leírás |
-|---------|---------|--------|
-| GET | `/postaladaelemek/sajat` | Lista (`szoveg` max ~100 karakter) |
-| GET | `/postaladaelemek/{id}` | Teljes üzenet |
-| POST | `/uzenetek/olvasott` | `{ "isOlvasott": true, "uzenetAzonositoLista": [1001] }` |
-| POST | `/uzenetek` | Küldés (mock): `targy`, `szoveg`, `cimzettUid`, `cimzettNev` |
+| Metódus | Útvonal |Funkció | Leírás |
+|---------|---------|--------|--------|
+| GET | `/postaladaelemek/sajat` |(Több) Üzenet lekérés| Lista (`szoveg` max ~100 karakter) |
+| GET | `/postaladaelemek/{id}` |(Egy) Üzenet lekérés| Teljes üzenet |
+| POST | `/uzenetek/olvasott` |Üzenet olvasottnak jelölése| `{ "isOlvasott": true, "uzenetAzonositoLista": [1001] }` |
+| POST | `/uzenetek` |Üzenet küldése| Küldés (mock): `targy`, `szoveg`, `cimzettUid`, `cimzettNev` |
 
 Hiányzó id: HTTP **500**, body: `An error has occured!`  
 Üres lista: `[]`.

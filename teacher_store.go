@@ -3,10 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
-	_ "fmt"
+	"fmt"
 	"time"
-
-	_ "golang.org/x/crypto/bcrypt"
 )
 
 // ============================================================
@@ -447,13 +445,4 @@ func (s *Store) DeleteLesson(uid string) error {
 	}
 	s.SetLessons(out)
 	return nil
-}
-
-func firstNonEmpty(vals ...string) string {
-	for _, v := range vals {
-		if v != "" {
-			return v
-		}
-	}
-	return ""
 }

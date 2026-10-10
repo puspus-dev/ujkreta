@@ -98,6 +98,24 @@ async function apiPost(path, body) {
   return data;
 }
 
+async function apiPut(path, body) {
+  const res = await fetch((typeof API_BASE !== "undefined" ? API_BASE : "") + path, {
+    method: "PUT",
+    headers: {
+      Authorization: "Bearer " + accessToken,
+      Accept: "application/json",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  if (res.status === 401) { goLogin(); throw new Error("401"); }
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch (_) {}
+  if (!res.ok) throw new Error((data && (data.message || data.error)) || ("Hiba " + res.status));
+  return data;
+}
+
 async function loadAllData() {
   const map = {
     teacher: "/naplo/v3/sajat/TanarAdatlap",
@@ -787,41 +805,7 @@ function renderStudents() {
     </div>`;
 }
 
-function renderTimetable() {
-  const lessons = Array.isArray(cache.timetable) ? cache.timetable : [];
-  if (!lessons.length) {
-    return `<div class="n-panel"><div class="n-panel-body">${empty("Nincs órarend adat.")}</div></div>`;
-  }
 
-  const by = {};
-  lessons.forEach((l) => {
-    const k = (l.Datum || "").slice(0, 10) || "ismeretlen";
-    (by[k] ||= []).push(l);
-  });
-
-  return Object.entries(by)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, list]) => {
-      const sorted = [...list].sort((a, b) => (a.Oraszam || 0) - (b.Oraszam || 0));
-      return `
-        <div class="n-panel">
-          <div class="n-panel-head">${esc(weekdayName(date))} · ${fmtDate(date)}</div>
-          <div class="n-panel-body" style="padding:0;">
-            ${sorted.map((l) => `
-              <div class="n-lesson">
-                <div class="n-lesson-num">${esc(l.Oraszam ?? "")}.</div>
-                <div class="n-lesson-time">${fmtTime(l.KezdetIdopont)}–${fmtTime(l.VegIdopont)}</div>
-                <div>
-                  <div class="n-lesson-subj">${esc(subjectName(l) || l.Nev)}</div>
-                  <div class="n-lesson-meta">${esc(l.OsztalyCsoport?.Nev || "")}${l.Allapot?.Nev ? " · " + esc(l.Allapot.Nev) : ""}</div>
-                </div>
-                <div class="n-lesson-meta">${esc(l.TeremNeve || "")}</div>
-              </div>`).join("")}
-          </div>
-        </div>`;
-    })
-    .join("");
-}
 
 function renderHomework() {
   return renderHomeworkForm();
@@ -997,6 +981,289 @@ function bindAbsences() {
 }
 
 
+
+function renderTimetable() {
+  const lessons = Array.isArray(cache.timetable) ? cache.timetable.slice() : [];
+  const groups = Array.isArray(cache.groups) ? cache.groups : [];
+  const t = cache.teacher || {};
+  const subjects = Array.isArray(t.Tantargyak) ? t.Tantargyak : [];
+  const groupOpts = groups.map((g) => `<option value="${esc(g.Uid)}">${esc(g.Nev)}</option>`).join("");
+  const subjOpts = subjects.map((s) => `<option value="${esc(s.Uid)}">${esc(s.Nev)}</option>`).join("");
+
+  lessons.sort((a, b) => {
+    const da = (a.Datum || "").slice(0, 10);
+    const db = (b.Datum || "").slice(0, 10);
+    if (da !== db) return da.localeCompare(db);
+    return (a.Oraszam || 0) - (b.Oraszam || 0);
+  });
+
+  const rows = lessons.length
+    ? lessons.map((l) => {
+        const date = (l.Datum || "").slice(0, 10);
+        return `<tr data-uid="${esc(l.Uid)}">
+          <td>${fmtDate(date)} <span class="k-grade-meta">${esc(weekdayName(date))}</span></td>
+          <td>${esc(l.Oraszam ?? "")}.</td>
+          <td>${fmtTime(l.KezdetIdopont)}–${fmtTime(l.VegIdopont)}</td>
+          <td>${esc(subjectName(l) || l.Nev || "—")}</td>
+          <td>${esc(l.OsztalyCsoport?.Nev || "")}</td>
+          <td>${esc(l.TeremNeve || "")}</td>
+          <td>${esc(l.Tema || "")}</td>
+          <td style="white-space:nowrap">
+            <button type="button" class="k-logout tt-edit" data-uid="${esc(l.Uid)}">Szerkeszt</button>
+            <button type="button" class="k-logout tt-del" data-uid="${esc(l.Uid)}">Törlés</button>
+            <button type="button" class="k-logout tt-log" data-uid="${esc(l.Uid)}" title="Óra naplózása">Napló</button>
+          </td>
+        </tr>`;
+      }).join("")
+    : `<tr><td colspan="8" class="n-empty">Nincs órarendi elem. Add hozzá lent.</td></tr>`;
+
+  return `
+    <div class="n-panel">
+      <div class="n-panel-head">Órarend szerkesztése</div>
+      <div class="n-panel-body">
+        <form id="ttForm" class="n-form" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;align-items:end;">
+          <input type="hidden" id="ttUid" value="" />
+          <div><label>Dátum</label><input type="date" id="ttDate" required /></div>
+          <div><label>Óraszám</label><input type="number" id="ttOra" min="1" max="12" value="1" /></div>
+          <div><label>Kezdet</label><input type="time" id="ttStart" value="08:00" /></div>
+          <div><label>Vég</label><input type="time" id="ttEnd" value="08:45" /></div>
+          <div><label>Tantárgy</label><select id="ttSubj">${subjOpts || '<option value="">—</option>'}</select></div>
+          <div><label>vagy tantárgy név</label><input type="text" id="ttSubjName" placeholder="pl. Matematika" /></div>
+          <div><label>Osztály</label><select id="ttGroup">${groupOpts || '<option value="">—</option>'}</select></div>
+          <div><label>Terem</label><input type="text" id="ttRoom" placeholder="pl. 12." /></div>
+          <div style="grid-column:1/-1"><label>Téma (órai)</label><input type="text" id="ttTema" placeholder="Óra témája" style="width:100%" /></div>
+          <div style="grid-column:1/-1;display:flex;gap:8px;align-items:center;">
+            <button type="submit" class="k-btn k-btn-primary" id="ttSave">Mentés / hozzáadás</button>
+            <button type="button" class="k-btn" id="ttReset">Új óra</button>
+            <span id="ttMsg" class="k-grade-meta"></span>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="n-panel">
+      <div class="n-panel-head">Órarendi elemek</div>
+      <div class="n-panel-body" style="padding:0">
+        <div class="n-table-wrap"><table class="n-table">
+          <thead><tr>
+            <th>Dátum</th><th>Óra</th><th>Idő</th><th>Tantárgy</th><th>Osztály</th><th>Terem</th><th>Téma</th><th></th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>
+      </div>
+    </div>`;
+}
+
+function bindTimetable() {
+  const form = document.getElementById("ttForm");
+  if (!form) return;
+  const msg = document.getElementById("ttMsg");
+  document.getElementById("ttReset")?.addEventListener("click", () => {
+    form.reset();
+    document.getElementById("ttUid").value = "";
+    if (msg) msg.textContent = "Új óra hozzáadása";
+  });
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const uid = document.getElementById("ttUid").value.trim();
+    const subjSel = document.getElementById("ttSubj");
+    const subjName = (document.getElementById("ttSubjName").value || "").trim() ||
+      (subjSel.options[subjSel.selectedIndex]?.text || "");
+    const groupSel = document.getElementById("ttGroup");
+    const body = {
+      Uid: uid || undefined,
+      Datum: document.getElementById("ttDate").value,
+      Oraszam: Number(document.getElementById("ttOra").value) || 1,
+      KezdetIdopont: document.getElementById("ttStart").value,
+      VegIdopont: document.getElementById("ttEnd").value,
+      TantargyUid: subjSel.value,
+      TantargyNev: subjName,
+      OsztalyCsoportUid: groupSel.value,
+      OsztalyCsoportNev: groupSel.options[groupSel.selectedIndex]?.text || "",
+      TeremNeve: document.getElementById("ttRoom").value.trim(),
+      Tema: document.getElementById("ttTema").value.trim()
+    };
+    try {
+      if (msg) msg.textContent = "Mentés…";
+      if (uid) {
+        await apiPut("/naplo/v3/sajat/OrarendElemek", body);
+      } else {
+        await apiPost("/naplo/v3/sajat/OrarendElemek", body);
+      }
+      cache.timetable = await apiGet("/naplo/v3/sajat/OrarendElemek");
+      navigate("timetable");
+    } catch (err) {
+      if (msg) msg.textContent = "Hiba: " + (err.message || err);
+    }
+  });
+  document.querySelectorAll(".tt-del").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Törlöd ezt az órarendi elemet?")) return;
+      try {
+        await apiDelete("/naplo/v3/sajat/OrarendElemek?uid=" + encodeURIComponent(btn.dataset.uid));
+        cache.timetable = await apiGet("/naplo/v3/sajat/OrarendElemek");
+        navigate("timetable");
+      } catch (err) {
+        alert(err.message || err);
+      }
+    });
+  });
+  document.querySelectorAll(".tt-edit").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const l = (cache.timetable || []).find((x) => x.Uid === btn.dataset.uid);
+      if (!l) return;
+      document.getElementById("ttUid").value = l.Uid || "";
+      document.getElementById("ttDate").value = (l.Datum || "").slice(0, 10);
+      document.getElementById("ttOra").value = l.Oraszam || 1;
+      const st = (l.KezdetIdopont || "").match(/T(\d{2}:\d{2})/);
+      const en = (l.VegIdopont || "").match(/T(\d{2}:\d{2})/);
+      if (st) document.getElementById("ttStart").value = st[1];
+      if (en) document.getElementById("ttEnd").value = en[1];
+      const subj = document.getElementById("ttSubj");
+      if (subj && l.Tantargy?.Uid) subj.value = l.Tantargy.Uid;
+      document.getElementById("ttSubjName").value = subjectName(l) || l.Nev || "";
+      const grp = document.getElementById("ttGroup");
+      if (grp && l.OsztalyCsoport?.Uid) grp.value = l.OsztalyCsoport.Uid;
+      document.getElementById("ttRoom").value = l.TeremNeve || "";
+      document.getElementById("ttTema").value = l.Tema || "";
+      if (msg) msg.textContent = "Szerkesztés: " + (subjectName(l) || l.Uid);
+      form.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+  document.querySelectorAll(".tt-log").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      navigate("naplo", { lessonUid: btn.dataset.uid });
+    });
+  });
+}
+
+function renderNaplo(opts = {}) {
+  const students = Array.isArray(cache.students) ? cache.students : [];
+  const lessons = Array.isArray(cache.timetable) ? cache.timetable : [];
+  const lessonUid = opts.lessonUid || "";
+  const lessonOpts = lessons
+    .slice()
+    .sort((a, b) => String(b.Datum || "").localeCompare(String(a.Datum || "")))
+    .map((l) => {
+      const label = `${fmtDate(l.Datum)} ${l.Oraszam || ""}. ${subjectName(l) || l.Nev || ""} (${l.OsztalyCsoport?.Nev || ""})`;
+      return `<option value="${esc(l.Uid)}"${l.Uid === lessonUid ? " selected" : ""}>${esc(label)}</option>`;
+    })
+    .join("");
+
+  const rows = students.map((s, i) => {
+    const uid = s.Uid || s.uid;
+    return `<tr data-uid="${esc(uid)}">
+      <td>${i + 1}</td>
+      <td>${esc(s.Nev || uid)}</td>
+      <td>
+        <span class="seg" data-uid="${esc(uid)}">
+          <button type="button" class="att-j on-j" data-v="jelen">Jelen</button>
+          <button type="button" class="att-h" data-v="hianyzas">Hiányzik</button>
+          <button type="button" class="att-k" data-v="keses">Késés</button>
+        </span>
+      </td>
+      <td><input type="number" min="0" max="45" value="" class="late-inp" data-uid="${esc(uid)}" style="width:56px" title="Késés perc" /></td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="4" class="n-empty">Nincs diák a listában.</td></tr>`;
+
+  return `
+    <div class="n-panel">
+      <div class="n-panel-head">Óra naplózása</div>
+      <div class="n-panel-body">
+        <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-bottom:12px;">
+          <div>
+            <label>Órarendi óra</label>
+            <select id="naploLesson" style="min-width:280px">${lessonOpts || '<option value="">— nincs órarend —</option>'}</select>
+          </div>
+          <div>
+            <label>Óra témája</label>
+            <input id="naploTema" type="text" placeholder="pl. Másodfokú egyenletek" style="min-width:220px;padding:6px;border:1px solid #c5d3e2" />
+          </div>
+          <button type="button" class="k-btn k-btn-primary" id="naploSave">Jelenlét mentése</button>
+          <span id="naploMsg" class="k-grade-meta"></span>
+        </div>
+        <div class="n-table-wrap"><table class="n-table">
+          <thead><tr><th>#</th><th>Név</th><th>Jelenlét</th><th>Késés (perc)</th></tr></thead>
+          <tbody id="naploBody">${rows}</tbody>
+        </table></div>
+        <p class="k-grade-meta" style="margin-top:8px">Hiányzás / késés mentésekor mulasztás jön létre. Az óra témája az órarendi elemre is ráíródik (ha van kiválasztott óra).</p>
+      </div>
+    </div>`;
+}
+
+function bindNaplo(opts = {}) {
+  document.querySelectorAll("#naploBody .seg button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const seg = btn.closest(".seg");
+      seg.querySelectorAll("button").forEach((b) => b.classList.remove("on-j", "on-h", "on-k"));
+      const v = btn.dataset.v;
+      if (v === "jelen") btn.classList.add("on-j");
+      else if (v === "hianyzas") btn.classList.add("on-h");
+      else btn.classList.add("on-k");
+    });
+  });
+  // prefill tema from lesson
+  const lesSel = document.getElementById("naploLesson");
+  const fillTema = () => {
+    const l = (cache.timetable || []).find((x) => x.Uid === lesSel?.value);
+    const tema = document.getElementById("naploTema");
+    if (l && tema && !tema.value) tema.value = l.Tema || "";
+  };
+  lesSel?.addEventListener("change", fillTema);
+  fillTema();
+
+  document.getElementById("naploSave")?.addEventListener("click", async () => {
+    const msg = document.getElementById("naploMsg");
+    const tema = (document.getElementById("naploTema")?.value || "").trim();
+    const lessonUid = document.getElementById("naploLesson")?.value || "";
+    const lesson = (cache.timetable || []).find((x) => x.Uid === lessonUid);
+    let ok = 0, fail = 0;
+    const rows = document.querySelectorAll("#naploBody tr[data-uid]");
+    for (const row of rows) {
+      const uid = row.dataset.uid;
+      const active = row.querySelector(".seg button.on-j, .seg button.on-h, .seg button.on-k");
+      const v = active?.dataset?.v || "jelen";
+      if (v === "jelen") continue;
+      const late = Number(row.querySelector(".late-inp")?.value) || 0;
+      try {
+        await apiPost("/naplo/v3/sajat/Mulasztasok", {
+          TanuloUid: uid,
+          Datum: (lesson?.Datum || new Date().toISOString()).slice(0, 10),
+          KesesPercben: v === "keses" ? (late || 5) : 0,
+          Tipus: {
+            Uid: v === "keses" ? "2" : "1",
+            Nev: v === "keses" ? "Késés" : "Hiányzás",
+            Leiras: v === "keses" ? "Késés" : "Hiányzás"
+          },
+          OsztalyCsoportUid: lesson?.OsztalyCsoport?.Uid || row.dataset.group || ""
+        });
+        ok++;
+      } catch (_) { fail++; }
+    }
+    // update lesson tema if selected
+    if (lessonUid && tema) {
+      try {
+        await apiPut("/naplo/v3/sajat/OrarendElemek", {
+          Uid: lessonUid,
+          Tema: tema,
+          Datum: lesson?.Datum,
+          Oraszam: lesson?.Oraszam,
+          TantargyUid: lesson?.Tantargy?.Uid,
+          TantargyNev: subjectName(lesson) || lesson?.Nev,
+          OsztalyCsoportUid: lesson?.OsztalyCsoport?.Uid,
+          OsztalyCsoportNev: lesson?.OsztalyCsoport?.Nev,
+          TeremNeve: lesson?.TeremNeve
+        });
+        cache.timetable = await apiGet("/naplo/v3/sajat/OrarendElemek");
+      } catch (_) {}
+    }
+    try { cache.absences = await apiGet("/naplo/v3/sajat/Mulasztasok"); } catch (_) {}
+    if (msg) {
+      msg.textContent = `Mentve: ${ok} mulasztás` + (fail ? `, hiba: ${fail}` : "") +
+        (tema ? " · téma frissítve" : "");
+    }
+  });
+}
+
 const RENDERERS = {
   eugy: renderEUGY,
   documents: renderDocuments,
@@ -1007,6 +1274,7 @@ const RENDERERS = {
   absences: renderAbsences,
   students: renderStudents,
   timetable: renderTimetable,
+  naplo: renderNaplo,
   homework: renderHomework,
   profile: renderProfile
 };
@@ -1541,6 +1809,9 @@ function navigate(page, opts = {}) {
     el.innerHTML = RENDERERS[page]();
     if (page === "dkt") bindDKT();
     if (page === "documents") bindDocuments();
+  if (page === "timetable" && typeof bindTimetable === "function") bindTimetable();
+  if (page === "naplo" && typeof bindNaplo === "function") bindNaplo(opts || {});
+
   } catch (e) {
     console.error(e);
     el.innerHTML = `<div class="n-panel"><div class="n-panel-body">${empty("Hiba a nézet megjelenítésekor.")}</div></div>`;
@@ -1645,92 +1916,6 @@ async function boot() {
 
 boot();
 
-
-function renderNaplo() {
-  const students = Array.isArray(cache.students) ? cache.students : [];
-  const rows = students.map((s, i) => {
-    const uid = s.Uid || s.uid;
-    return `<tr data-uid="${esc(uid)}">
-      <td>${i + 1}</td>
-      <td>${esc(s.Nev || uid)}</td>
-      <td>0%</td>
-      <td>
-        <span class="seg" data-uid="${esc(uid)}">
-          <button type="button" class="att-j on-j" data-v="jelen">Jelenlét</button>
-          <button type="button" class="att-h" data-v="hianyzas">Hiányzás</button>
-        </span>
-      </td>
-      <td><input type="number" min="0" max="45" value="" style="width:56px" class="late-inp" data-uid="${esc(uid)}" /></td>
-      <td class="ico-row">🏠 📚 ➕ 🏅</td>
-    </tr>`;
-  }).join("") || `<tr><td colspan="6">Nincs diák a listában (API /naplo/v3/sajat/Tanulok).</td></tr>`;
-
-  setTimeout(() => {
-    document.querySelectorAll(".seg button").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const seg = btn.parentElement;
-        seg.querySelectorAll("button").forEach(b => b.classList.remove("on-j", "on-h"));
-        if (btn.dataset.v === "jelen") btn.classList.add("on-j");
-        else btn.classList.add("on-h");
-      });
-    });
-    document.getElementById("btnSaveNaplo")?.addEventListener("click", async () => {
-      const msg = document.getElementById("naploMsg");
-      msg.textContent = "Mentés…";
-      try {
-        const absents = [];
-        document.querySelectorAll(".seg").forEach(seg => {
-          const h = seg.querySelector(".att-h.on-h");
-          if (h) absents.push(seg.dataset.uid);
-        });
-        for (const uid of absents) {
-          await apiPost("/naplo/v3/sajat/Mulasztasok", {
-            TanuloUid: uid,
-            Datum: new Date().toISOString().slice(0, 10),
-            Tipus: { Uid: "1", Nev: "Hiányzás" }
-          });
-        }
-        msg.className = "msg ok";
-        msg.textContent = "Óra naplózva. Hiányzások: " + absents.length;
-        await loadAllData();
-      } catch (e) {
-        msg.className = "msg bad";
-        msg.textContent = e.message || String(e);
-      }
-    });
-  }, 0);
-
-  return `
-  <div class="naplo-layout">
-    <div class="naplo-side">
-      <button type="button" class="active">Naplózás</button>
-      <button type="button" data-go="grades">Értékelések</button>
-      <button type="button">Feljegyzések</button>
-      <button type="button" data-go="homework">Házi feladat</button>
-      <button type="button" data-go="timetable">Korábbi órák</button>
-    </div>
-    <div class="naplo-main">
-      <div class="naplo-title">Tanóra naplózása – jelenlét / hiányzás</div>
-      <div style="margin-bottom:10px;font-size:13px;color:#5a6a70">
-        Téma: <input id="naploTema" value="Gyakorlás" style="min-width:200px;padding:6px;border:1px solid #c5d0d4" />
-      </div>
-      <div style="overflow-x:auto">
-        <table class="att-table">
-          <thead><tr>
-            <th>#</th><th>Tanuló neve</th><th>Mulasztás %</th><th>Jelenlét</th><th>Késés (perc)</th><th></th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-      <div class="att-actions">
-        <span class="msg" id="naploMsg"></span>
-        <button type="button" class="k-btn k-btn-primary" id="btnSaveNaplo">ÓRA NAPLÓZÁSA</button>
-        <button type="button" class="k-btn">ELMARADT ÓRA</button>
-        <button type="button" class="k-btn k-btn-ghost" id="btnNaploCancel">MÉGSE</button>
-      </div>
-    </div>
-  </div>`;
-}
 
 function renderHomeworkForm() {
   const students = Array.isArray(cache.students) ? cache.students : [];

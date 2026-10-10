@@ -139,12 +139,69 @@ func (s *Server) handleTeacherStudents(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTeacherTimetable(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		methodNotAllowed(w, "GET")
-		return
+	switch r.Method {
+	case http.MethodGet:
+		writeJSON(w, http.StatusOK, s.store.GetLessons())
+	case http.MethodPost:
+		var req createLessonRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_json"})
+			return
+		}
+		lesson, err := s.store.AddLesson(req)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusCreated, lesson)
+	case http.MethodPut:
+		var req createLessonRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_json"})
+			return
+		}
+		lesson, err := s.store.UpdateLesson(req)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, lesson)
+	case http.MethodDelete:
+		uid := strings.TrimSpace(r.URL.Query().Get("uid"))
+		if uid == "" {
+			var body struct {
+				Uid string `json:"uid"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			uid = strings.TrimSpace(body.Uid)
+		}
+		if uid == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "uid_required"})
+			return
+		}
+		if err := s.store.DeleteLesson(uid); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"success": true, "deleted": uid})
+	default:
+		methodNotAllowed(w, "GET, POST, PUT, DELETE")
 	}
+}
 
-	writeJSON(w, http.StatusOK, s.store.GetLessons())
+type createLessonRequest struct {
+	Uid               string `json:"Uid"`
+	Datum             string `json:"Datum"`
+	Oraszam           int    `json:"Oraszam"`
+	KezdetIdopont     string `json:"KezdetIdopont"`
+	VegIdopont        string `json:"VegIdopont"`
+	TantargyUid       string `json:"TantargyUid"`
+	TantargyNev       string `json:"TantargyNev"`
+	OsztalyCsoportUid string `json:"OsztalyCsoportUid"`
+	OsztalyCsoportNev string `json:"OsztalyCsoportNev"`
+	TeremNeve         string `json:"TeremNeve"`
+	Tema              string `json:"Tema"`
+	Nev               string `json:"Nev"`
 }
 
 // ============================================================

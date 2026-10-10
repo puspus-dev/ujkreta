@@ -1,345 +1,190 @@
-# ÚjKréta / KRÁTA API dokumentáció
+# KRÁTA / ujkreta – API dokumentáció
 
 **Base URL:** `https://ujkreta.onrender.com`  
-**Repo:** https://github.com/puspus-dev/ujkreta  
+**Auth:** `Authorization: Bearer <access_token>`  
+Token: `POST /connect/token` (OAuth2 password / refresh)
 
 ---
 
-## Tartalom
+## Auth
 
-1. [Áttekintés](#áttekintés)
-2. [Autentikáció](#autentikáció)
-3. [Kétfaktoros azonosítás (2FA)](#kétfaktoros-azonosítás-2fa)
-4. [Diák API](#diák-api)
-5. [Tanár (Napló) API](#tanár-napló-api)
-6. [E-ügyintézés – üzenetek](#e-ügyintézés--üzenetek)
-7. [Osztályfőnök](#osztályfőnök)
-8. [Admin API](#admin-api)
-9. [Hibák](#hibák)
-10. [CORS](#cors)
-11. [Health](#health)
+| Metódus | Útvonal | Leírás |
+|--------|---------|--------|
+| POST | `/connect/token` | Access token (username, password, grant_type) |
+| POST | `/connect/mfa/verify` | MFA kód ellenőrzés |
+| GET | `/ellenorzo/v3/sajat/Mfa/Status` | MFA státusz |
+| POST | `/ellenorzo/v3/sajat/Mfa/Setup` | MFA setup |
+| POST | `/ellenorzo/v3/sajat/Mfa/Enable` | MFA bekapcsolás |
+| POST | `/ellenorzo/v3/sajat/Mfa/Disable` | MFA kikapcsolás |
 
 ---
 
-## Áttekintés
+## Diák (`/ellenorzo/v3/sajat/…`)
 
-| Réteg | Prefix | Auth |
-|-------|--------|------|
-| Diák | `/ellenorzo/v3/sajat/*` | Bearer |
-| Tanár | `/naplo/v3/sajat/*` | Bearer, role `Tanar` / `Osztalyfonok` |
-| 2FA | `/ellenorzo/v3/sajat/Mfa/*`, `/connect/mfa/verify` | Bearer / mfa_token |
-| E-ügyintézés | `/integration-kretamobile-api/v1/kommunikacio/*` | Bearer |
-| Admin | `/admin/*` | HTTP Basic |
-| Health | `/health` | – |
+| Metódus | Útvonal | Leírás |
+|--------|---------|--------|
+| GET | `/TanuloAdatlap` | Diák profil |
+| GET | `/OsztalyCsoportok` | Osztályok |
+| GET | `/Ertekelesek` | Jegyek |
+| GET | `/Ertekelesek/Atlagok/OsztalyAtlagok` | Átlagok |
+| GET | `/OrarendElemek` | Órarend (olvasás) |
+| GET | `/Mulasztasok` | Mulasztások |
+| GET | `/HaziFeladatok` | Házi feladatok |
+| GET | `/BejelentettSzamonkeresek` | Dolgozatok |
+| GET | `/Feljegyzesek` | Feljegyzések |
+| GET | `/FaliujsagElemek` | Faliújság |
+| GET | `/dktapi/intezmenyek/munkaterek/tanulok` | DKT munkaterek |
 
 ---
 
-## Autentikáció
+## Tanár / OF (`/naplo/v3/sajat/…`)
 
-### `POST /connect/token`
+| Metódus | Útvonal | Leírás |
+|--------|---------|--------|
+| GET | `/TanarAdatlap` | Tanár profil |
+| GET | `/OsztalyCsoportok` | Osztálycsoportok |
+| GET | `/Tanulok` | Tanulók listája |
+| GET | `/Ertekelesek` | Beírt jegyek |
+| **POST** | `/Ertekelesek` | Jegy beírása |
+| **DELETE** | `/Ertekelesek?uid=` | Jegy törlése |
+| GET | `/OrarendElemek` | Órarend lista |
+| **POST** | `/OrarendElemek` | Új órarendi elem |
+| **PUT** | `/OrarendElemek` | Órarendi elem módosítása |
+| **DELETE** | `/OrarendElemek?uid=` | Órarendi elem törlése |
+| GET | `/HaziFeladatok` | Házik |
+| POST | `/HaziFeladatok` | Házi felvitel |
+| DELETE | `/HaziFeladatok?uid=` | Házi törlés |
+| GET | `/Mulasztasok` | Mulasztások |
+| POST | `/Mulasztasok` | Mulasztás rögzítés |
+| DELETE | `/Mulasztasok?uid=` | Mulasztás törlés |
+| GET | `/BejelentettSzamonkeresek` | Dolgozatok |
 
-| grant_type | Paraméterek |
-|------------|-------------|
-| `password` | `username`, `password`, opcionálisan `device_token` |
-| `refresh_token` | `refresh_token` |
-| `authorization_code` | `code` |
-| `mfa` | `mfa_token`, `code` (ugyanaz, mint `/connect/mfa/verify`) |
+### Osztályfőnök
 
-```http
-POST /connect/token
-Content-Type: application/x-www-form-urlencoded
+| Metódus | Útvonal | Leírás |
+|--------|---------|--------|
+| GET/POST | `/Of/Diakok` | OF diáklista / új diák |
+| GET/POST | `/Of/Users` | Diák login user |
 
-grant_type=password&username=teacher&password=titok&device_token=...
-```
+---
 
-**Sikeres válasz (2FA nélkül, vagy trusted device):**
+### POST `/naplo/v3/sajat/Ertekelesek` – jegy
 
 ```json
 {
-  "id_token": "<JWT alg:none>",
-  "access_token": "<opaque>",
-  "expires_in": 43200,
-  "token_type": "Bearer",
-  "refresh_token": "<opaque>",
-  "scope": "openid email offline_access kreta-ellenorzo-webapi.public"
+  "TantargyUid": "string",
+  "Tema": "Írásbeli témazáró",
+  "Megjegyzes": "Opcionális megjegyzés",
+  "SzamErtek": 5,
+  "SzovegesErtek": "Jeles",
+  "SulySzazalekErteke": 100,
+  "Tipus": { "Uid": "1", "Nev": "Írásbeli", "Leiras": "Írásbeli felelet" },
+  "OsztalyCsoportUid": "string",
+  "TanuloUid": "string"
 }
 ```
 
-**`id_token` claims (példa):**
+### POST/PUT `/naplo/v3/sajat/OrarendElemek` – órarend
 
 ```json
 {
-  "kreta:institute_code": "mockschool",
-  "kreta:institute_user_id": "300",
-  "kreta:user_name": "teacher",
-  "name": "Kovács Béla",
-  "role": "Tanar",
-  "iat": 1710000000
+  "Uid": "csak PUT-nál kötelező",
+  "Datum": "2026-10-10",
+  "Oraszam": 1,
+  "KezdetIdopont": "08:00",
+  "VegIdopont": "08:45",
+  "TantargyUid": "string",
+  "TantargyNev": "Matematika",
+  "OsztalyCsoportUid": "string",
+  "OsztalyCsoportNev": "9.A",
+  "TeremNeve": "12.",
+  "Tema": "Másodfokú egyenletek",
+  "Nev": "Matematika"
 }
 ```
 
-**Role értékek:** `Tanulo` | `Tanar` | `Osztalyfonok`
+### POST `/naplo/v3/sajat/Mulasztasok` – óra napló / hiányzás
 
-Védett hívások:
-
-```http
-Authorization: Bearer <access_token>
+```json
+{
+  "TanuloUid": "string",
+  "Datum": "2026-10-10",
+  "KesesPercben": 0,
+  "Tipus": { "Uid": "1", "Nev": "Hiányzás", "Leiras": "Hiányzás" },
+  "OsztalyCsoportUid": "string"
+}
 ```
 
 ---
 
-## Kétfaktoros azonosítás (2FA)
+## Digitális dokumentumok
 
-Opcionális **TOTP** (Google / Microsoft Authenticator).  
-**Csak** `Tanar` és `Osztalyfonok` role. Diáknak nincs.
+Env / secrets: `FTP_HOST`, `FTP_USER`, `FTP_PASS`, `FTP_DIR`
 
-### Belépési flow (ha 2FA be van kapcsolva)
-
-1. `POST /connect/token` (`grant_type=password`) sikeres jelszó után:
-
-```json
-{
-  "error": "mfa_required",
-  "error_description": "Kétfaktoros azonosítás szükséges.",
-  "mfa_token": "<rövid élettartamú token>"
-}
-```
-
-2. Frontend: `/biztonsag/` oldal, 6 jegyű kód.
-3. Ellenőrzés:
-
-```http
-POST /connect/mfa/verify
-Content-Type: application/x-www-form-urlencoded
-
-mfa_token=...&code=123456&device_token=...&trust_device=true
-```
-
-**Siker:** ugyanaz a token válasz, mint a password grantnél.  
-Ha `trust_device=true`: válaszban `device_token` + ~30 napig nem kér 2FA-t ugyanarra az eszközre.
-
-Helyreállító kód is küldhető a `code` mezőben (egyszer használható).
-
-> **Fontos:** a password grant `mfa_required` ágához kell az `auth.go` MFA patch (`AfterPasswordCheckMFA`).
-
-### Beállítás (bejelentkezés után, Bearer)
-
-| Endpoint | Metódus | Leírás |
-|----------|---------|--------|
-| `/ellenorzo/v3/sajat/Mfa/Status` | GET | `{ available, enabled, role }` |
-| `/ellenorzo/v3/sajat/Mfa/Setup` | GET/POST | Új TOTP secret + `otpauth://` URI (`enabled` még false) |
-| `/ellenorzo/v3/sajat/Mfa/Enable` | POST | `{ "code": "123456" }` → bekapcsol + `recovery_code` |
-| `/ellenorzo/v3/sajat/Mfa/Disable` | POST | `{ "password", "code" }` → kikapcsol |
-
-**Setup válasz (példa):**
-
-```json
-{
-  "secret": "JBSWY3DPEHPK3PXP",
-  "otpauth": "otpauth://totp/KRATA:teacher?secret=...&issuer=KRATA&digits=6&period=30",
-  "issuer": "KRATA",
-  "account": "teacher"
-}
-```
-
-**Enable válasz:**
-
-```json
-{
-  "success": true,
-  "enabled": true,
-  "recovery_code": "AB12CD34",
-  "message": "2FA bekapcsolva..."
-}
-```
-
-### UI
-
-| URL | Szerep |
-|-----|--------|
-| https://puspus-dev.github.io/ujkreta/biztonsag/ | Beállítás (ha van token) **vagy** belépési kódkérés (ha van `mfa_token`) |
-
-### curl – beállítás
-
-```bash
-BASE=https://ujkreta.onrender.com
-TOKEN=$(curl -s -X POST "$BASE/connect/token" \
-  -d "grant_type=password&username=OF_USER&password=OF_PASS" \
-  | jq -r .access_token)
-
-curl -s -X POST -H "Authorization: Bearer $TOKEN" \
-  "$BASE/ellenorzo/v3/sajat/Mfa/Setup" | jq
-
-# Appba beolvasva a secret után:
-curl -s -X POST -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"code":"123456"}' \
-  "$BASE/ellenorzo/v3/sajat/Mfa/Enable" | jq
-```
+| Metódus | Útvonal | Ki | Leírás |
+|--------|---------|-----|--------|
+| GET | `/api/digidocs` | bejelentkezett | Lista |
+| POST | `/api/digidocs` | tanár/OF | Feltöltés (`multipart`: `file`, `name?`, `note?`) max ~10 MB |
+| GET | `/api/digidocs/{név}` | bejelentkezett | Letöltés |
+| DELETE | `/api/digidocs/{név}` | tanár/OF | Törlés |
 
 ---
 
-## Diák API
+## Kérdőívek
 
-Prefix: `/ellenorzo/v3/sajat/*` — mind `GET`, Bearer.
+| Metódus | Útvonal | Leírás |
+|--------|---------|--------|
+| GET | `/api/surveys` | Lista |
+| GET | `/api/surveys/{id}` | Egy kérdőív |
+| GET | `/integration-kretamobile-api/v1/kerdoivek` | Ugyanaz (mobil path) |
+| GET | `/integration-kretamobile-api/v1/kerdoivek/{id}` | Ugyanaz |
 
-| Endpoint | Leírás |
-|----------|--------|
-| `/TanuloAdatlap` | Profil |
-| `/OsztalyCsoportok` | Osztályok |
-| `/FaliujsagElemek` | Faliújság |
-| `/Feljegyzesek` | Feljegyzések |
-| `/Ertekelesek` | Értékelések |
-| `/Ertekelesek/Atlagok/OsztalyAtlagok` | Osztályátlagok |
-| `/OrarendElemek` | Órarend |
-| `/Mulasztasok` | Mulasztások |
-| `/HaziFeladatok` | Házi |
-| `/BejelentettSzamonkeresek` | Számonkérések |
-| `/dktapi/intezmenyek/munkaterek/tanulok` | DKT |
+Auth: `requireAuthSession` – érvényes Bearer token kell.
 
 ---
 
-## Tanár (Napló) API
+## e-Ügyintézés
 
-Prefix: `/naplo/v3/sajat/*`  
-Auth: Bearer, role `Tanar` vagy `Osztalyfonok`.
+Base: `/integration-kretamobile-api/v1/kommunikacio`
 
-### Olvasás
-
-| Endpoint | Metódus |
-|----------|---------|
-| `/TanarAdatlap` | GET |
-| `/OsztalyCsoportok` | GET |
-| `/Tanulok` | GET |
-| `/OrarendElemek` | GET |
-| `/Ertekelesek` | GET |
-| `/HaziFeladatok` | GET |
-| `/Mulasztasok` | GET |
-| `/BejelentettSzamonkeresek` | GET |
-
-### Írás / törlés (mock)
-
-| Endpoint | Metódus |
-|----------|---------|
-| `/Ertekelesek` | POST, DELETE |
-| `/HaziFeladatok` | POST (, DELETE ha telepítve) |
-| `/Mulasztasok` | POST, DELETE |
-| `/BejelentettSzamonkeresek` | POST |
+| Metódus | Útvonal | Leírás |
+|--------|---------|--------|
+| GET | `…/postaladaelemek/sajat` | Saját postaláda |
+| GET | `…/postaladaelemek/{id}` | Egy elem |
+| POST | `…/uzenetek/olvasott` | Olvasottnak jelöl |
+| POST | `…/uzenetek` | Üzenet küldés |
 
 ---
 
-## E-ügyintézés – üzenetek
+## Egyéb
 
-**Prefix:** `/integration-kretamobile-api/v1/kommunikacio`  
-**Auth:** Bearer
-
-| Metódus | Útvonal |Funkció | Leírás |
-|---------|---------|--------|--------|
-| GET | `/postaladaelemek/sajat` |(Több) Üzenet lekérés| Lista (`szoveg` max ~100 karakter) |
-| GET | `/postaladaelemek/{id}` |(Egy) Üzenet lekérés| Teljes üzenet |
-| POST | `/uzenetek/olvasott` |Üzenet olvasottnak jelölése| `{ "isOlvasott": true, "uzenetAzonositoLista": [1001] }` |
-| POST | `/uzenetek` |Üzenet küldése| Küldés (mock): `targy`, `szoveg`, `cimzettUid`, `cimzettNev` |
-
-Hiányzó id: HTTP **500**, body: `An error has occured!`  
-Üres lista: `[]`.
-
-UI: https://puspus-dev.github.io/ujkreta/eugyintezes/
-
----
-
-## Osztályfőnök
-
-- Role: **`Osztalyfonok`** (Admin → felhasználók).
-- Belépés: fő login → `/osztalyfonok/`.
-- Napló API: mint tanár.
-- Extra (ha `of_role_patch` telepítve):
-
-| Endpoint | Metódus | Leírás |
-|----------|---------|--------|
-| `/naplo/v3/sajat/Of/Diakok` | GET, POST, DELETE | Diákok |
-| `/naplo/v3/sajat/Of/Users` | POST | Csak `Tanulo` user |
-
----
-
-## Admin API
-
-**Auth:** HTTP Basic (`ADMIN_USERNAME` / `ADMIN_PASSWORD`).
-
-| Endpoint | Metódus | Leírás |
-|----------|---------|--------|
-| `/admin/health` | GET | Admin él |
-| `/admin/config` | GET, PUT | Konfig |
-| `/admin/student` | GET, PUT | Singleton diák |
-| `/admin/students` | GET, POST, DELETE | Több diák |
-| `/admin/teacher` | GET, PUT, POST, DELETE | Tanár |
-| `/admin/users` | GET, POST, DELETE | Userek |
-| `/admin/reset` | POST | Mock reset |
-
-### `POST /admin/users`
-
-```json
-{
-  "username": "of1",
-  "password": "titok",
-  "studentUid": "",
-  "role": "Osztalyfonok"
-}
-```
-
-`role`: `Tanulo` | `Tanar` | `Osztalyfonok`
-
-### `POST /admin/students`
-
-```json
-{
-  "student": {
-    "Uid": "OA200001",
-    "Nev": "Kovács Anna",
-    "IntezmenyAzonosito": "dae0004",
-    "IntezmenyNev": "SuliKód",
-    "TanevUid": "2025/2026"
-  },
-  "username": "anna",
-  "password": "anna123"
-}
-```
+| Metódus | Útvonal | Leírás |
+|--------|---------|--------|
+| GET | `/health` | Healthcheck |
+| POST | `/Account/Login` | Login helper |
+| GET | `/admin/…` | Admin (külön auth) |
 
 ---
 
 ## Hibák
 
-```json
-{
-  "error": "invalid_grant",
-  "error_description": "Hibás felhasználónév vagy jelszó."
-}
-```
-
-| HTTP / error | Jelentés |
-|--------------|----------|
-| 400 | Hibás kérés / JSON |
-| 401 | Token / Basic Auth / hibás MFA kód |
-| 401 + `mfa_required` | Jelszó OK, 2FA kód kell |
-| 403 | Role nem elég |
-| 405 | Method not allowed |
-| 500 | Szerverhiba / hiányzó üzenet id |
+| Kód | Jelentés |
+|-----|----------|
+| 401 | Nincs / lejárt token |
+| 403 | Nincs jogosultság (pl. digidoc feltöltés csak tanár) |
+| 404 | Nincs ilyen erőforrás |
+| 400 | Hibás body / hiányzó mező |
+| 502/503 | FTP vagy külső szolgáltatás hiba |
 
 ---
 
-## CORS
+## Frontend szerepkörök
 
-Engedélyezett originök tipikusan:
+| UI mappa | Tipikus API prefix |
+|----------|-------------------|
+| `diak/` | `/ellenorzo/v3/sajat/…` |
+| `tanar/` | `/naplo/v3/sajat/…` |
+| `osztalyfonok/` | `/naplo/…` + `/Of/…` |
+| `eugyintezes/` | kommunikáció API |
+| `dkt/` | DKT + local UI |
 
-- `https://puspus-dev.github.io`
-- `https://e-krata.github.io`
-- `https://ekrata.ct.ws`
-- `http://localhost:*` / `http://127.0.0.1:*` (dev)
-
----
-
-## Health
-
-```http
-GET /health
-→ { "status": "ok" }
-```

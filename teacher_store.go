@@ -295,3 +295,165 @@ func findSubjectByUID(uid string, subjects []Subject) Subject {
 	}
 	return Subject{}
 }
+
+
+// ============================================================
+// TIMETABLE / LESSONS CRUD
+// ============================================================
+
+func (s *Store) AddLesson(req createLessonRequest) (Lesson, error) {
+	teacher := s.GetTeacher()
+	lessons := s.GetLessons()
+	now := time.Now()
+	uid := req.Uid
+	if uid == "" {
+		uid = nextUID("L", len(lessons))
+	}
+	subjName := req.TantargyNev
+	if subjName == "" {
+		subjName = req.TantargyUid
+	}
+	if subjName == "" {
+		subjName = "Óra"
+	}
+	groupName := req.OsztalyCsoportNev
+	if groupName == "" {
+		groupName = req.OsztalyCsoportUid
+	}
+	datum := req.Datum
+	if len(datum) >= 10 {
+		datum = datum[:10]
+	}
+	if datum == "" {
+		datum = now.Format("2006-01-02")
+	}
+	kezdet := req.KezdetIdopont
+	veg := req.VegIdopont
+	if kezdet == "" {
+		kezdet = datum + "T08:00:00"
+	}
+	if veg == "" {
+		veg = datum + "T08:45:00"
+	}
+	// normalize short times HH:MM
+	if len(kezdet) == 5 {
+		kezdet = datum + "T" + kezdet + ":00"
+	}
+	if len(veg) == 5 {
+		veg = datum + "T" + veg + ":00"
+	}
+	lesson := Lesson{
+		Uid:           uid,
+		Datum:         datum,
+		KezdetIdopont: kezdet,
+		VegIdopont:    veg,
+		Nev:           firstNonEmpty(req.Nev, subjName),
+		Oraszam:       req.Oraszam,
+		OsztalyCsoport: NameUid{Uid: req.OsztalyCsoportUid, Nev: groupName},
+		TanarNeve:     teacher.Nev,
+		Tantargy: Subject{
+			Uid: firstNonEmpty(req.TantargyUid, "T-"+subjName),
+			Nev: subjName,
+		},
+		Tema:      req.Tema,
+		TeremNeve: req.TeremNeve,
+		Tipus:     NameUidDesc{Uid: "1", Nev: "Óra", Leiras: "Tanóra"},
+		Allapot:   NameUidDesc{Uid: "1", Nev: "Tervezett", Leiras: "Tervezett óra"},
+		Letrehozas: iso(now),
+		UtolsoModositas: iso(now),
+	}
+	if lesson.Oraszam == 0 {
+		lesson.Oraszam = 1
+	}
+	lessons = append(lessons, lesson)
+	s.SetLessons(lessons)
+	return lesson, nil
+}
+
+func (s *Store) UpdateLesson(req createLessonRequest) (Lesson, error) {
+	if req.Uid == "" {
+		return Lesson{}, fmt.Errorf("uid_required")
+	}
+	lessons := s.GetLessons()
+	for i, l := range lessons {
+		if l.Uid != req.Uid {
+			continue
+		}
+		if req.Datum != "" {
+			d := req.Datum
+			if len(d) >= 10 {
+				d = d[:10]
+			}
+			l.Datum = d
+		}
+		if req.Oraszam != 0 {
+			l.Oraszam = req.Oraszam
+		}
+		if req.KezdetIdopont != "" {
+			k := req.KezdetIdopont
+			if len(k) == 5 {
+				k = l.Datum + "T" + k + ":00"
+			}
+			l.KezdetIdopont = k
+		}
+		if req.VegIdopont != "" {
+			v := req.VegIdopont
+			if len(v) == 5 {
+				v = l.Datum + "T" + v + ":00"
+			}
+			l.VegIdopont = v
+		}
+		if req.TantargyNev != "" || req.TantargyUid != "" {
+			name := firstNonEmpty(req.TantargyNev, req.TantargyUid)
+			l.Tantargy = Subject{Uid: firstNonEmpty(req.TantargyUid, l.Tantargy.Uid), Nev: name}
+			l.Nev = name
+		}
+		if req.OsztalyCsoportUid != "" || req.OsztalyCsoportNev != "" {
+			l.OsztalyCsoport = NameUid{
+				Uid: firstNonEmpty(req.OsztalyCsoportUid, l.OsztalyCsoport.Uid),
+				Nev: firstNonEmpty(req.OsztalyCsoportNev, l.OsztalyCsoport.Nev),
+			}
+		}
+		if req.TeremNeve != "" {
+			l.TeremNeve = req.TeremNeve
+		}
+		if req.Tema != "" {
+			l.Tema = req.Tema
+		}
+		l.UtolsoModositas = iso(time.Now())
+		lessons[i] = l
+		s.SetLessons(lessons)
+		return l, nil
+	}
+	return Lesson{}, fmt.Errorf("not_found")
+}
+
+func (s *Store) DeleteLesson(uid string) error {
+	if uid == "" {
+		return fmt.Errorf("uid_required")
+	}
+	lessons := s.GetLessons()
+	out := make([]Lesson, 0, len(lessons))
+	found := false
+	for _, l := range lessons {
+		if l.Uid == uid {
+			found = true
+			continue
+		}
+		out = append(out, l)
+	}
+	if !found {
+		return fmt.Errorf("not_found")
+	}
+	s.SetLessons(out)
+	return nil
+}
+
+func firstNonEmpty(vals ...string) string {
+	for _, v := range vals {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
+}

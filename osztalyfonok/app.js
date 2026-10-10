@@ -973,7 +973,7 @@ function bindAbsences() {
     btn.addEventListener("click", async () => {
       if (!confirm("Törlöd a mulasztást?")) return;
       try {
-        await apiDelete("/naplo/v3/sajat/Mulasztasok?uid=" + encodeURIComponent(btn.dataset.uid));
+        try { await apiDelete("/naplo/v3/sajat/Orarend/OraNaplozasTorles?uid=" + encodeURIComponent(btn.dataset.uid)); } catch (_) { await apiDelete("/naplo/v3/sajat/Mulasztasok?uid=" + encodeURIComponent(btn.dataset.uid)); }
         cache.absences = await apiGet("/naplo/v3/sajat/Mulasztasok");
         navigate("absences");
       } catch (err) {
@@ -1750,7 +1750,6 @@ function bindNaplo(opts = {}) {
       else btn.classList.add("on-k");
     });
   });
-  // prefill tema from lesson
   const lesSel = document.getElementById("naploLesson");
   const fillTema = () => {
     const l = (cache.timetable || []).find((x) => x.Uid === lesSel?.value);
@@ -1765,50 +1764,35 @@ function bindNaplo(opts = {}) {
     const tema = (document.getElementById("naploTema")?.value || "").trim();
     const lessonUid = document.getElementById("naploLesson")?.value || "";
     const lesson = (cache.timetable || []).find((x) => x.Uid === lessonUid);
-    let ok = 0, fail = 0;
-    const rows = document.querySelectorAll("#naploBody tr[data-uid]");
-    for (const row of rows) {
+    const jelenletek = [];
+    document.querySelectorAll("#naploBody tr[data-uid]").forEach((row) => {
       const uid = row.dataset.uid;
       const active = row.querySelector(".seg button.on-j, .seg button.on-h, .seg button.on-k");
       const v = active?.dataset?.v || "jelen";
-      if (v === "jelen") continue;
       const late = Number(row.querySelector(".late-inp")?.value) || 0;
-      try {
-        await apiPost("/naplo/v3/sajat/Mulasztasok", {
-          TanuloUid: uid,
-          Datum: (lesson?.Datum || new Date().toISOString()).slice(0, 10),
-          KesesPercben: v === "keses" ? (late || 5) : 0,
-          Tipus: {
-            Uid: v === "keses" ? "2" : "1",
-            Nev: v === "keses" ? "Késés" : "Hiányzás",
-            Leiras: v === "keses" ? "Késés" : "Hiányzás"
-          },
-          OsztalyCsoportUid: lesson?.OsztalyCsoport?.Uid || row.dataset.group || ""
-        });
-        ok++;
-      } catch (_) { fail++; }
-    }
-    // update lesson tema if selected
-    if (lessonUid && tema) {
-      try {
-        await apiPut("/naplo/v3/sajat/OrarendElemek", {
-          Uid: lessonUid,
-          Tema: tema,
-          Datum: lesson?.Datum,
-          Oraszam: lesson?.Oraszam,
-          TantargyUid: lesson?.Tantargy?.Uid,
-          TantargyNev: subjectName(lesson) || lesson?.Nev,
-          OsztalyCsoportUid: lesson?.OsztalyCsoport?.Uid,
-          OsztalyCsoportNev: lesson?.OsztalyCsoport?.Nev,
-          TeremNeve: lesson?.TeremNeve
-        });
-        cache.timetable = await apiGet("/naplo/v3/sajat/OrarendElemek");
-      } catch (_) {}
-    }
-    try { cache.absences = await apiGet("/naplo/v3/sajat/Mulasztasok"); } catch (_) {}
-    if (msg) {
-      msg.textContent = `Mentve: ${ok} mulasztás` + (fail ? `, hiba: ${fail}` : "") +
-        (tema ? " · téma frissítve" : "");
+      jelenletek.push({
+        TanuloUid: uid,
+        Tipus: v,
+        KesesPercben: v === "keses" ? (late || 5) : 0
+      });
+    });
+    try {
+      if (msg) msg.textContent = "Mentés…";
+      const res = await apiPost("/naplo/v3/sajat/Orarend/OraNaplozas", {
+        OrarendElemUid: lessonUid,
+        Datum: (lesson?.Datum || new Date().toISOString()).slice(0, 10),
+        Tema: tema,
+        OsztalyCsoportUid: lesson?.OsztalyCsoport?.Uid || "",
+        Jelenletek: jelenletek
+      });
+      try { cache.absences = await apiGet("/naplo/v3/sajat/Mulasztasok"); } catch (_) {}
+      try { cache.timetable = await apiGet("/naplo/v3/sajat/OrarendElemek"); } catch (_) {}
+      if (msg) {
+        const n = (res && res.mulasztasDb != null) ? res.mulasztasDb : "?";
+        msg.textContent = "Naplózva. Mulasztások: " + n + (tema ? " · téma mentve" : "");
+      }
+    } catch (err) {
+      if (msg) msg.textContent = "Hiba: " + (err.message || err);
     }
   });
 }

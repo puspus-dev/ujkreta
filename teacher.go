@@ -90,6 +90,14 @@ func (s *Server) registerTeacherRoutes(mux *http.ServeMux) {
 		s.requireTeacher(s.handleTeacherTimetable),
 	)
 	mux.HandleFunc(
+		"/naplo/v3/sajat/Orarend/OraNaplozas",
+		s.requireTeacher(s.handleOraNaplozas),
+	)
+	mux.HandleFunc(
+		"/naplo/v3/sajat/Orarend/OraNaplozasTorles",
+		s.requireTeacher(s.handleOraNaplozasTorles),
+	)
+	mux.HandleFunc(
 		"/naplo/v3/sajat/Ertekelesek",
 		s.requireTeacher(s.handleTeacherGrades),
 	)
@@ -346,6 +354,111 @@ func (s *Server) handleTeacherOmissions(w http.ResponseWriter, r *http.Request) 
 		methodNotAllowed(w, "GET, POST, DELETE")
 	}
 }
+
+
+// ============================================================
+// ÓRA NAPLÓZÁS – /naplo/v3/sajat/Orarend/OraNaplozas
+// ============================================================
+
+type oraNaploJelenlet struct {
+	TanuloUid    string `json:"TanuloUid"`
+	Tipus        string `json:"Tipus"` // jelen | hianyzas | keses
+	KesesPercben int    `json:"KesesPercben"`
+}
+
+type oraNaplozasRequest struct {
+	OrarendElemUid    string             `json:"OrarendElemUid"`
+	Datum             string             `json:"Datum"`
+	Tema              string             `json:"Tema"`
+	OsztalyCsoportUid string             `json:"OsztalyCsoportUid"`
+	Jelenletek        []oraNaploJelenlet `json:"Jelenletek"`
+}
+
+func (s *Server) handleOraNaplozas(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		methodNotAllowed(w, "POST")
+		return
+	}
+	var req oraNaplozasRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_json"})
+		return
+	}
+
+	// 1) óra téma frissítése az órarendi elemen
+	if req.OrarendElemUid != "" && req.Tema != "" {
+		_, _ = s.store.UpdateLesson(createLessonRequest{
+			Uid:  req.OrarendElemUid,
+			Tema: req.Tema,
+		})
+	}
+
+	// 2) hiányzások / késések rögzítése
+	created := make([]Omission, 0)
+	for _, j := range req.Jelenletek {
+		tipus := strings.ToLower(strings.TrimSpace(j.Tipus))
+		if tipus == "" || tipus == "jelen" {
+			continue
+		}
+		omReq := createOmissionRequest{
+			TanuloUid:         j.TanuloUid,
+			Datum:             req.Datum,
+			KesesPercben:      j.KesesPercben,
+			OsztalyCsoportUid: req.OsztalyCsoportUid,
+		}
+		if tipus == "keses" {
+			omReq.Tipus = &NameUidDesc{Uid: "2", Nev: "Késés", Leiras: "Késés"}
+			if omReq.KesesPercben == 0 {
+				omReq.KesesPercben = 5
+			}
+		} else {
+			omReq.Tipus = &NameUidDesc{Uid: "1", Nev: "Hiányzás", Leiras: "Hiányzás"}
+		}
+		om, err := s.store.AddOmission(omReq)
+		if err != nil {
+			continue
+		}
+		created = append(created, om)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"ok":              true,
+		"orarendElemUid":  req.OrarendElemUid,
+		"tema":            req.Tema,
+		"mulasztasok":     created,
+		"mulasztasDb":     len(created),
+	})
+}
+
+func (s *Server) handleOraNaplozasTorles(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost && r.Method != http.MethodDelete {
+		methodNotAllowed(w, "POST, DELETE")
+		return
+	}
+	uid := strings.TrimSpace(r.URL.Query().Get("uid"))
+	if uid == "" {
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if body != nil {
+			if v, ok := body["Uid"].(string); ok && v != "" {
+				uid = v
+			} else if v, ok := body["uid"].(string); ok && v != "" {
+				uid = v
+			}
+		}
+	}
+	if uid == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "uid_required"})
+		return
+	}
+	// Mulasztás törlése (napló bejegyzés = mulasztás rekord)
+	if err := s.store.DeleteOmission(uid); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"success": true, "deleted": uid})
+}
+
 
 // ============================================================
 // TESTS (GET + POST)

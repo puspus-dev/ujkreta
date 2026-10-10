@@ -103,7 +103,30 @@ Token: `POST /connect/token` (OAuth2 password / refresh)
 }
 ```
 
-### POST `/naplo/v3/sajat/Mulasztasok` – óra napló / hiányzás
+
+### POST `/naplo/v3/sajat/Orarend/OraNaplozas` – óra naplózás
+
+```json
+{
+  "OrarendElemUid": "L-…",
+  "Datum": "2026-10-10",
+  "Tema": "Másodfokú egyenletek",
+  "OsztalyCsoportUid": "…",
+  "Jelenletek": [
+    { "TanuloUid": "…", "Tipus": "jelen", "KesesPercben": 0 },
+    { "TanuloUid": "…", "Tipus": "hianyzas", "KesesPercben": 0 },
+    { "TanuloUid": "…", "Tipus": "keses", "KesesPercben": 10 }
+  ]
+}
+```
+
+Válasz: `{ ok, orarendElemUid, tema, mulasztasok, mulasztasDb }`
+
+### POST/DELETE `/naplo/v3/sajat/Orarend/OraNaplozasTorles` – napló/mulasztás törlés
+
+Query: `?uid=` vagy body `{ "Uid": "…" }`
+
+### POST `/naplo/v3/sajat/Mulasztasok` – mulasztás (közvetlen)
 
 ```json
 {
@@ -149,8 +172,8 @@ Base: `/integration-kretamobile-api/v1/kommunikacio`
 
 | Metódus | Útvonal | Leírás |
 |--------|---------|--------|
-| GET | `…/postaladaelemek/sajat` | Saját postaláda |
-| GET | `…/postaladaelemek/{id}` | Egy elem |
+| GET | `…/postaladaelemek/sajat` |(Több) Üzenet lekérés |
+| GET | `…/postaladaelemek/{id}` |(Egy) Üzenet lekérés |
 | POST | `…/uzenetek/olvasott` | Olvasottnak jelöl |
 | POST | `…/uzenetek` | Üzenet küldés |
 

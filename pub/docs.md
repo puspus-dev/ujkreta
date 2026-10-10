@@ -179,6 +179,18 @@ Base: `/integration-kretamobile-api/v1/kommunikacio`
 
 ---
 
+## DKT
+
+Base: `/dktapi`
+
+| Metódus | Útvonal | Leírás |
+|---------|---------|--------|
+| GET | /intezmenyek/munkaterek/tanulok | Tanulók lekérése(?) (Fogalmam nincs hogy mit csinál de azért van) |
+| GET | /orak/oraifeladat | Órai feladatok lekérése |
+| POST | /orak/hazifeladat/megoldasok/{haziFeladatId}/bekuldes | Házi feladat megoldásának beküldése |
+| DELETE | /orak/hazifeladat/megoldasok/{haziFeladatId}/torles | Házi feladat megoldásának törlése |
+| POST | /intezmenyek/munkaterek/tanulok/orak/tananyagok | Órai tananyagok lekérése |
+
 ## Egyéb
 
 | Metódus | Útvonal | Leírás |

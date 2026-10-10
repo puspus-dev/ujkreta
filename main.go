@@ -94,6 +94,14 @@ func main() {
 	// DKT
 	mux.HandleFunc("/dktapi/intezmenyek/munkaterek/tanulok",
 		server.requireAuthSession(server.handleGetDktSubjects))
+	mux.HandleFunc("/dktapi/orak/oraifeladat/",
+        server.requireAuthSession(server.handleOraiFeladatLekeres))
+	mux.HandleFunc("/dktapi/orak/hazifeladat/megoldasok/{haziFeladatId}/bekuldes",
+	    server.requireAuthSession(server.handleHazifeladatMegoldasBekuldes))
+	mux.HandleFunc("/dktapi/orak/hazifeladat/megoldasok/{haziFeladatId}/torles",
+	    server.requireAuthSession(server.handleHazifeladatMegoldasTorles))
+	mux.HandleFunc("/dktapi/intezmenyek/munkaterek/tanulok/orak/tananyagok",
+	    server.requireAuthSession(server.handleDKTtananyagLekeres))
 
 
 	// ============================================================

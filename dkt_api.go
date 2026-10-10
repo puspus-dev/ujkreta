@@ -10,137 +10,158 @@ import (
 	"time"
 )
 
-// Órai Feladat lekérés
+var (
+	dktMu              sync.Mutex
+	dktHomeworkSols    = []map[string]any{}
+	dktOraiFeladatok   []map[string]any
+	dktTananyagok      []map[string]any
+	dktClasswork       []map[string]any
+)
+
+func init() {
+	now := time.Now().UTC().Format(time.RFC3339)
+	dktOraiFeladatok = []map[string]any{
+		{
+			"id": 1, "cim": "Órai feladat 1", "szoveg": "Oldd meg a táblán lévő példát.",
+			"tantargyId": 1, "tantargyNev": "Matematika", "oraDatum": time.Now().Format("2006-01-02"),
+			"oraszam": 2, "letrehozasIdeje": now, "alkalmazottNev": "Szaktanár",
+		},
+	}
+	dktTananyagok = []map[string]any{
+		{
+			"id": 1, "cim": "Év eleji tematika", "szoveg": "A félév anyaga.",
+			"tantargyId": 1, "tantargyNev": "Matematika", "letrehozasIdeje": now,
+		},
+	}
+	dktClasswork = []map[string]any{
+		{
+			"id": 101, "cim": "Minta beadandó", "szoveg": "Példa classwork.",
+			"tantargyId": 1, "tantargyNev": "Matematika", "oraszam": 1,
+			"oraDatum": time.Now().Format("2006-01-02"), "letrehozasIdeje": now,
+			"beadandoTipusId": 1, "csatolasEngedelyezesTipusId": 0, "pontszam": 0.0,
+		},
+	}
+}
+
+
+
+// Órai Feladatok Lekérése
 func (s *Server) handleOraiFeladatLekeres(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		methodNotAllowed(w, "GET")
 		return
 	}
+	dktMu.Lock()
+	out := append([]map[string]any{}, dktOraiFeladatok...)
+	dktMu.Unlock()
+	writeJSON(w, http.StatusOK, out)
+}
 
-	// Lista
-	out := []map[string]any{
-	"csatolasEngedelyezesTipusId": 0,
-	"csoportId": 0,
-	"osztalyId": 0,
-	"osztalyNev": "",
-	"letrehozasIdeje": "",
-	"alkalmazottId": 0,
-	"groupId": "",
-	"id": 0,
-	"idotartamPerc": 0,
-	"oraDatum": "",
-	"oraszam": 0,
-	"oraIdopont": "",
-	"pontszam": 0.0,
-	"tantargyKategoriaId": "",
-	"tantargyId": 0,
-	"tantargyNev": "",
-	"beadandoTipusId": 0,
-	"alkalmazottNev": "",
-	"szoveg": "",
-	"cim": "",
-	"csatolasEngedelyezesTipusId": ""
+// Órai Tananyagok lekérése
+func (s *Server) handleDKTtananyagLekeres(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		methodNotAllowed(w, "GET")
+		return
 	}
+	dktMu.Lock()
+	out := append([]map[string]any{}, dktTananyagok...)
+	dktMu.Unlock()
+	writeJSON(w, http.StatusOK, out)
+}
 
-// Házi feladat beküldés	
+
+// Házi feladat Megoldásának beküldése
 func (s *Server) handleHazifeladatMegoldasBekuldes(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		methodNotAllowed(w, "POST")
 		return
 	}
-
-	// 1) Bejövő JSON kiolvasása
+	hwID := r.PathValue("haziFeladatId")
 	var body struct {
 		HaziFeladatId string `json:"haziFeladatId"`
 		Szoveg        string `json:"szoveg"`
+		Cim           string `json:"cim"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_json"})
-		return
+	_ = json.NewDecoder(io.LimitReader(r.Body, 2<<20)).Decode(&body)
+	if hwID == "" {
+		hwID = body.HaziFeladatId
 	}
-
-	// 2) Ha semmi nincs benne → hiba
-	if body.HaziFeladatId == "" && body.Szoveg == "" {
+	if hwID == "" && body.Szoveg == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "ures"})
 		return
 	}
-
-	// 3) Válasz: megkaptuk
-	writeJSON(w, http.StatusOK, map[string]any{
-		"ok":            true,
-		"haziFeladatId": body.HaziFeladatId,
+	username, _, _, _ := sessionUser(r)
+	entry := map[string]any{
+		"id":            len(dktHomeworkSols) + 1,
+		"haziFeladatId": hwID,
 		"szoveg":        body.Szoveg,
-	})
+		"cim":           body.Cim,
+		"bekuldo":       username,
+		"bekuldesIdeje": time.Now().UTC().Format(time.RFC3339),
+		"statusz":       "beadva",
+	}
+	dktMu.Lock()
+	dktHomeworkSols = append(dktHomeworkSols, entry)
+	dktMu.Unlock()
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "solution": entry})
 }
 
-// Beadott házi feladat törlése 
+// Házi feladat Megoldásának törlése
 func (s *Server) handleHazifeladatMegoldasTorles(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
-		methodNotAllowed(w, "DELETE")
+	if r.Method != http.MethodDelete && r.Method != http.MethodPost {
+		methodNotAllowed(w, "DELETE, POST")
 		return
 	}
-
-	beadasID := r.PathValue("haziFeladatId")
-	fajlID := r.PathValue("id")
-
-	
-	if beadasID == "" || fajlID == "" {
+	hwID := r.PathValue("haziFeladatId")
+	if hwID == "" {
 		parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-		for i := 0; i < len(parts)-1; i++ {
-			if parts[i] == "beadasok" {
-				beadasID = parts[i+1]
-			}
-			if parts[i] == "fajlok" {
-				fajlID = parts[i+1]
+		for i, p := range parts {
+			if p == "megoldasok" && i+1 < len(parts) {
+				hwID = parts[i+1]
+				break
 			}
 		}
 	}
-
-	if beadasID == "" || fajlID == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "id_hianyzik"})
+	if hwID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "haziFeladatId_hianyzik"})
 		return
 	}
-
-	
-	writeJSON(w, http.StatusOK, map[string]any{
-		"ok":                  true,
-		"haziFeladatId": beadasID,
-		"fajlId":              fajlID,
-	})
+	dktMu.Lock()
+	out := make([]map[string]any, 0, len(dktHomeworkSols))
+	removed := 0
+	for _, s0 := range dktHomeworkSols {
+		if strID(s0["haziFeladatId"]) == hwID || strID(s0["id"]) == hwID {
+			removed++
+			continue
+		}
+		out = append(out, s0)
+	}
+	dktHomeworkSols = out
+	dktMu.Unlock()
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "haziFeladatId": hwID, "removed": removed})
 }
 
-// DKT Tananyag lekérés
-func (s *Server) handleDKTtananyagLekeres(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		methodNotAllowed(w, "POST")
+// Házifeladat saját Megoldások beadásának listája
+func (s *Server) handleHazifeladatSajatMegoldasLista(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		methodNotAllowed(w, "GET")
 		return
 	}
+	dktMu.Lock()
+	out := append([]map[string]any{}, dktHomeworkSols...)
+	dktMu.Unlock()
+	writeJSON(w, http.StatusOK, out)
+}
 
-	
-	var body struct {
-	"osztalyId": 0,
-	"feladatId": 0,
-	"datum": "x",
-	"alkalmazottId": 0,
-	"csoportId": 0,
-	"oraszam": 0,
-	"tantargyId": 0,
-	"idopont": ""
+func strID(v any) string {
+	switch t := v.(type) {
+	case string:
+		return t
+	case float64:
+		return strconv.FormatInt(int64(t), 10)
+	case int:
+		return strconv.Itoa(t)
+	default:
+		return ""
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_json"})
-		return
-	}
-
-	
-	if body.Cim == "" && body.Szoveg == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "ures"})
-		return
-	}
-
-	
-	writeJSON(w, http.StatusOK, map[string]any{
-		"ok":   true,
-		"item": body,
-	})
 }

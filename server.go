@@ -568,6 +568,30 @@ func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// OsztályCsoport (Más osztály fix)
+func (s *Server) handleAdminClassGroups(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		writeJSON(w, http.StatusOK, s.store.GetClassGroups())
+
+	case http.MethodPut, http.MethodPost:
+		var groups []ClassGroup
+		if err := json.NewDecoder(r.Body).Decode(&groups); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_json"})
+			return
+		}
+		s.store.SetClassGroups(groups)
+		writeJSON(w, http.StatusOK, map[string]any{
+			"success": true,
+			"count":   len(groups),
+			"groups":  s.store.GetClassGroups(),
+		})
+
+	default:
+		methodNotAllowed(w, "GET, PUT, POST")
+	}
+}
+
 // ============================================================
 // STORE HELPERS – soft delete + user lista
 // (ha ezek máshol is definiálva vannak, töröld a másik példányt)

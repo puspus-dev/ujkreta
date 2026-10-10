@@ -238,6 +238,7 @@ func (s *Server) registerAdminRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/admin/users", s.requireAdmin(s.handleAdminUsers))
 	mux.HandleFunc("/admin/teacher", s.requireAdmin(s.handleAdminTeacher))
 	mux.HandleFunc("/admin/students", s.requireAdmin(s.handleAdminStudents))
+	mux.HandleFunc("/admin/classgroups", s.requireAdmin(s.handleAdminClassGroups))
 }
 
 // ============================================================
@@ -273,6 +274,30 @@ func (s *Server) handleAdminIndex(w http.ResponseWriter, r *http.Request) {
 			"/admin/reset":    "POST",
 		},
 	})
+}
+
+// Osztályfix
+func (s *Server) handleAdminClassGroups(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		writeJSON(w, http.StatusOK, s.store.GetClassGroups())
+
+	case http.MethodPut, http.MethodPost:
+		var groups []ClassGroup
+		if err := json.NewDecoder(r.Body).Decode(&groups); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_json"})
+			return
+		}
+		s.store.SetClassGroups(groups)
+		writeJSON(w, http.StatusOK, map[string]any{
+			"success": true,
+			"count":   len(groups),
+			"groups":  s.store.GetClassGroups(),
+		})
+
+	default:
+		methodNotAllowed(w, "GET, PUT, POST")
+	}
 }
 
 // ============================================================
@@ -568,29 +593,6 @@ func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// OsztályCsoport (Más osztály fix)
-func (s *Server) handleAdminClassGroups(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		writeJSON(w, http.StatusOK, s.store.GetClassGroups())
-
-	case http.MethodPut, http.MethodPost:
-		var groups []ClassGroup
-		if err := json.NewDecoder(r.Body).Decode(&groups); err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_json"})
-			return
-		}
-		s.store.SetClassGroups(groups)
-		writeJSON(w, http.StatusOK, map[string]any{
-			"success": true,
-			"count":   len(groups),
-			"groups":  s.store.GetClassGroups(),
-		})
-
-	default:
-		methodNotAllowed(w, "GET, PUT, POST")
-	}
-}
 
 // ============================================================
 // STORE HELPERS – soft delete + user lista

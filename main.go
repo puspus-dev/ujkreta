@@ -131,10 +131,7 @@ func main() {
 	// ============================================================
 
 	server.registerAdminRoutes(mux)
-
-	// OsztályCsoportok
-	mux.HandleFunc("/admin/classgroups", s.requireAdmin(s.handleAdminClassGroups))
-
+	
 	// ============================================================
 	// Static (embed)
 	// ============================================================
